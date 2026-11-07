@@ -8,6 +8,7 @@ import {
   type ManagerAnswer,
   type ManagerQuestion,
 } from '@/logic/manager';
+import { withSafetyRule } from '@/logic/safety';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, hit, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -98,7 +99,9 @@ export function ManagerSheet({ visible, onClose }: Props) {
       const items = [...characters, ...ghosts].map((c) => toChatItem(c, c.daysLeft));
       const res = await api.chat({
         items,
-        userMessage: `You are the fridge manager, a friendly caretaker who speaks for the whole fridge (not as any single food). Answer in one or two short sentences: ${q}`,
+        userMessage: withSafetyRule(
+          `You are the fridge manager, a friendly caretaker who speaks for the whole fridge (not as any single food). Answer in one or two short sentences: ${q}`,
+        ),
       });
       const first = res.lines[0]?.text;
       if (session.current !== id) return;

@@ -8,6 +8,7 @@ import { useNudge } from '@/components/NudgeBanner';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { TypingDots } from '@/components/TypingDots';
+import { withSafetyRule } from '@/logic/safety';
 import { useSettings } from '@/logic/settings';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
@@ -67,7 +68,10 @@ export default function ChatScreen() {
       if (members.length === 0) return;
       setLoading(true);
       try {
-        const res = await api.chat({ items: members.map((m) => toChatItem(m, m.daysLeft)), userMessage });
+        const res = await api.chat({
+          items: members.map((m) => toChatItem(m, m.daysLeft)),
+          userMessage: withSafetyRule(userMessage ?? ''),
+        });
         setMsgs((prev) => [
           ...prev,
           ...res.lines
