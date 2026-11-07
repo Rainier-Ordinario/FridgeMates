@@ -89,7 +89,8 @@ const normalize = {
           // The backend sends negatives for visibly spoiled food; keep them so it arrives as a ghost.
           daysLeft: Math.max(-30, Math.min(365, Math.round(num(i.daysLeft, 3)))),
           dateSource: i.dateSource === 'printed' ? 'printed' : 'estimated',
-          intro: safeText(str(i.intro) || 'Hi. I live here now.', 'Hi. I live here now.'),
+          // No stand-in intro: an empty intro simply shows nothing.
+          intro: safeText(str(i.intro), ''),
         })),
     };
   },
