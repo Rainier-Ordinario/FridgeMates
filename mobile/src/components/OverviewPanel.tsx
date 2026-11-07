@@ -12,7 +12,9 @@ import {
   type Urgency,
 } from '@/logic/overview';
 import { formatDollars } from '@/logic/prices';
-import { AVATARS, avatarIcon, useSettings, type Avatar } from '@/logic/settings';
+import { useSettings } from '@/logic/settings';
+import { ProfilePicture } from './ProfilePicture';
+import { ProfileSheet } from './ProfileSheet';
 import { useFridge } from '@/logic/store';
 import { colors, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -37,6 +39,7 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
   const empty = characters.length + ghosts.length === 0;
   const settings = useSettings();
   const [name, setName] = useState(settings.fridgeName);
+  const [pictureOpen, setPictureOpen] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setName(settings.fridgeName), 0);
     return () => clearTimeout(id);
@@ -51,11 +54,6 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
     settings.set('fridgeName', trimmed);
   }
 
-  function pickAvatar(a: Avatar) {
-    Haptics.selectionAsync();
-    settings.set('avatar', a);
-  }
-
   return (
     <ScrollView
       contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
@@ -64,9 +62,11 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
       nestedScrollEnabled
     >
       <View style={styles.profile}>
-        <View style={styles.avatarBig}>
-          <UiIcon icon={avatarIcon(settings.avatar)} size={56} />
-        </View>
+        <ProfilePicture
+          size={72}
+          onPress={() => setPictureOpen(true)}
+          accessibilityLabel="Change profile picture"
+        />
         <TextInput
           value={name}
           onChangeText={setName}
@@ -79,28 +79,8 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
           placeholderTextColor={colors.inkMuted}
           style={styles.nameInput}
         />
-        <View style={styles.avatarRow} accessibilityLabel="Choose an avatar">
-          {AVATARS.map((a) => {
-            const selected = a === settings.avatar;
-            return (
-              <Pressable
-                key={a}
-                accessibilityRole="button"
-                accessibilityLabel={`Avatar ${a}`}
-                accessibilityState={{ selected }}
-                onPress={() => pickAvatar(a)}
-                style={({ pressed }) => [
-                  styles.avatarOption,
-                  selected && styles.avatarSelected,
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <UiIcon icon={avatarIcon(a)} size={28} />
-              </Pressable>
-            );
-          })}
-        </View>
       </View>
+      <ProfileSheet visible={pictureOpen} onClose={() => setPictureOpen(false)} />
 
       <View
         style={styles.statsGrid}
@@ -251,14 +231,6 @@ const styles = StyleSheet.create({
     padding: space.xl,
     ...shadow.card,
   },
-  avatarBig: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   nameInput: {
     alignSelf: 'stretch',
     textAlign: 'center',
@@ -270,18 +242,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: colors.line,
   },
-  avatarRow: { flexDirection: 'row', gap: space.sm },
-  avatarOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.line,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarSelected: { borderColor: colors.brand, backgroundColor: colors.surfaceAlt },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   tile: {
     width: '47%',
