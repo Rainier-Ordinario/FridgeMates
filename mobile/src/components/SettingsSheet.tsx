@@ -1,5 +1,10 @@
 import { mockScanResponse } from '@/api/mocks/scan';
 import { useFirstRun } from '@/logic/firstRun';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  scheduleTestNotification,
+} from '@/logic/notifications';
 import { useSettings } from '@/logic/settings';
 import { formatDollars } from '@/logic/prices';
 import { useFridge } from '@/logic/store';
@@ -11,7 +16,7 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText } from './AppText';
 import { UiIcon, type FluentIconName } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
-import { useTextMe } from './NudgeBanner';
+import { useNudge, useTextMe } from './NudgeBanner';
 
 interface Props {
   visible: boolean;
@@ -25,9 +30,23 @@ interface Props {
 /** Every control in one place: voices, sounds, stats, help, reset, about, and the demo tools. */
 export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafety }: Props) {
   const settings = useSettings();
-  const { scoreboard, loadDemo, addScanned, skipDay, clearAll, dayOffset } = useFridge();
+  const { scoreboard, loadDemo, addScanned, skipDay, clearAll, dayOffset, characters } = useFridge();
   const { welcomed } = useFirstRun();
   const textMe = useTextMe();
+  const { showToast } = useNudge();
+
+  async function toggleNotifications(on: boolean) {
+    if (!on) {
+      settings.set('notifications', false);
+      return;
+    }
+    settings.set('notificationsAsked', true);
+    const status = await getNotificationPermission();
+    const granted =
+      status === 'granted' || (status === 'undetermined' && (await requestNotificationPermission()));
+    settings.set('notifications', granted);
+    if (!granted) showToast('Allow notifications for FridgeMates in iOS Settings.');
+  }
 
   const after = (fn: () => void) => () => {
     Haptics.selectionAsync();
@@ -51,6 +70,13 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
           caption="Pops, sighs and confetti"
           value={settings.sounds}
           onChange={(v) => settings.set('sounds', v)}
+        />
+        <ToggleRow
+          icon="mobile-phone"
+          label="Notifications"
+          caption="Max 2 a day, never at night"
+          value={settings.notifications}
+          onChange={(v) => void toggleNotifications(v)}
         />
       </Section>
 
@@ -131,6 +157,16 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
               label="Text me"
               caption="The most urgent character sends a message"
               onPress={after(textMe)}
+            />
+            <LinkRow
+              icon="bell"
+              label="Send test notification"
+              caption="Lock the phone: a real one lands in 5 seconds (banner if denied)"
+              onPress={after(async () => {
+                const ok = await scheduleTestNotification(characters[0]);
+                if (ok) showToast('Lock your phone. It arrives in 5 seconds.');
+                else textMe();
+              })}
             />
             {onTestSafety && (
               <LinkRow
