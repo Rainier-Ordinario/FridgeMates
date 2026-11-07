@@ -27,10 +27,13 @@ interface Props {
   onShowUrgency: (urgency: Urgency) => void;
   /** Space to leave for the docked buttons. */
   bottomPadding: number;
+  /** Controlled 'Profile picture' sheet (the home screen owns it so a dev link can open it). */
+  pictureOpen: boolean;
+  onPictureOpenChange: (open: boolean) => void;
 }
 
 /** Page 2 of the home pager: profile-lite, stats, what's inside, and the manager's summary. */
-export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
+export function OverviewPanel({ onShowUrgency, bottomPadding, pictureOpen, onPictureOpenChange }: Props) {
   const { scoreboard, characters, ghosts } = useFridge();
   const buckets = urgencyBuckets(characters, ghosts);
   const groups = categoryGroups(characters);
@@ -39,7 +42,6 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
   const empty = characters.length + ghosts.length === 0;
   const settings = useSettings();
   const [name, setName] = useState(settings.fridgeName);
-  const [pictureOpen, setPictureOpen] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setName(settings.fridgeName), 0);
     return () => clearTimeout(id);
@@ -64,7 +66,7 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
       <View style={styles.profile}>
         <ProfilePicture
           size={72}
-          onPress={() => setPictureOpen(true)}
+          onPress={() => onPictureOpenChange(true)}
           accessibilityLabel="Change profile picture"
         />
         <TextInput
@@ -80,7 +82,7 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
           style={styles.nameInput}
         />
       </View>
-      <ProfileSheet visible={pictureOpen} onClose={() => setPictureOpen(false)} />
+      <ProfileSheet visible={pictureOpen} onClose={() => onPictureOpenChange(false)} />
 
       <View
         style={styles.statsGrid}

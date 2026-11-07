@@ -130,6 +130,7 @@ export default function FridgeScreen() {
   const { width } = useWindowDimensions();
   const pagerRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [page, setPage] = useState(0);
+  const [pictureOpen, setPictureOpen] = useState(false);
   const goToPage = useCallback(
     (i: number) => {
       pagerRef.current?.scrollTo({ x: i * width, animated: true });
@@ -155,6 +156,7 @@ export default function FridgeScreen() {
     t,
     ask,
     page: pageParam,
+    picture: pictureParam,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -166,6 +168,7 @@ export default function FridgeScreen() {
     t?: string;
     ask?: string;
     page?: string;
+    picture?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -199,8 +202,9 @@ export default function FridgeScreen() {
     if (urgency) setTimeout(() => setUrgencyFilter(urgency as Urgency), 0);
     if (hintParam) hint.set(false);
     if (pageParam === 'overview') setTimeout(() => goToPage(1), 400);
+    if (pictureParam) setTimeout(() => setPictureOpen(true), 900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam]);
+  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam, pictureParam]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -314,7 +318,7 @@ export default function FridgeScreen() {
             />
           </View>
         )}
-        {rows.length > 0 && hint.ready && !hint.value && (
+        {page === 0 && rows.length > 0 && hint.ready && !hint.value && (
           <View
             style={styles.hint}
             accessible
@@ -449,6 +453,8 @@ export default function FridgeScreen() {
               goToPage(0);
             }}
             bottomPadding={FOOTER_HEIGHT + insets.bottom}
+            pictureOpen={pictureOpen}
+            onPictureOpenChange={setPictureOpen}
           />
         </View>
       </ScrollView>

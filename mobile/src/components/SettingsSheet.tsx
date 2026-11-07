@@ -16,6 +16,7 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText } from './AppText';
 import { UiIcon, type FluentIconName } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
+import { ProfilePicture } from './ProfilePicture';
 import { useNudge, useTextMe } from './NudgeBanner';
 
 interface Props {
@@ -81,6 +82,10 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
       </Section>
 
       <Section title="Your stats">
+        <View style={styles.statsHead}>
+          <ProfilePicture size={40} accessibilityLabel="Your profile picture" />
+          <AppText variant="bodyBold">{settings.fridgeName}</AppText>
+        </View>
         <View
           style={styles.stats}
           accessible
@@ -328,6 +333,7 @@ const styles = StyleSheet.create({
   },
   rowEmojiText: { fontSize: 20, lineHeight: 26 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  statsHead: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingBottom: space.xs },
   stats: { flexDirection: 'row', gap: space.sm },
   stat: {
     flex: 1,
