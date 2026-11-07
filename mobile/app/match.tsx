@@ -76,7 +76,7 @@ export default function MatchScreen() {
         <AppText variant="title">Matchmaker</AppText>
       </View>
 
-      {characters.length < 2 ? (
+      {characters.length < 2 && (
         <View style={styles.center}>
           <AppText style={styles.bigEmoji}>💔</AppText>
           <AppText variant="heading" align="center">
@@ -86,20 +86,23 @@ export default function MatchScreen() {
             Scan a couple more things and come back.
           </AppText>
         </View>
-      ) : !match ? (
+      )}
+
+      {characters.length >= 2 && !match && (
         <View style={styles.center}>
-          {error ? (
+          {error && (
             <>
               <AppText variant="heading" align="center">
                 {error}
               </AppText>
               <PrimaryButton label="Try again" onPress={() => setAttempt((n) => n + 1)} />
             </>
-          ) : (
-            <MoodLoader phrases={loaderPhrases} sub="finding the best pairing in your fridge" />
           )}
+          {!error && <MoodLoader phrases={loaderPhrases} sub="finding the best pairing in your fridge" />}
         </View>
-      ) : (
+      )}
+
+      {characters.length >= 2 && match && (
         <>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.card}>
@@ -121,7 +124,7 @@ export default function MatchScreen() {
               </View>
               <AppText variant="title" align="center">
                 {a?.characterName}
-                {b ? (
+                {b && (
                   <>
                     <AppText variant="title" color={colors.brandDark}>
                       {' '}
@@ -129,7 +132,7 @@ export default function MatchScreen() {
                     </AppText>
                     {b.characterName}
                   </>
-                ) : null}
+                )}
               </AppText>
               {others.length > 0 && (
                 <View style={styles.thirdWheel}>

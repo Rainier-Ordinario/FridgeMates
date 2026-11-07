@@ -54,7 +54,7 @@ export default function RescueScreen() {
           </AppText>
           <AppText variant="body" color={colors.inkMuted} align="center">
             {title}
-            {minutes ? ` · ${minutes} min` : ''}
+            {getMinutesLabel(minutes)}
           </AppText>
         </Animated.View>
 
@@ -69,7 +69,7 @@ export default function RescueScreen() {
             >
               <Face emoji={c.emoji} mood="cocky" size={64} />
               <SpeechBubble
-                text={i === 0 && thankYou ? thankYou : extraThanks[i % extraThanks.length]}
+                text={getThanks(i, thankYou)}
                 tint={moods.cocky.tint}
                 style={styles.bubble}
               />
@@ -84,11 +84,7 @@ export default function RescueScreen() {
             >
               <Face emoji={cameo.emoji} mood={cameo.mood} size={44} showBadge={false} />
               <SpeechBubble
-                text={
-                  cameo.daysLeft <= 1
-                    ? 'Um, hello? Still here. Tonight. Me.'
-                    : 'Cute. Anyway, I’m next, right?'
-                }
+                text={getCameoThanks(cameo.daysLeft)}
                 style={styles.bubble}
               />
             </Animated.View>
@@ -111,6 +107,27 @@ export default function RescueScreen() {
       </View>
     </Screen>
   );
+}
+
+function getMinutesLabel(minutes: string): string {
+  if (!minutes) {
+    return '';
+  }
+  return ` · ${minutes} min`;
+}
+
+function getThanks(index: number, thankYou: string): string {
+  if (index === 0 && thankYou) {
+    return thankYou;
+  }
+  return extraThanks[index % extraThanks.length];
+}
+
+function getCameoThanks(daysLeft: number): string {
+  if (daysLeft <= 1) {
+    return 'Um, hello? Still here. Tonight. Me.';
+  }
+  return 'Cute. Anyway, I’m next, right?';
 }
 
 const styles = StyleSheet.create({

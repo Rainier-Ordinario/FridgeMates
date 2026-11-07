@@ -39,7 +39,7 @@ export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand' }: 
         style,
       ]}
     >
-      {emoji ? <AppText style={styles.primaryEmoji}>{emoji}</AppText> : null}
+      {emoji && <AppText style={styles.primaryEmoji}>{emoji}</AppText>}
       <AppText variant="heading" color={textColorForTone(tone)}>
         {label}
       </AppText>
@@ -95,7 +95,7 @@ export function Chip({ label, emoji, onPress, tone = 'neutral' }: ChipProps) {
       style={({ pressed }) => [styles.chip, tone === 'debug' && styles.chipDebug, pressed && styles.pressed]}
     >
       <View style={styles.chipInner}>
-        {emoji ? <AppText variant="caption">{emoji}</AppText> : null}
+        {emoji && <AppText variant="caption">{emoji}</AppText>}
         <AppText variant="caption" color={colors.ink}>
           {label}
         </AppText>

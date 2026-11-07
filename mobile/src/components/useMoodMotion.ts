@@ -69,7 +69,13 @@ export function useMoodMotion(mood: Mood, highlight = false) {
 
   /** Pulsing red border for dramatic, brand border for freshly scanned items, transparent otherwise. */
   const borderStyle = useAnimatedStyle(() => {
-    if (motion !== 'shake') return { borderColor: highlight ? colors.brand : 'transparent' };
+    if (motion !== 'shake') {
+      let borderColor = 'transparent';
+      if (highlight) {
+        borderColor = colors.brand;
+      }
+      return { borderColor };
+    }
     return { borderColor: interpolateColor(pulse.value, [0, 1], ['rgba(229,72,58,0.25)', colors.danger]) };
   });
 

@@ -51,29 +51,32 @@ export default function ScanScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setShown((n) => n + 1);
       },
-      shown === 0 ? 250 : 950,
+      getRevealDelay(shown),
     );
     return () => clearTimeout(t);
   }, [phase, shown, found.length]);
 
   async function pick(source: 'camera' | 'library') {
     setError(null);
-    const perm =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    let perm;
+    if (source === 'camera') {
+      perm = await ImagePicker.requestCameraPermissionsAsync();
+    } else {
+      perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
     if (!perm.granted) {
       setError(
-        source === 'camera' ? 'Camera permission is off. Try "Choose a photo".' : 'Photo access is off.',
+        getPermissionError(source),
       );
       return;
     }
     let result: ImagePicker.ImagePickerResult;
     try {
-      result =
-        source === 'camera'
-          ? await ImagePicker.launchCameraAsync(pickerOptions)
-          : await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      if (source === 'camera') {
+        result = await ImagePicker.launchCameraAsync(pickerOptions);
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      }
     } catch {
       setError('No camera here (simulator?). Try "Choose a photo".');
       return;
@@ -113,7 +116,7 @@ export default function ScanScreen() {
     <Screen edges={['top', 'bottom', 'left', 'right']}>
       <View style={styles.topBar}>
         <RoundButton emoji="✕" label="Close" size={44} onPress={() => router.back()} />
-        <AppText variant="heading">{phase === 'reveal' ? 'Meet your food' : 'Scan food'}</AppText>
+        <AppText variant="heading">{getTitle(phase)}</AppText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -215,9 +218,7 @@ export default function ScanScreen() {
             <Animated.View entering={FadeIn.delay(300)} style={styles.footer}>
               <PrimaryButton
                 emoji="🧊"
-                label={
-                  found.length === 1 ? 'Put them in the fridge' : `Put all ${found.length} in the fridge`
-                }
+                label={getFinishLabel(found.length)}
                 onPress={finish}
               />
             </Animated.View>
@@ -226,6 +227,34 @@ export default function ScanScreen() {
       )}
     </Screen>
   );
+}
+
+function getRevealDelay(shown: number): number {
+  if (shown === 0) {
+    return 250;
+  }
+  return 950;
+}
+
+function getPermissionError(source: 'camera' | 'library'): string {
+  if (source === 'camera') {
+    return 'Camera permission is off. Try "Choose a photo".';
+  }
+  return 'Photo access is off.';
+}
+
+function getTitle(phase: Phase): string {
+  if (phase === 'reveal') {
+    return 'Meet your food';
+  }
+  return 'Scan food';
+}
+
+function getFinishLabel(count: number): string {
+  if (count === 1) {
+    return 'Put them in the fridge';
+  }
+  return `Put all ${count} in the fridge`;
 }
 
 const styles = StyleSheet.create({

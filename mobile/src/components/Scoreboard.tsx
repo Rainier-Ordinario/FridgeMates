@@ -76,7 +76,7 @@ function Tile({
 }) {
   return (
     <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityRole={getAccessibilityRole(onPress)}
       accessibilityLabel={`${value} ${label}`}
       onPress={onPress}
       disabled={!onPress}
@@ -98,6 +98,13 @@ function Tile({
       </AppText>
     </Pressable>
   );
+}
+
+function getAccessibilityRole(onPress: (() => void) | undefined): 'button' | undefined {
+  if (onPress) {
+    return 'button';
+  }
+  return undefined;
 }
 
 const styles = StyleSheet.create({
