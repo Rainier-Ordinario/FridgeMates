@@ -18,6 +18,13 @@ export const type = {
   body: { fontFamily: fontFamily.medium, fontSize: 16, lineHeight: 22 },
   bodyBold: { fontFamily: fontFamily.bold, fontSize: 16, lineHeight: 22 },
   caption: { fontFamily: fontFamily.semibold, fontSize: 13, lineHeight: 18 },
+  captionBold: { fontFamily: fontFamily.extrabold, fontSize: 13, lineHeight: 18 },
+  /** Screen titles in the TopBar. */
+  screenTitle: { fontFamily: fontFamily.extrabold, fontSize: 20, lineHeight: 26 },
+  /** "It's a match!" */
+  kicker: { fontFamily: fontFamily.extrabold, fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
+  small: { fontFamily: fontFamily.medium, fontSize: 15, lineHeight: 20 },
+  smallBold: { fontFamily: fontFamily.bold, fontSize: 15, lineHeight: 20 },
   countdown: {
     fontFamily: fontFamily.extrabold,
     fontSize: 48,

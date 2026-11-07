@@ -1,12 +1,13 @@
 import { AppText } from '@/components/AppText';
-import { RoundButton } from '@/components/Buttons';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
+import { TopBar } from '@/components/TopBar';
 import { Tombstone } from '@/components/Tombstone';
 import { formatShort } from '@/logic/dates';
 import { useFridge } from '@/logic/store';
-import { colors, space } from '@/theme';
+import { colors, space, motion } from '@/theme';
 import { USE_MOCK } from '@/api/config';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -69,12 +70,9 @@ export default function MemorialScreen() {
   const lost = demo && USE_MOCK ? [...real, ...demoStones] : real;
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.header}>
-        <RoundButton emoji="←" label="Back" size={48} onPress={() => router.back()} />
-        <AppText variant="title">Memorial wall</AppText>
-      </View>
-      <AppText variant="body" color={colors.inkMuted} style={styles.sub}>
+    <Screen>
+      <TopBar title="Memorial wall" />
+      <AppText variant="small" color={colors.inkMuted} style={styles.sub}>
         {lost.length === 0
           ? 'Nobody lost yet. Keep it that way.'
           : `${lost.length} lost this month. Gone, not forgotten.`}
@@ -82,7 +80,11 @@ export default function MemorialScreen() {
 
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {lost.map((c, i) => (
-          <Animated.View key={c.id} entering={FadeInUp.delay(i * 80).duration(320)} style={styles.cell}>
+          <Animated.View
+            key={c.id}
+            entering={FadeInUp.delay(i * 80).duration(motion.base)}
+            style={styles.cell}
+          >
             <Tombstone emoji={c.emoji} name={c.name} dates={c.dates} epitaph={c.epitaph} />
           </Animated.View>
         ))}
@@ -96,9 +98,11 @@ export default function MemorialScreen() {
         )}
       </ScrollView>
 
-      <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.footer}>
-        🕯️ Rest in pieces
-      </AppText>
+      <DockedFooter>
+        <AppText variant="caption" color={colors.inkMuted} align="center">
+          🕯️ Rest in pieces
+        </AppText>
+      </DockedFooter>
     </Screen>
   );
 }
@@ -111,7 +115,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
   },
-  sub: { paddingHorizontal: space.lg, paddingBottom: space.md, fontSize: 15, lineHeight: 20 },
+  sub: { paddingHorizontal: space.xl, paddingBottom: space.md },
   grid: {
     paddingHorizontal: space.xl,
     paddingBottom: space.lg,
@@ -122,5 +126,4 @@ const styles = StyleSheet.create({
   cell: { width: '47%', flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', gap: space.md, paddingTop: space.huge, width: '100%' },
   emptyEmoji: { fontSize: 48, lineHeight: 56 },
-  footer: { paddingVertical: space.md },
 });

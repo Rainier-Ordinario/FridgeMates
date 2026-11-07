@@ -126,9 +126,6 @@ export default function FridgeScreen() {
             style={{ flex: 1 }}
           >
             <AppText variant="display">FridgeMates</AppText>
-            <AppText variant="body" color={colors.inkMuted}>
-              Spoil alert: your food has feelings.
-            </AppText>
           </Pressable>
           <Chip
             emoji="⏭"
@@ -137,6 +134,9 @@ export default function FridgeScreen() {
             onPress={skipDay}
           />
         </View>
+        <AppText variant="body" color={colors.inkMuted} style={styles.tagline}>
+          Spoil alert: your food has feelings.
+        </AppText>
         <Scoreboard
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
@@ -196,7 +196,7 @@ export default function FridgeScreen() {
         locations={[0, 0.45, 1]}
         style={[styles.fade, { height: (ghosts.length ? 220 : 150) + insets.bottom }]}
       />
-      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
         {ghosts.length > 0 && (
           <PrimaryButton
             emoji="🗑️"
@@ -222,11 +222,12 @@ export default function FridgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.lg },
+  header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.md },
+  tagline: { marginTop: -space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
   listArea: { flex: 1 },
-  list: { paddingHorizontal: space.lg, paddingTop: space.xl },
+  list: { paddingHorizontal: space.xl, paddingTop: space.xl },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },
   actionBar: {
     position: 'absolute',
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     gap: space.md,
-    paddingHorizontal: space.lg,
+    paddingHorizontal: space.xl,
     paddingTop: space.md,
     zIndex: 20,
   },

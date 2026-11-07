@@ -1,15 +1,14 @@
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
-import { RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { Screen } from '@/components/Screen';
+import { TopBar } from '@/components/TopBar';
 import { TypingDots } from '@/components/TypingDots';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -156,14 +155,13 @@ export default function ChatScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <RoundButton emoji="←" label="Back" size={48} onPress={() => router.back()} />
-        <View style={styles.headerText}>
-          <AppText variant="heading" style={styles.headerTitle}>
-            Fridge group chat
-          </AppText>
-          <View style={styles.memberRow}>
-            <View style={styles.avatars}>
+      <TopBar
+        title={
+          <View style={styles.headerText}>
+            <AppText variant="heading" numberOfLines={1} accessibilityRole="header" style={styles.chatTitle}>
+              Fridge group chat
+            </AppText>
+            <View style={styles.avatars} accessible accessibilityLabel={`${members.length} members`}>
               {members.slice(0, 6).map((m, i) => (
                 <View key={m.id} style={[styles.avatar, { marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i }]}>
                   <Face emoji={m.emoji} mood={m.mood} size={22} animated={false} showBadge={false} />
@@ -171,25 +169,27 @@ export default function ChatScreen() {
               ))}
             </View>
           </View>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={speaking ? 'Stop voices' : 'Play voices'}
-          onPress={playVoices}
-          style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
-        >
-          <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
-            {speaking ? (
-              <Equalizer />
-            ) : (
-              <AppText style={styles.playIcon} color={colors.ink}>
-                ▶
-              </AppText>
-            )}
-          </View>
-          <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
-        </Pressable>
-      </View>
+        }
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={speaking ? 'Stop voices' : 'Play voices'}
+            onPress={playVoices}
+            style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
+          >
+            <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
+              {speaking ? (
+                <Equalizer />
+              ) : (
+                <AppText style={styles.playIcon} color={colors.ink}>
+                  ▶
+                </AppText>
+              )}
+            </View>
+            <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
+          </Pressable>
+        }
+      />
 
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.dayCaption}>
         Today · {members.length} members
@@ -311,7 +311,14 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
     >
       <Animated.View style={[styles.faceCol, faceStyle]}>
         {who ? (
-          <Face emoji={who.emoji} mood={mood} size={40} showBadge={false} animated={active} />
+          <Face
+            emoji={who.emoji}
+            mood={mood}
+            size={40}
+            showBadge={false}
+            animated={active}
+            label={`${who.characterName}, ${m.label}`}
+          />
         ) : (
           <AppText style={{ fontSize: 28 }}>🧊</AppText>
         )}
@@ -356,23 +363,13 @@ function EqBar({ index }: { index: number }) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.md,
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    paddingBottom: space.xs,
-  },
   headerText: { flex: 1, gap: space.xs },
-  headerTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Nunito_800ExtraBold' },
+  chatTitle: { fontFamily: 'Nunito_800ExtraBold' },
   dayCaption: { paddingBottom: space.sm },
-  memberRow: { flexDirection: 'row', alignItems: 'center' },
   avatars: { flexDirection: 'row' },
   avatar: { borderRadius: 13, borderWidth: 1.5, borderColor: colors.bg },
   playChip: {
     flexShrink: 0,
-    marginTop: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
@@ -393,7 +390,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   playIcon: { fontSize: 13, lineHeight: 16 },
-  list: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 10 },
+  list: { paddingHorizontal: space.xl, paddingVertical: space.md, gap: 10 },
   typing: { paddingVertical: space.sm, paddingLeft: 52 },
   typingRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: 302 },
@@ -420,7 +417,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-    paddingHorizontal: space.lg,
+    paddingHorizontal: space.xl,
     paddingTop: space.sm,
     paddingBottom: space.xl,
     backgroundColor: colors.bg,

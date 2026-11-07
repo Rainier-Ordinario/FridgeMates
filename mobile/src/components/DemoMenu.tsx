@@ -1,7 +1,7 @@
 import { mockScanResponse } from '@/api/mocks/scan';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge } from '@/logic/store';
-import { colors, radius, shadow, space } from '@/theme';
+import { colors, radius, shadow, space, motion } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React from 'react';
@@ -72,7 +72,11 @@ export function DemoMenu({ visible, onClose, extraRows = [] }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={styles.backdrop}>
+      <Animated.View
+        entering={FadeIn.duration(motion.fast)}
+        exiting={FadeOut.duration(motion.fast)}
+        style={styles.backdrop}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close demo tools"
@@ -81,7 +85,7 @@ export function DemoMenu({ visible, onClose, extraRows = [] }: Props) {
         />
         <Animated.View
           entering={SlideInDown.springify().damping(18)}
-          exiting={SlideOutDown.duration(180)}
+          exiting={SlideOutDown.duration(motion.fast)}
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
         >
           <View style={styles.grabber} />

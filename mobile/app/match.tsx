@@ -2,10 +2,12 @@ import { api } from '@/api/client';
 import type { MatchResponse } from '@/api/types';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
-import { PrimaryButton, RoundButton } from '@/components/Buttons';
+import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
+import { TopBar } from '@/components/TopBar';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -72,11 +74,8 @@ export default function MatchScreen() {
   }
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.header}>
-        <RoundButton emoji="←" label="Back" size={48} onPress={() => router.back()} />
-        <AppText variant="title">Matchmaker</AppText>
-      </View>
+    <Screen>
+      <TopBar title="Matchmaker" />
 
       {characters.length < 2 ? (
         <View style={styles.center}>
@@ -105,19 +104,19 @@ export default function MatchScreen() {
         <>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.card}>
-              <AppText style={styles.kicker} color={colors.brandDark} align="center">
+              <AppText variant="kicker" color={colors.brandDark} align="center">
                 It’s a match!
               </AppText>
               <View style={styles.faces}>
                 {a && (
                   <Animated.View entering={SlideInLeft.springify().damping(14)}>
-                    <Face emoji={a.emoji} mood="nervous" size={96} />
+                    <Face emoji={a.emoji} mood="nervous" size={96} label={a.characterName} />
                   </Animated.View>
                 )}
                 <AppText style={styles.heart}>❤️</AppText>
                 {b && (
                   <Animated.View entering={SlideInRight.springify().damping(14)}>
-                    <Face emoji={b.emoji} mood="nervous" size={96} />
+                    <Face emoji={b.emoji} mood="nervous" size={96} label={b.characterName} />
                   </Animated.View>
                 )}
               </View>
@@ -145,7 +144,7 @@ export default function MatchScreen() {
 
             <Animated.View entering={FadeIn.delay(350)} style={styles.recipe}>
               <View style={styles.recipeHead}>
-                <AppText variant="heading" style={styles.recipeTitle}>
+                <AppText variant="screenTitle" style={styles.recipeTitle}>
                   {match.title}
                 </AppText>
                 <View style={styles.minChip}>
@@ -159,13 +158,14 @@ export default function MatchScreen() {
                       {i + 1}
                     </AppText>
                   </View>
-                  <AppText variant="body" style={styles.stepText}>
+                  <AppText variant="small" style={styles.stepText}>
                     {step}
                   </AppText>
                 </View>
               ))}
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Not tonight, find the next match"
                 onPress={() => {
                   Haptics.selectionAsync();
                   setAttempt((n) => n + 1);
@@ -178,9 +178,9 @@ export default function MatchScreen() {
               </Pressable>
             </Animated.View>
           </ScrollView>
-          <View style={styles.footer}>
+          <DockedFooter>
             <PrimaryButton emoji="🍳" label="I cooked it" onPress={cookedIt} style={styles.bigButton} />
-          </View>
+          </DockedFooter>
         </>
       )}
     </Screen>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
   bigEmoji: { fontSize: 64, lineHeight: 76 },
-  scroll: { padding: space.lg, gap: space.lg, paddingBottom: space.md },
+  scroll: { paddingHorizontal: space.xl, paddingVertical: space.lg, gap: space.lg },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadow.card,
   },
-  kicker: { fontFamily: 'Nunito_800ExtraBold', fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
   faces: { flexDirection: 'row', alignItems: 'center', marginVertical: space.xs },
   heart: { fontSize: 34, lineHeight: 40, marginHorizontal: -8, zIndex: 2 },
   thirdWheel: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
@@ -217,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: space.xs,
   },
-  recipeTitle: { fontSize: 20, lineHeight: 26, flex: 1 },
+  recipeTitle: { flex: 1 },
   minChip: {
     backgroundColor: colors.surface,
     borderWidth: 1.5,
@@ -243,8 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepText: { flex: 1, fontSize: 15, lineHeight: 20 },
+  stepText: { flex: 1 },
   skip: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
-  footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
   bigButton: { minHeight: 64 },
 });

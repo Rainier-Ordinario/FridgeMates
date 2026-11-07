@@ -50,7 +50,8 @@ const normalize = {
           emoji: str(i.emoji, '🍽️'),
           characterName: str(i.characterName, str(i.name)),
           personality: str(i.personality, 'mysterious'),
-          daysLeft: Math.max(0, Math.round(num(i.daysLeft, 3))),
+          // The backend sends negatives for visibly spoiled food; keep them so it arrives as a ghost.
+          daysLeft: Math.max(-30, Math.min(365, Math.round(num(i.daysLeft, 3)))),
           dateSource: i.dateSource === 'printed' ? 'printed' : 'estimated',
           intro: str(i.intro, 'Hi. I live here now.'),
         })),

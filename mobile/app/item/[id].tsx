@@ -1,8 +1,10 @@
 import { AppText } from '@/components/AppText';
-import { PrimaryButton, RoundButton } from '@/components/Buttons';
+import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodPill } from '@/components/MoodPill';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
+import { TopBar } from '@/components/TopBar';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { dateSourceLabel, daysLeftLabel } from '@/logic/mood';
 import { useFridge } from '@/logic/store';
@@ -23,10 +25,8 @@ export default function CharacterScreen() {
 
   if (!c) {
     return (
-      <Screen padded edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.topBar}>
-          <RoundButton emoji="←" label="Back" size={44} onPress={() => router.back()} />
-        </View>
+      <Screen padded>
+        <TopBar />
         <View style={styles.center}>
           <AppText variant="heading" align="center">
             That one already left the fridge.
@@ -59,21 +59,21 @@ export default function CharacterScreen() {
   }
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.topBar}>
-        <RoundButton emoji="←" label="Back" size={44} onPress={() => router.back()} />
-        <AppText variant="caption" color={colors.inkMuted}>
-          {m.badge} {m.label.toUpperCase()}
-        </AppText>
-        <View style={{ width: 44 }} />
-      </View>
+    <Screen>
+      <TopBar
+        right={
+          <AppText variant="caption" color={colors.inkMuted}>
+            {m.badge} {m.label.toUpperCase()}
+          </AppText>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View
           entering={FadeInDown.springify().damping(14)}
           style={[styles.hero, { backgroundColor: m.tint }]}
         >
-          <Face emoji={c.emoji} mood={c.mood} size={160} />
+          <Face emoji={c.emoji} mood={c.mood} size={160} label={`${c.characterName}, ${m.label}`} />
           <AppText variant="display" align="center" style={{ opacity: m.opacity }}>
             {c.characterName}
           </AppText>
@@ -123,13 +123,14 @@ export default function CharacterScreen() {
       </ScrollView>
 
       {!gone && (
-        <View style={styles.actions}>
+        <DockedFooter style={styles.actions}>
           {!isGhost && (
             <>
               <PrimaryButton emoji="🎉" label="Ate it" tone="success" onPress={() => finish('eat')} />
               <View style={styles.actionRow}>
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel="Opened today"
                   onPress={() => {
                     Haptics.selectionAsync();
                     openedToday(c.id);
@@ -142,6 +143,7 @@ export default function CharacterScreen() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel="Toss it"
                   onPress={() => finish('toss')}
                   style={({ pressed }) => [styles.secondary, styles.tossSecondary, pressed && styles.pressed]}
                 >
@@ -160,7 +162,7 @@ export default function CharacterScreen() {
               onPress={() => finish('toss')}
             />
           )}
-        </View>
+        </DockedFooter>
       )}
     </Screen>
   );
@@ -190,15 +192,8 @@ function StepButton({
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: space.lg, gap: space.lg, paddingBottom: space.xl },
+  scroll: { paddingHorizontal: space.xl, paddingVertical: space.lg, gap: space.lg },
   hero: {
     alignItems: 'center',
     gap: space.sm,

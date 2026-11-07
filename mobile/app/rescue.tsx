@@ -1,6 +1,7 @@
 import { AppText } from '@/components/AppText';
 import { PrimaryButton } from '@/components/Buttons';
 import { Confetti } from '@/components/Confetti';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Face } from '@/components/Face';
 import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
@@ -44,7 +45,7 @@ export default function RescueScreen() {
   }, []);
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']}>
+    <Screen>
       <Confetti />
       <View style={styles.body}>
         <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
@@ -67,7 +68,7 @@ export default function RescueScreen() {
                 .damping(14)}
               style={styles.thankRow}
             >
-              <Face emoji={c.emoji} mood="cocky" size={64} />
+              <Face emoji={c.emoji} mood="cocky" size={64} label={`${c.characterName}, rescued`} />
               <SpeechBubble
                 text={i === 0 && thankYou ? thankYou : extraThanks[i % extraThanks.length]}
                 tint={moods.cocky.tint}
@@ -82,7 +83,13 @@ export default function RescueScreen() {
                 .damping(14)}
               style={styles.thankRow}
             >
-              <Face emoji={cameo.emoji} mood={cameo.mood} size={44} showBadge={false} />
+              <Face
+                emoji={cameo.emoji}
+                mood={cameo.mood}
+                size={44}
+                showBadge={false}
+                label={cameo.characterName}
+              />
               <SpeechBubble
                 text={
                   cameo.daysLeft <= 1
@@ -106,15 +113,15 @@ export default function RescueScreen() {
         </Animated.View>
       </View>
 
-      <View style={styles.footer}>
+      <DockedFooter>
         <PrimaryButton emoji="🧊" label="Back to the fridge" onPress={() => router.dismissAll()} />
-      </View>
+      </DockedFooter>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: space.lg, gap: space.xl, paddingTop: 28 },
+  body: { flex: 1, paddingHorizontal: space.xl, gap: space.xl, paddingTop: 28 },
   hero: { alignItems: 'center', gap: space.xs },
   party: { fontSize: 44, lineHeight: 52 },
   thanks: { gap: 14 },
@@ -122,5 +129,4 @@ const styles = StyleSheet.create({
   bubble: { flex: 1 },
   score: { alignItems: 'center', gap: space.xs },
   label: { letterSpacing: 1 },
-  footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
 });

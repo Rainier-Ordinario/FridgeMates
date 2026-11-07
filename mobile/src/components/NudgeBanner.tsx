@@ -1,7 +1,7 @@
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { useFridge } from '@/logic/store';
-import { colors, radius, shadow, space, type Mood } from '@/theme';
+import { colors, radius, shadow, space, type Mood, motion } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -92,8 +92,8 @@ export function useTextMe() {
 function Banner({ nudge, onDismiss }: { nudge: Nudge; onDismiss: () => void }) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
-  const entering = reduceMotion ? FadeIn.duration(200) : SlideInUp.springify().damping(16);
-  const exiting = reduceMotion ? FadeOut.duration(150) : SlideOutUp.duration(220);
+  const entering = reduceMotion ? FadeIn.duration(motion.fast) : SlideInUp.springify().damping(16);
+  const exiting = reduceMotion ? FadeOut.duration(motion.fast) : SlideOutUp.duration(motion.fast);
   return (
     <Animated.View
       entering={entering}

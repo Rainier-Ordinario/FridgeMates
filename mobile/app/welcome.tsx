@@ -1,9 +1,10 @@
 import { AppText } from '@/components/AppText';
 import { PrimaryButton } from '@/components/Buttons';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge } from '@/logic/store';
-import { colors, radius, shadow, space } from '@/theme';
+import { colors, radius, shadow, space, motion } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -20,7 +21,6 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const beats = [
   { emoji: '📷', text: 'Scan your groceries.' },
@@ -32,7 +32,6 @@ const beats = [
 export default function WelcomeScreen() {
   const { markWelcomed } = useFirstRun();
   const { loadDemo } = useFridge();
-  const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
 
@@ -75,7 +74,7 @@ export default function WelcomeScreen() {
           {beats.map((b, i) => (
             <Animated.View
               key={b.emoji}
-              entering={FadeInDown.delay(250 + i * 120).duration(320)}
+              entering={FadeInDown.delay(250 + i * 120).duration(motion.base)}
               style={styles.beat}
             >
               <View style={styles.beatEmoji}>
@@ -89,7 +88,7 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
+      <DockedFooter>
         <PrimaryButton emoji="🧊" label="Get started" onPress={() => start(false)} />
         <Pressable
           accessibilityRole="button"
@@ -101,7 +100,7 @@ export default function WelcomeScreen() {
             Just here for the demo? Load the demo fridge →
           </AppText>
         </Pressable>
-      </View>
+      </DockedFooter>
     </Screen>
   );
 }
@@ -139,6 +138,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   beatEmojiText: { fontSize: 20, lineHeight: 26 },
-  footer: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   demoLink: { minHeight: 44, justifyContent: 'center' },
 });

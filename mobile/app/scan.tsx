@@ -7,12 +7,14 @@ import { PrimaryButton, RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
 import { MoodPill } from '@/components/MoodPill';
+import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
+import { TopBar } from '@/components/TopBar';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
 import { playPop, playTada } from '@/logic/sounds';
 import { useFridge } from '@/logic/store';
-import { colors, moodOrder, moods, radius, shadow, space } from '@/theme';
+import { colors, moodOrder, moods, motion, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
@@ -195,25 +197,20 @@ export default function ScanScreen() {
   }
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.topBar}>
-        <RoundButton emoji="✕" label="Close" size={44} onPress={() => router.back()} />
-        {phase === 'reveal' ? (
-          <>
-            <AppText variant="title">Meet your food</AppText>
-            <View style={styles.newTag}>
-              <AppText style={styles.newTagText} color={colors.ink}>
+    <Screen>
+      <TopBar
+        left="close"
+        title={phase === 'reveal' ? 'Meet your food' : 'Scan food'}
+        right={
+          phase === 'reveal' ? (
+            <View style={styles.newTag} accessible accessibilityLabel={`${found.length} new`}>
+              <AppText variant="captionBold" color={colors.ink}>
                 +{found.length} new
               </AppText>
             </View>
-          </>
-        ) : (
-          <>
-            <AppText variant="heading">Scan food</AppText>
-            <View style={{ width: 44 }} />
-          </>
-        )}
-      </View>
+          ) : undefined
+        }
+      />
 
       {phase === 'pick' && (
         <Animated.View entering={FadeIn} style={styles.pick}>
@@ -241,6 +238,7 @@ export default function ScanScreen() {
             />
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Choose a photo"
               onPress={() => {
                 Haptics.selectionAsync();
                 pick('library');
@@ -254,6 +252,7 @@ export default function ScanScreen() {
             {USE_MOCK && (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Try a demo scan"
                 onPress={() => runScan('', null)}
                 style={({ pressed }) => [styles.demo, pressed && styles.pressed]}
               >
@@ -303,7 +302,12 @@ export default function ScanScreen() {
                   entering={ZoomIn.springify().damping(12)}
                   style={styles.row}
                 >
-                  <Face emoji={item.emoji} mood={mood} size={56} />
+                  <Face
+                    emoji={item.emoji}
+                    mood={mood}
+                    size={56}
+                    label={`${item.characterName}, ${moods[mood].label}`}
+                  />
                   <View style={styles.rowBody}>
                     <View style={styles.nameRow}>
                       <AppText variant="bodyBold" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -320,13 +324,15 @@ export default function ScanScreen() {
           {allArrived && (
             <>
               <Confetti count={24} />
-              <Animated.View entering={FadeIn.duration(260)} style={styles.arrived}>
+              <Animated.View entering={FadeIn.duration(motion.base)} style={styles.arrived}>
                 <AppText variant="caption" color={colors.inkMuted} align="center">
                   🎉 Everyone’s here. Be nice to them.
                 </AppText>
               </Animated.View>
-              <Animated.View entering={FadeInUp.delay(250).duration(260)} style={styles.footer}>
-                <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
+              <Animated.View entering={FadeInUp.delay(250).duration(motion.base)}>
+                <DockedFooter>
+                  <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
+                </DockedFooter>
               </Animated.View>
             </>
           )}
@@ -373,7 +379,7 @@ function Viewfinder({
       <StatusBar style="light" />
       {ready && <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />}
       <View style={[styles.hintPill, { top: Math.max(insets.top + 20, 126) }]}>
-        <AppText style={styles.hintText}>Fit your groceries in the frame</AppText>
+        <AppText variant="smallBold">Fit your groceries in the frame</AppText>
       </View>
       <View pointerEvents="none" style={[styles.frame, frame]}>
         <View style={[styles.corner, styles.cornerTL]} />
@@ -405,23 +411,19 @@ function Viewfinder({
 const CORNER = 44;
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    minHeight: 64,
-  },
   newTag: {
     backgroundColor: colors.brand,
     borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
-  sub: { paddingHorizontal: space.lg, paddingBottom: space.md },
-  pick: { flex: 1, paddingHorizontal: space.lg, justifyContent: 'space-between', paddingBottom: space.lg },
+  sub: { paddingHorizontal: space.xl, paddingBottom: space.md },
+  pick: {
+    flex: 1,
+    paddingHorizontal: space.xl,
+    justifyContent: 'space-between',
+    paddingBottom: space.xl + 10,
+  },
   hero: {
     flex: 1,
     alignItems: 'center',
@@ -453,13 +455,12 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 8, marginTop: space.xs },
   dot: { width: 12, height: 12, borderRadius: 6 },
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
-  reveal: { paddingHorizontal: space.lg, paddingBottom: space.md, gap: 18 },
+  reveal: { paddingHorizontal: space.xl, paddingBottom: space.md, gap: 18 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
   arrived: { paddingTop: space.xs },
-  footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
   // viewfinder
   cameraGround: { flex: 1, backgroundColor: '#1F1812' },
   hintPill: {
@@ -471,7 +472,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     zIndex: 2,
   },
-  hintText: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20, color: colors.ink },
   frame: { position: 'absolute' },
   corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: colors.brand },
   cornerTL: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 20 },

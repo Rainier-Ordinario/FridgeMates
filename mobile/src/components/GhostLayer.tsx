@@ -1,5 +1,5 @@
 import type { Character } from '@/logic/store';
-import { colors, moods, radius, space } from '@/theme';
+import { colors, moods, radius, space, motion } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -29,8 +29,8 @@ export function GhostLayer({ ghosts, onPress }: Props) {
       {ghosts.map((g, i) => (
         <Animated.View
           key={g.id}
-          entering={FadeIn.duration(400)}
-          exiting={FadeOutUp.duration(500)}
+          entering={FadeIn.duration(motion.slow)}
+          exiting={FadeOutUp.duration(motion.slow)}
           style={[
             styles.ghost,
             {

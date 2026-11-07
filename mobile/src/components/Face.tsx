@@ -16,6 +16,8 @@ interface Props {
   showBadge?: boolean;
   /** Draw the mood expression over the emoji (emoji dimmed to 40%). Off automatically under 36px. */
   expression?: boolean;
+  /** Accessibility label, e.g. "Avo, dramatic". Omit when a parent control already describes it. */
+  label?: string;
 }
 
 /** The character's face: food emoji in a mood-tinted circle with a mood badge. */
@@ -26,6 +28,7 @@ export function Face({
   animated = true,
   showBadge = true,
   expression = true,
+  label,
 }: Props) {
   const overlay = expression && size >= 36;
   const m = moods[mood];
@@ -33,7 +36,12 @@ export function Face({
   const badgeSize = Math.max(20, Math.round(size * 0.34));
 
   return (
-    <Animated.View style={[{ width: size, height: size }, animated && faceStyle]}>
+    <Animated.View
+      style={[{ width: size, height: size }, animated && faceStyle]}
+      accessible={!!label}
+      accessibilityRole={label ? 'image' : undefined}
+      accessibilityLabel={label}
+    >
       <View
         style={[
           styles.circle,

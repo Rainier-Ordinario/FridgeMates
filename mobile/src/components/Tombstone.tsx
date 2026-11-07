@@ -16,7 +16,11 @@ interface Props {
 export function Tombstone({ emoji, name, dates, epitaph }: Props) {
   const g = moods.ghost;
   return (
-    <View style={[styles.stone, { backgroundColor: g.tint, borderColor: g.color }]}>
+    <View
+      style={[styles.stone, { backgroundColor: g.tint, borderColor: g.color }]}
+      accessible
+      accessibilityLabel={`${name}, ${dates}. ${epitaph}`}
+    >
       <Face emoji={emoji} mood="ghost" size={48} showBadge={false} animated={false} />
       <AppText variant="bodyBold" align="center" style={styles.name}>
         {name}
