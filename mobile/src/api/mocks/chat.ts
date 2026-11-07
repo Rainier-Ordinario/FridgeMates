@@ -48,12 +48,21 @@ function hash(s: string): number {
 export function mockChatResponse(req: ChatRequest): ChatResponse {
   // The most urgent speak first; up to four lines per round.
   const items = [...req.items].sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 4);
+  const used = new Set<string>();
   const lines = items.map((item) => {
     const mood = moodOf(item);
     const pool = pools[mood];
-    const text = req.userMessage
-      ? replyTo(req.userMessage, item, mood)
-      : pool[hash(item.id + (req.userMessage ?? '')) % pool.length];
+    let text: string;
+    if (req.userMessage) {
+      text = replyTo(req.userMessage, item, mood);
+    } else {
+      // No two characters repeat a line in the same round.
+      const start = hash(item.id) % pool.length;
+      let pick = pool[start];
+      for (let k = 0; k < pool.length && used.has(pick); k++) pick = pool[(start + k + 1) % pool.length];
+      text = pick;
+    }
+    used.add(text);
     return { id: item.id, text };
   });
   return { lines };
