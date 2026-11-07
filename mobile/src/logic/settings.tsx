@@ -21,7 +21,6 @@ export function avatarIcon(a: Avatar) {
 }
 
 export interface Settings {
-  voices: boolean;
   sounds: boolean;
   demoMode: boolean;
   /** Profile-lite: a fridge name and an emoji avatar, saved locally. */
@@ -31,7 +30,6 @@ export interface Settings {
 
 const KEY = 'fridgemates.settings.v1';
 const defaults: Settings = {
-  voices: true,
   sounds: true,
   demoMode: false,
   fridgeName: 'My fridge',

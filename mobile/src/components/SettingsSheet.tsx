@@ -46,13 +46,6 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
     <BottomSheet visible={visible} onClose={onClose} title="Settings" scrollToEnd={demoFirst}>
       <Section title="Sound">
         <ToggleRow
-          icon="speaking-head"
-          label="Voices"
-          caption="Your food talks out loud"
-          value={settings.voices}
-          onChange={(v) => settings.set('voices', v)}
-        />
-        <ToggleRow
           icon="bell"
           label="Sounds"
           caption="Pops, sighs and confetti"

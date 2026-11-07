@@ -22,30 +22,6 @@ export function GearIcon({ size = 24, color = colors.ink }: IconProps) {
   );
 }
 
-/** 20pt stroked speaker (Play voices). */
-export function SpeakerIcon({ size = 20, color = colors.ink }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M4 9.5v5h3.5L13 19V5L7.5 9.5H4Z" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      <Path
-        d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
-/** 16pt stop square. */
-export function StopIcon({ size = 14, color = colors.surface }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <Path d="M6 6h12v12H6z" />
-    </Svg>
-  );
-}
-
 /** 20pt send arrow. */
 export function SendIcon({ size = 20, color = colors.ink }: IconProps) {
   return (
