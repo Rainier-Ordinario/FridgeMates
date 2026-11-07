@@ -11,12 +11,13 @@ import { useFridge } from '@/logic/store';
 import { colors, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React from 'react';
-import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { AppText } from './AppText';
 import { UiIcon, type FluentIconName } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
 import { ProfilePicture } from './ProfilePicture';
+import { ProfileSheet } from './ProfileSheet';
 import { useNudge, useTextMe } from './NudgeBanner';
 
 interface Props {
@@ -26,15 +27,39 @@ interface Props {
   demoFirst?: boolean;
   /** Demo: opens the fridge manager with a blocked phrase to show the refusal. */
   onTestSafety?: () => void;
+  /** Open with the 'Profile picture' sheet already up (dev link). */
+  pictureFirst?: boolean;
 }
 
 /** Every control in one place: voices, sounds, stats, help, reset, about, and the demo tools. */
-export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafety }: Props) {
+export function SettingsSheet({
+  visible,
+  onClose,
+  demoFirst = false,
+  onTestSafety,
+  pictureFirst = false,
+}: Props) {
   const settings = useSettings();
   const { scoreboard, loadDemo, addScanned, skipDay, clearAll, dayOffset, characters } = useFridge();
   const { welcomed } = useFirstRun();
   const textMe = useTextMe();
   const { showToast } = useNudge();
+  const [pictureOpen, setPictureOpen] = useState(false);
+  const [name, setName] = useState(settings.fridgeName);
+  useEffect(() => {
+    const id = setTimeout(() => setName(settings.fridgeName), 0);
+    return () => clearTimeout(id);
+  }, [settings.fridgeName]);
+  useEffect(() => {
+    if (!visible || !pictureFirst) return;
+    const id = setTimeout(() => setPictureOpen(true), 500);
+    return () => clearTimeout(id);
+  }, [visible, pictureFirst]);
+  function saveName() {
+    const trimmed = name.trim() || 'My fridge';
+    setName(trimmed);
+    settings.set('fridgeName', trimmed);
+  }
 
   async function toggleNotifications(on: boolean) {
     if (!on) {
@@ -64,6 +89,29 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title="Settings" scrollToEnd={demoFirst}>
+      <View style={styles.profileHead}>
+        <ProfilePicture
+          size={64}
+          onPress={() => setPictureOpen(true)}
+          accessibilityLabel="Change profile picture"
+        />
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          onBlur={saveName}
+          onSubmitEditing={saveName}
+          maxLength={24}
+          returnKeyType="done"
+          accessibilityLabel="Fridge name"
+          placeholder="My fridge"
+          placeholderTextColor={colors.inkMuted}
+          style={styles.nameInput}
+        />
+        <AppText variant="caption" color={colors.inkMuted}>
+          Tap the picture or the name to change them
+        </AppText>
+      </View>
+      <ProfileSheet visible={pictureOpen} onClose={() => setPictureOpen(false)} />
       <Section title="Sound">
         <ToggleRow
           icon="bell"
@@ -82,10 +130,6 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
       </Section>
 
       <Section title="Your stats">
-        <View style={styles.statsHead}>
-          <ProfilePicture size={40} accessibilityLabel="Your profile picture" />
-          <AppText variant="bodyBold">{settings.fridgeName}</AppText>
-        </View>
         <View
           style={styles.stats}
           accessible
@@ -312,6 +356,18 @@ function Stat({
 
 const styles = StyleSheet.create({
   section: { gap: space.sm },
+  profileHead: { alignItems: 'center', gap: space.sm, paddingBottom: space.sm },
+  nameInput: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 22,
+    lineHeight: 28,
+    color: colors.ink,
+    paddingVertical: space.xs,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.line,
+  },
   sectionTitle: { letterSpacing: 1, marginTop: space.xs },
   row: {
     flexDirection: 'row',

@@ -3,16 +3,16 @@ import { mockScanResponse } from '@/api/mocks/scan';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
-import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
+import { Chip, PrimaryButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { closeOpenRow } from '@/components/FoodRow';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { useNudge } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
-import { GearIcon } from '@/components/Icons';
 import { ManagerSheet } from '@/components/ManagerSheet';
 import { Mascot, type MascotExpression, type MascotState } from '@/components/Mascot';
 import { OverviewPanel } from '@/components/OverviewPanel';
+import { ProfilePicture } from '@/components/ProfilePicture';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { SettingsSheet } from '@/components/SettingsSheet';
@@ -135,7 +135,6 @@ export default function FridgeScreen() {
   const [page, setPage] = useState(0);
   // While a row is being swiped, the pager must not change pages.
   const [pagerEnabled, setPagerEnabled] = useState(true);
-  const [pictureOpen, setPictureOpen] = useState(false);
   const goToPage = useCallback(
     (i: number) => {
       pagerRef.current?.scrollTo({ x: i * width, animated: true });
@@ -175,7 +174,7 @@ export default function FridgeScreen() {
     page?: string;
     picture?: string;
   }>();
-  const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
+  const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo' | 'picture'>(false);
 
   // First run: show the welcome screen instead of the fridge.
   useEffect(() => {
@@ -207,7 +206,7 @@ export default function FridgeScreen() {
     if (urgency) setTimeout(() => setUrgencyFilter(urgency as Urgency), 0);
     if (hintParam) hint.set(false);
     if (pageParam === 'overview') setTimeout(() => goToPage(1), 400);
-    if (pictureParam) setTimeout(() => setPictureOpen(true), 900);
+    if (pictureParam) setTimeout(() => setMenuOpen('picture'), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam, pictureParam]);
 
@@ -307,12 +306,15 @@ export default function FridgeScreen() {
               {fridgeName}
             </AppText>
           </Pressable>
-          <RoundButton
-            icon={<GearIcon />}
-            label="Settings"
-            size={48}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings and profile"
             onPress={() => setMenuOpen('settings')}
-          />
+            hitSlop={6}
+            style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.85 }]}
+          >
+            <ProfilePicture size={32} />
+          </Pressable>
         </View>
         <StatsLine
           data={scoreboard}
@@ -473,8 +475,6 @@ export default function FridgeScreen() {
               goToPage(0);
             }}
             bottomPadding={FOOTER_HEIGHT + insets.bottom}
-            pictureOpen={pictureOpen}
-            onPictureOpenChange={setPictureOpen}
           />
         </View>
       </ScrollView>
@@ -495,6 +495,7 @@ export default function FridgeScreen() {
         }}
         visible={menuOpen !== false}
         demoFirst={menuOpen === 'demo'}
+        pictureFirst={menuOpen === 'picture'}
         onClose={() => setMenuOpen(false)}
       />
 
@@ -547,6 +548,7 @@ export default function FridgeScreen() {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: 0, gap: 6 },
   title: { fontFamily: 'Nunito_600SemiBold', fontSize: 22, lineHeight: 28 },
+  profileButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48 },
   sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
   listHeader: { gap: space.sm, paddingBottom: space.sm },

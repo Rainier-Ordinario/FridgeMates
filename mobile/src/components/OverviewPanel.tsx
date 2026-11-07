@@ -12,49 +12,31 @@ import {
   type Urgency,
 } from '@/logic/overview';
 import { formatDollars } from '@/logic/prices';
-import { useSettings } from '@/logic/settings';
-import { ProfilePicture } from './ProfilePicture';
-import { ProfileSheet } from './ProfileSheet';
 import { useFridge } from '@/logic/store';
 import { colors, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 interface Props {
   /** Tapping an urgency tile: the Fridge page applies this filter and swipes back. */
   onShowUrgency: (urgency: Urgency) => void;
   /** Space to leave for the docked buttons. */
   bottomPadding: number;
-  /** Controlled 'Profile picture' sheet (the home screen owns it so a dev link can open it). */
-  pictureOpen: boolean;
-  onPictureOpenChange: (open: boolean) => void;
 }
 
 /** Page 2 of the home pager: profile-lite, stats, what's inside, and the manager's summary. */
-export function OverviewPanel({ onShowUrgency, bottomPadding, pictureOpen, onPictureOpenChange }: Props) {
+export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
   const { scoreboard, characters, ghosts } = useFridge();
   const buckets = urgencyBuckets(characters, ghosts);
   const groups = categoryGroups(characters);
   const value = fridgeValue(characters);
   const summary = summaryLine(buckets);
   const empty = characters.length + ghosts.length === 0;
-  const settings = useSettings();
-  const [name, setName] = useState(settings.fridgeName);
-  useEffect(() => {
-    const id = setTimeout(() => setName(settings.fridgeName), 0);
-    return () => clearTimeout(id);
-  }, [settings.fridgeName]);
 
   const decided = scoreboard.rescued + scoreboard.lost;
   const rate = decided > 0 ? `${Math.round((100 * scoreboard.rescued) / decided)}%` : '–';
-
-  function saveName() {
-    const trimmed = name.trim() || 'My fridge';
-    setName(trimmed);
-    settings.set('fridgeName', trimmed);
-  }
 
   return (
     <ScrollView
@@ -63,27 +45,6 @@ export function OverviewPanel({ onShowUrgency, bottomPadding, pictureOpen, onPic
       keyboardShouldPersistTaps="handled"
       nestedScrollEnabled
     >
-      <View style={styles.profile}>
-        <ProfilePicture
-          size={72}
-          onPress={() => onPictureOpenChange(true)}
-          accessibilityLabel="Change profile picture"
-        />
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          onBlur={saveName}
-          onSubmitEditing={saveName}
-          maxLength={24}
-          returnKeyType="done"
-          accessibilityLabel="Fridge name"
-          placeholder="My fridge"
-          placeholderTextColor={colors.inkMuted}
-          style={styles.nameInput}
-        />
-      </View>
-      <ProfileSheet visible={pictureOpen} onClose={() => onPictureOpenChange(false)} />
-
       <View
         style={styles.statsGrid}
         accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, ${formatDollars(scoreboard.savedDollars)} saved, rescue rate ${rate}`}
@@ -225,25 +186,6 @@ function StatTile({ value, label, color }: { value: string; label: string; color
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: space.xl, paddingTop: space.lg, gap: space.lg },
-  profile: {
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: space.xl,
-    ...shadow.card,
-  },
-  nameInput: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
-    fontFamily: 'Nunito_800ExtraBold',
-    fontSize: 24,
-    lineHeight: 30,
-    color: colors.ink,
-    paddingVertical: space.xs,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.line,
-  },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   tile: {
     width: '47%',
