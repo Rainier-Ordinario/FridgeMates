@@ -135,10 +135,6 @@ export default function ChatScreen() {
                 </View>
               ))}
             </View>
-            <AppText variant="caption" color={colors.inkMuted}>
-              Today · {members.length} members
-              {ghosts.length ? `, ${ghosts.length} ghost${ghosts.length > 1 ? 's' : ''}` : ''}
-            </AppText>
           </View>
         </View>
         <Pressable
