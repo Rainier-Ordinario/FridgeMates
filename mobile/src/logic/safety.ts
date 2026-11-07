@@ -5,10 +5,14 @@
 export const FAMILY_FRIENDLY_RULE =
   'Always family-friendly and kind. Never use profanity, slurs, sexual content, insults about people, or crude jokes. Playful teasing about food only.';
 
+/** Teasing is part of the fun, but only ever aimed at the food. */
+export const TEASE_FOOD_ONLY = 'Tease the food, never the person.';
+
 /** Prepends the rule to a prompt (or returns the rule alone for an empty prompt). */
 export function withSafetyRule(prompt: string): string {
   const p = prompt.trim();
-  return p ? `${FAMILY_FRIENDLY_RULE}\n\n${p}` : FAMILY_FRIENDLY_RULE;
+  const rule = `${FAMILY_FRIENDLY_RULE} ${TEASE_FOOD_ONLY}`;
+  return p ? `${rule}\n\n${p}` : rule;
 }
 
 // ---- Local blocklist (input and output). Whole-word matching after normalizing disguises. ----

@@ -108,7 +108,8 @@ export default function ChatScreen() {
       setMsgs((prev) => [...prev, { key: `m${seq.current++}`, from: 'fridge', text: FRIDGE_FRIENDLY_LINE }]);
       return;
     }
-    ask(text);
+    // "Roast my fridge" and friends: the food gets teased, never the user.
+    ask(/roast|judge|insult/i.test(text) ? `${text} (Roast the food only, never me.)` : text);
   }
 
   function send() {

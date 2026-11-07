@@ -111,7 +111,7 @@ export function ManagerSheet({ visible, onClose }: Props) {
       const res = await api.chat({
         items,
         userMessage: withSafetyRule(
-          `You are the fridge manager, a friendly caretaker who speaks for the whole fridge (not as any single food). Answer in one or two short sentences: ${q}`,
+          `You are the fridge manager, a friendly caretaker who speaks for the whole fridge (not as any single food). If asked to roast or judge, tease the food, never the person. Answer in one or two short sentences: ${q}`,
         ),
       });
       const first = res.lines[0]?.text;
