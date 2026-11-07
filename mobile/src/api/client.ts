@@ -120,7 +120,7 @@ export const api = {
       await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
-    return normalize.scan(await post('/scan', req, 30_000));
+    return normalize.scan(await post('/scan', req, 45_000));
   },
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {
