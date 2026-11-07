@@ -249,38 +249,39 @@ export default function ScanScreen() {
               </AppText>
             </View>
           )}
-          <View style={styles.pickButtons}>
-            <PrimaryButton
-              emoji="📷"
-              label="Take a photo"
-              onPress={() => (Device.isDevice ? setPhase('camera') : pick('camera'))}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose a photo"
-              onPress={() => {
-                Haptics.selectionAsync();
-                pick('library');
-              }}
-              style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-            >
-              <AppText variant="heading" color={colors.brandText}>
-                🖼️ Choose a photo
-              </AppText>
-            </Pressable>
-            {USE_MOCK && (
+          {!failure && (
+            <View style={styles.pickButtons}>
+              <PrimaryButton
+                emoji="📷"
+                label="Take a photo"
+                onPress={() => (Device.isDevice ? setPhase('camera') : pick('camera'))}
+              />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Try a demo scan"
-                onPress={() => runScan('', null)}
-                style={({ pressed }) => [styles.demo, pressed && styles.pressed]}
+                accessibilityLabel="Choose a photo"
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  pick('library');
+                }}
+                style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
               >
-                <AppText variant="caption" color={colors.inkMuted}>
-                  No camera? Try a demo scan ✨
+                <AppText variant="heading" color={colors.brandText}>
+                  🖼️ Choose a photo
                 </AppText>
               </Pressable>
-            )}
-          </View>
+              {USE_MOCK && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Try a demo scan"
+                  onPress={() => runScan('', null)}
+                  style={({ pressed }) => [styles.demo, pressed && styles.pressed]}
+                >
+                  <AppText variant="caption" color={colors.inkMuted}>
+                    No camera? Try a demo scan ✨
+                  </AppText>
+                </Pressable>
+              )}
+            </View>
           )}
         </Animated.View>
       )}
