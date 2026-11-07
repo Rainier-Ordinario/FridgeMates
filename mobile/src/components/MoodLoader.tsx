@@ -20,13 +20,7 @@ const cycleColors = cycle.map((m) => m.color);
 const cycleTints = cycle.map((m) => m.tint);
 const stops = cycle.map((_, i) => i);
 
-const defaultPhrases = [
-  'bringing your food to life…',
-  'assigning personalities…',
-  'reading the tiny printed dates…',
-  'asking the fridge for gossip…',
-  'rehearsing dramatic intros…',
-];
+const defaultPhrases = ['Scanning your food…'];
 const foods = ['Milk', 'Tomato', 'Avocado', 'Cheese', 'Spinach', 'Strawberries', 'Eggs'];
 
 /** Playful loader: a big face that cycles through the mood colors, plus rotating phrases. */

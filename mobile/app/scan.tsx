@@ -50,7 +50,7 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
   allowsEditing: false,
 };
 
-/** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
+/** Scan: viewfinder (or photo picker) → "Scanning your food…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
   const settings = useSettings();

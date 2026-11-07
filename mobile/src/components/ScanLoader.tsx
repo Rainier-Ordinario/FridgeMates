@@ -45,26 +45,22 @@ const doodles = [
   },
 ];
 
-const phrases = [
-  'Waking up your food…',
-  'Assigning personalities…',
-  'Reading the tiny printed dates…',
-  'Asking the fridge for gossip…',
-];
+const SLOW_AFTER_MS = 10_000;
 const STAGGER_MS = 350;
 
 export function ScanLoader() {
   const reduceMotion = useReducedMotion();
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [slow, setSlow] = useState(false);
 
+  // One plain line; after 10 s it becomes "Still working…" so a slow backend never looks stuck.
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1400);
-    return () => clearInterval(id);
+    const id = setTimeout(() => setSlow(true), SLOW_AFTER_MS);
+    return () => clearTimeout(id);
   }, []);
 
-  if (failed) return <MoodLoader phrases={phrases} />;
+  if (failed) return <MoodLoader phrases={[slow ? 'Still working…' : 'Scanning your food…']} />;
 
   // Arc geometry: fits a 375pt phone with 24pt gutters (circle 76, radius ~123 → 322pt wide).
   const stageW = Math.min(width - 2 * space.xl, 340);
@@ -127,7 +123,7 @@ export function ScanLoader() {
       </View>
       <TypingDots tint={colors.surface} dotColor={colors.inkMuted} />
       <AppText variant="title" align="center" accessibilityLiveRegion="polite">
-        {phrases[tick % phrases.length]}
+        {slow ? 'Still working…' : 'Scanning your food…'}
       </AppText>
       <AppText variant="caption" color={colors.inkMuted} align="center">
         this takes a few seconds

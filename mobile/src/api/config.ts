@@ -25,5 +25,5 @@ export function isLive(endpoint: Endpoint): boolean {
 /** Simulated network latency for mocks, so loading states are visible. */
 export const MOCK_DELAY_MS = 900;
 
-/** Scan is slower on purpose so the "bringing your food to life…" loader is seen. */
+/** Scan is slower on purpose so the loader is seen. */
 export const MOCK_SCAN_DELAY_MS = 1500;
