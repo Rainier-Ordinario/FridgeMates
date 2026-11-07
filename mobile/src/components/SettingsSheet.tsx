@@ -17,10 +17,12 @@ interface Props {
   onClose: () => void;
   /** Open scrolled to the demo tools (title long-press). */
   demoFirst?: boolean;
+  /** Demo: opens the fridge manager with a blocked phrase to show the refusal. */
+  onTestSafety?: () => void;
 }
 
 /** Every control in one place: voices, sounds, stats, help, reset, about, and the demo tools. */
-export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
+export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafety }: Props) {
   const settings = useSettings();
   const { scoreboard, loadDemo, addScanned, skipDay, clearAll, dayOffset } = useFridge();
   const { welcomed } = useFirstRun();
@@ -125,6 +127,14 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
               caption="The most urgent character sends a message"
               onPress={after(textMe)}
             />
+            {onTestSafety && (
+              <LinkRow
+                emoji="🛡️"
+                label="Test safety filter"
+                caption="Sends a blocked phrase; shows the friendly refusal"
+                onPress={after(onTestSafety)}
+              />
+            )}
             {!welcomed ? null : null}
           </>
         )}
