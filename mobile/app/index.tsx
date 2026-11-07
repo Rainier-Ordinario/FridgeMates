@@ -252,9 +252,6 @@ export default function FridgeScreen() {
             style={{ flex: 1 }}
           >
             <AppText variant="display">FridgeMates</AppText>
-            <AppText variant="body" color={colors.inkMuted}>
-              Spoil alert: your food has feelings.
-            </AppText>
           </Pressable>
           <RoundButton
             emoji={avatar}
@@ -269,6 +266,9 @@ export default function FridgeScreen() {
             onPress={() => setMenuOpen('settings')}
           />
         </View>
+        <AppText variant="body" color={colors.inkMuted} style={styles.tagline}>
+          Spoil alert: your food has feelings.
+        </AppText>
         <StatsLine
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
@@ -471,6 +471,7 @@ export default function FridgeScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
+  tagline: { marginTop: -space.xs },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
   listHeader: { gap: space.sm, paddingBottom: space.sm },
