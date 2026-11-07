@@ -26,7 +26,7 @@ export function mockFridgeItems(): FoodItem[] {
       characterName: 'Avo',
       personality: 'drama queen',
       dateSource: 'estimated',
-      intro: "I'm ripe. Like, RIGHT NOW ripe. Tonight or never.",
+      intro: 'Tonight or never. I mean it.',
     }),
     mk('seed-tomato', 1, {
       name: 'Tomato',
@@ -34,7 +34,7 @@ export function mockFridgeItems(): FoodItem[] {
       characterName: 'Big Tom',
       personality: 'anxious sweetheart',
       dateSource: 'estimated',
-      intro: 'Hi! Sorry. Is it hot in here or is it just me?',
+      intro: 'Is it hot in here, or just me?',
     }),
     mk('seed-mozz', 2, {
       name: 'Mozzarella',
@@ -42,7 +42,7 @@ export function mockFridgeItems(): FoodItem[] {
       characterName: 'Mozz',
       personality: 'smooth talker',
       dateSource: 'estimated',
-      intro: 'Fresh, soft, and only in town for two days.',
+      intro: 'Only in town for two days.',
     }),
     mk('seed-yogurt', 4, {
       name: 'Greek yogurt',
@@ -50,7 +50,7 @@ export function mockFridgeItems(): FoodItem[] {
       characterName: 'Sir Yogurtsworth',
       personality: 'posh and unbothered',
       dateSource: 'printed',
-      intro: 'Finally, someone opened the door.',
+      intro: 'Oh good, the door. Hello.',
     }),
     mk('seed-ketchup', 30, {
       name: 'Ketchup',
@@ -58,7 +58,7 @@ export function mockFridgeItems(): FoodItem[] {
       characterName: 'Big Red',
       personality: 'smug, immortal energy',
       dateSource: 'printed',
-      intro: "Relax. I've outlived three fridges.",
+      intro: "I've outlived three fridges.",
     }),
     {
       ...mk('seed-spinach', -2, {
@@ -67,7 +67,7 @@ export function mockFridgeItems(): FoodItem[] {
         characterName: 'Leafy Lou',
         personality: 'anxious overachiever (deceased)',
         dateSource: 'estimated',
-        intro: 'Hi! Quick question: when were you planning to eat me?',
+        intro: 'Still here. Take out the trash.',
       }),
       epitaph: 'Here lies Spinach. Bought with good intentions. Never opened.',
     },
