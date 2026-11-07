@@ -21,7 +21,19 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInUp,
+  cancelAnimation,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 interface Msg {
   key: string;
@@ -42,6 +54,8 @@ export default function ChatScreen() {
   const [speakingKey, setSpeakingKey] = useState<string | null>(null);
   const speaking = speakingKey !== null;
   const seq = useRef(0);
+  const session = useRef(0);
+  const listRef = useRef<FlatList<Msg>>(null);
 
   const ask = useCallback(
     async (userMessage?: string) => {
@@ -86,18 +100,27 @@ export default function ChatScreen() {
     ask(text);
   }
 
-  /** Reads every character line in order, each with its own pitch/rate. Starts only from this tap. */
+  const data = useMemo(() => [...msgs].reverse(), [msgs]);
+
+  function stopVoices() {
+    session.current += 1;
+    Speech.stop();
+    setSpeakingKey(null);
+  }
+
+  /** Reads every character line in order, each with its own pitch/rate, with a short breath between speakers. */
   function playVoices() {
     if (speaking) {
-      Speech.stop();
-      setSpeakingKey(null);
+      stopVoices();
       return;
     }
     const lines = msgs.filter((m) => m.from !== 'me');
     if (lines.length === 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const id = ++session.current;
     let i = 0;
     const next = () => {
+      if (session.current !== id) return;
       if (i >= lines.length) {
         setSpeakingKey(null);
         return;
@@ -106,19 +129,30 @@ export default function ChatScreen() {
       const who = byId(m.from);
       const v = voiceFor(who ?? { characterName: 'The Fridge' });
       setSpeakingKey(m.key);
+      const index = data.findIndex((d) => d.key === m.key);
+      if (index >= 0) {
+        try {
+          listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+        } catch {
+          // ref not ready; the line still plays
+        }
+      }
+      const after = () => {
+        setTimeout(next, 250);
+      };
       Speech.speak(m.text, {
         pitch: v.pitch,
         rate: v.rate,
         language: v.language,
-        onDone: next,
-        onError: next,
-        onStopped: () => setSpeakingKey(null),
+        onDone: after,
+        onError: after,
+        onStopped: () => {
+          if (session.current === id) setSpeakingKey(null);
+        },
       });
     };
     next();
   }
-
-  const data = useMemo(() => [...msgs].reverse(), [msgs]);
 
   return (
     <Screen edges={['top', 'left', 'right']}>
@@ -145,9 +179,13 @@ export default function ChatScreen() {
           style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
         >
           <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
-            <AppText style={styles.playIcon} color={speaking ? colors.surface : colors.ink}>
-              {speaking ? '■' : '▶'}
-            </AppText>
+            {speaking ? (
+              <Equalizer />
+            ) : (
+              <AppText style={styles.playIcon} color={colors.ink}>
+                ▶
+              </AppText>
+            )}
           </View>
           <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
         </Pressable>
@@ -160,8 +198,10 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList
+          ref={listRef}
           data={data}
           inverted
+          onScrollToIndexFailed={() => {}}
           keyExtractor={(m) => m.key}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -224,7 +264,38 @@ export default function ChatScreen() {
 }
 
 function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boolean }) {
-  if (msg.from === 'me') {
+  const reduceMotion = useReducedMotion();
+  const mood = who?.mood ?? 'chill';
+  const m = moods[mood];
+  const isGhost = mood === 'ghost';
+  const isMe = msg.from === 'me';
+
+  // Eases in/out instead of snapping, so the hand-off between speakers feels smooth.
+  const hot = useSharedValue(0);
+  const bounce = useSharedValue(0);
+  useEffect(() => {
+    hot.value = withTiming(active ? 1 : 0, { duration: 180, easing: Easing.out(Easing.quad) });
+    if (active && !reduceMotion) {
+      bounce.value = withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 300, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 300, easing: Easing.in(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(bounce);
+      bounce.value = withTiming(0, { duration: 180 });
+    }
+  }, [active, reduceMotion, hot, bounce]);
+  const bubbleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(hot.value, [0, 1], [1, 1.03]) }],
+    borderColor: interpolateColor(hot.value, [0, 1], ['rgba(0,0,0,0)', m.color]),
+  }));
+  const faceStyle = useAnimatedStyle(() => ({ transform: [{ translateY: bounce.value }] }));
+
+  if (isMe) {
     return (
       <Animated.View entering={FadeInUp.springify().damping(16)} style={styles.rowMe}>
         <View style={[styles.bubble, styles.bubbleMe]}>
@@ -233,37 +304,55 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
       </Animated.View>
     );
   }
-  const mood = who?.mood ?? 'chill';
-  const m = moods[mood];
-  const isGhost = mood === 'ghost';
   return (
     <Animated.View
       entering={FadeInUp.springify().damping(16)}
       style={[styles.row, isGhost && { opacity: m.opacity }]}
     >
-      <View style={styles.faceCol}>
+      <Animated.View style={[styles.faceCol, faceStyle]}>
         {who ? (
           <Face emoji={who.emoji} mood={mood} size={40} showBadge={false} animated={active} />
         ) : (
           <AppText style={{ fontSize: 28 }}>🧊</AppText>
         )}
-      </View>
+      </Animated.View>
       <View style={styles.bubbleCol}>
-        <AppText variant="caption" color={colors.inkMuted}>
+        <AppText variant="caption" color={active ? m.text : colors.inkMuted}>
           {who?.characterName ?? 'The Fridge'}
         </AppText>
-        <View
-          style={[
-            styles.bubble,
-            { backgroundColor: m.tint },
-            active && { borderWidth: 2, borderColor: m.color },
-          ]}
-        >
+        <Animated.View style={[styles.bubble, { backgroundColor: m.tint }, bubbleStyle]}>
           <AppText variant="body">{msg.text}</AppText>
-        </View>
+        </Animated.View>
       </View>
     </Animated.View>
   );
+}
+
+/** Three tiny bars that dance while voices play (static under Reduce Motion). */
+function Equalizer() {
+  return (
+    <View style={styles.eq} accessibilityElementsHidden>
+      {[0, 1, 2].map((i) => (
+        <EqBar key={i} index={i} />
+      ))}
+    </View>
+  );
+}
+
+function EqBar({ index }: { index: number }) {
+  const reduceMotion = useReducedMotion();
+  const t = useSharedValue(0.5);
+  useEffect(() => {
+    if (reduceMotion) return;
+    t.value = withRepeat(
+      withTiming(1, { duration: 260 + index * 90, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(t);
+  }, [index, reduceMotion, t]);
+  const style = useAnimatedStyle(() => ({ height: interpolate(t.value, [0, 1], [4, 14]) }));
+  return <Animated.View style={[styles.eqBar, style]} />;
 }
 
 const styles = StyleSheet.create({
@@ -313,6 +402,8 @@ const styles = StyleSheet.create({
   bubbleCol: { flex: 1, gap: 4 },
   bubble: {
     alignSelf: 'flex-start',
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0)',
     borderRadius: radius.md,
     borderBottomLeftRadius: 6,
     paddingVertical: space.md,
@@ -356,4 +447,6 @@ const styles = StyleSheet.create({
   sendDisabled: { opacity: 0.4 },
   sendIcon: { fontSize: 20, lineHeight: 24 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  eq: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 14 },
+  eqBar: { width: 3, borderRadius: 1.5, backgroundColor: colors.surface },
 });
