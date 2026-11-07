@@ -3,7 +3,7 @@ import { USE_MOCK } from '@/api/config';
 import type { ScanItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { Confetti } from '@/components/Confetti';
-import { PrimaryButton, RoundButton } from '@/components/Buttons';
+import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
 import { MoodPill } from '@/components/MoodPill';
@@ -187,10 +187,12 @@ export default function ScanScreen() {
     }
   }
 
-  function finish() {
+  /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
+  function finish(next?: '/chat' | '/match') {
     addScanned(found);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.back();
+    if (next) setTimeout(() => router.push(next), 80);
   }
 
   if (phase === 'camera') {
@@ -352,7 +354,21 @@ export default function ScanScreen() {
               </Animated.View>
               <Animated.View entering={FadeInUp.delay(250).duration(motion.base)}>
                 <DockedFooter>
-                  <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
+                  <View style={styles.resultRow}>
+                    <SecondaryButton
+                      label="Open the chat"
+                      outlined
+                      onPress={() => finish('/chat')}
+                      style={styles.half}
+                    />
+                    <SecondaryButton
+                      label="Find a match"
+                      outlined
+                      onPress={() => finish('/match')}
+                      style={styles.half}
+                    />
+                  </View>
+                  <PrimaryButton emoji="🧊" label="Go to my fridge" onPress={() => finish()} />
                 </DockedFooter>
               </Animated.View>
             </>
@@ -491,6 +507,8 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 8, marginTop: space.xs },
   dot: { width: 12, height: 12, borderRadius: 6 },
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
+  resultRow: { flexDirection: 'row', gap: space.md },
+  half: { flex: 1 },
   reveal: { paddingHorizontal: space.xl, paddingBottom: space.md, gap: 18 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   rowBody: { flex: 1, gap: 6 },
