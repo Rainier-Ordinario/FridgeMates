@@ -14,7 +14,9 @@ export const colors = {
   /** Brand-colored text on cream/white surfaces (5.3:1). */
   brandText: '#A8471A',
   success: '#3DBE7A',
-  danger: '#C9372A',
+  danger: '#E5483A',
+  /** Danger button fill; white label passes 5.4:1. */
+  dangerStrong: '#C0392B',
   overlay: 'rgba(43, 33, 24, 0.45)',
 } as const;
 

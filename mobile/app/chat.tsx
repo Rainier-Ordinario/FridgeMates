@@ -156,6 +156,11 @@ export default function ChatScreen() {
         </Pressable>
       </View>
 
+      <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.dayCaption}>
+        Today · {members.length} members
+        {ghosts.length ? `, ${ghosts.length} ghost${ghosts.length > 1 ? 's' : ''}` : ''}
+      </AppText>
+
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList
           data={data}
@@ -268,11 +273,12 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingHorizontal: space.lg,
     paddingTop: space.sm,
-    paddingBottom: space.md,
+    paddingBottom: space.xs,
   },
   headerText: { flex: 1, gap: space.xs },
-  headerTitle: { fontSize: 20, lineHeight: 24 },
-  memberRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  headerTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Nunito_800ExtraBold' },
+  dayCaption: { paddingBottom: space.sm },
+  memberRow: { flexDirection: 'row', alignItems: 'center' },
   avatars: { flexDirection: 'row' },
   avatar: { borderRadius: 13, borderWidth: 1.5, borderColor: colors.bg },
   playChip: {

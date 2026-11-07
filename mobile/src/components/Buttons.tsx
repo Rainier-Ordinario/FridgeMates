@@ -12,7 +12,7 @@ interface PrimaryProps {
   tone?: 'brand' | 'danger' | 'success';
 }
 
-const tones = { brand: colors.brand, danger: colors.danger, success: colors.success } as const;
+const tones = { brand: colors.brand, danger: colors.dangerStrong, success: colors.success } as const;
 
 /** Big thumb-reachable pill. Used for Scan, "Ate it", "I cooked it". */
 export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand' }: PrimaryProps) {
@@ -89,7 +89,7 @@ export function Chip({ label, emoji, onPress, tone = 'neutral' }: ChipProps) {
     >
       <View style={styles.chipInner}>
         {emoji ? <AppText variant="caption">{emoji}</AppText> : null}
-        <AppText variant="caption" color={tone === 'debug' ? colors.brandText : colors.ink}>
+        <AppText variant="caption" color={colors.ink}>
           {label}
         </AppText>
       </View>

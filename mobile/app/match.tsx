@@ -153,7 +153,7 @@ export default function MatchScreen() {
               {match.steps.map((step, i) => (
                 <View key={i} style={styles.step}>
                   <View style={styles.stepNum}>
-                    <AppText variant="caption" color={colors.brandText}>
+                    <AppText variant="caption" color={colors.ink}>
                       {i + 1}
                     </AppText>
                   </View>
