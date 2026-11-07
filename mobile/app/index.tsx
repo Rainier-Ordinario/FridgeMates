@@ -13,6 +13,7 @@ import { Mascot, type MascotExpression, type MascotState } from '@/components/Ma
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
+import { urgencyLabel, urgencyOf, type Urgency } from '@/logic/overview';
 import { useSettings } from '@/logic/settings';
 import { useFlag } from '@/logic/flags';
 import { useFridge, type Character } from '@/logic/store';
@@ -82,24 +83,28 @@ export default function FridgeScreen() {
     dayOffset,
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
-  const { demoMode } = useSettings();
+  const { demoMode, avatar } = useSettings();
   const { showToast } = useNudge();
   const [cheer, setCheer] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [managerQuestion, setManagerQuestion] = useState<string | null>(null);
   // Ghosts need action first, then the living, most urgent first.
   const rows = [...ghosts, ...characters];
   // Search and sort (Kerwin): filter by food or character name; sort by expiry, A–Z, or newest.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('expiry');
+  const [urgencyFilter, setUrgencyFilter] = useState<Urgency | null>(null);
   const visibleRows = useMemo(
     () =>
       sortCharacters(
-        rows.filter((c) => matchesSearch(c, searchQuery)),
+        rows.filter(
+          (c) => matchesSearch(c, searchQuery) && (!urgencyFilter || urgencyOf(c) === urgencyFilter),
+        ),
         sortMode,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ghosts, characters, searchQuery, sortMode],
+    [ghosts, characters, searchQuery, sortMode, urgencyFilter],
   );
   function toggleSearch() {
     Haptics.selectionAsync();
@@ -118,6 +123,9 @@ export default function FridgeScreen() {
     hint: hintParam,
     big,
     manager,
+    urgency,
+    t,
+    ask,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -125,6 +133,9 @@ export default function FridgeScreen() {
     hint?: string;
     big?: string;
     manager?: string;
+    urgency?: string;
+    t?: string;
+    ask?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -149,10 +160,16 @@ export default function FridgeScreen() {
       setTimeout(() => addScanned(mockScanResponse.items), 100);
     }
     if (menu) setTimeout(() => setMenuOpen('settings'), 300);
-    if (manager) setTimeout(() => setManagerOpen(true), 300);
+    if (manager) {
+      setTimeout(() => {
+        if (ask) setManagerQuestion(ask);
+        setManagerOpen(true);
+      }, 300);
+    }
+    if (urgency) setTimeout(() => setUrgencyFilter(urgency as Urgency), 0);
     if (hintParam) hint.set(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big, manager]);
+  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -240,6 +257,12 @@ export default function FridgeScreen() {
             </AppText>
           </Pressable>
           <RoundButton
+            emoji={avatar}
+            label="Open fridge overview"
+            size={48}
+            onPress={() => router.push('/overview')}
+          />
+          <RoundButton
             icon={<GearIcon />}
             label="Settings"
             size={48}
@@ -308,7 +331,16 @@ export default function FridgeScreen() {
                   <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
                     {sectionTitle(sortMode)}
                   </AppText>
-                  <Chip emoji="🔍" label={searchOpen ? 'Close' : 'Search'} onPress={toggleSearch} />
+                  <View style={styles.headerChips}>
+                    {urgencyFilter && (
+                      <Chip
+                        label={`${urgencyLabel[urgencyFilter]} ✕`}
+                        tone="debug"
+                        onPress={() => setUrgencyFilter(null)}
+                      />
+                    )}
+                    <Chip emoji="🔍" label={searchOpen ? 'Close' : 'Search'} onPress={toggleSearch} />
+                  </View>
                 </View>
                 {searchOpen && (
                   <>
@@ -349,9 +381,11 @@ export default function FridgeScreen() {
                     </View>
                   </>
                 )}
-                {searchQuery.trim() && visibleRows.length === 0 ? (
+                {(searchQuery.trim() || urgencyFilter) && visibleRows.length === 0 ? (
                   <AppText variant="body" color={colors.inkMuted} align="center" style={styles.emptySearch}>
-                    No food matches that search.
+                    {urgencyFilter && !searchQuery.trim()
+                      ? `Nothing under “${urgencyLabel[urgencyFilter]}”.`
+                      : 'No food matches that search.'}
                   </AppText>
                 ) : null}
               </View>
@@ -362,9 +396,20 @@ export default function FridgeScreen() {
         />
       </View>
 
-      <ManagerSheet visible={managerOpen} onClose={() => setManagerOpen(false)} />
+      <ManagerSheet
+        visible={managerOpen}
+        initialQuestion={managerQuestion}
+        onClose={() => {
+          setManagerOpen(false);
+          setManagerQuestion(null);
+        }}
+      />
 
       <SettingsSheet
+        onTestSafety={() => {
+          setManagerQuestion('this fridge is bullshit');
+          setManagerOpen(true);
+        }}
         visible={menuOpen !== false}
         demoFirst={menuOpen === 'demo'}
         onClose={() => setMenuOpen(false)}
@@ -426,9 +471,10 @@ export default function FridgeScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
   listHeader: { gap: space.sm, paddingBottom: space.sm },
+  headerChips: { flexDirection: 'row', gap: space.xs },
   listControls: {
     flexDirection: 'row',
     alignItems: 'center',

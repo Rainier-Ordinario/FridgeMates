@@ -5,14 +5,26 @@ import { setSoundsEnabled } from './sounds';
 /**
  * App settings (persisted). TODO(ios-logic): shares AsyncStorage with the fridge store.
  */
+export const AVATARS = ['🧑‍🍳', '🍕', '🥑', '🧊', '🐻'] as const;
+export type Avatar = (typeof AVATARS)[number];
+
 export interface Settings {
   voices: boolean;
   sounds: boolean;
   demoMode: boolean;
+  /** Profile-lite: a fridge name and an emoji avatar, saved locally. */
+  fridgeName: string;
+  avatar: Avatar;
 }
 
 const KEY = 'fridgemates.settings.v1';
-const defaults: Settings = { voices: true, sounds: true, demoMode: false };
+const defaults: Settings = {
+  voices: true,
+  sounds: true,
+  demoMode: false,
+  fridgeName: 'My fridge',
+  avatar: '🧊',
+};
 
 interface Value extends Settings {
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
