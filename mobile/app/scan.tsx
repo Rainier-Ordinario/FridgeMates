@@ -6,7 +6,7 @@ import { UiIcon } from '@/components/FoodIcon';
 import { Confetti } from '@/components/Confetti';
 import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
-import { MoodLoader } from '@/components/MoodLoader';
+import { ScanLoader } from '@/components/ScanLoader';
 import { MoodPill } from '@/components/MoodPill';
 import { DockedFooter } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
@@ -18,7 +18,7 @@ import { playPop, playTada } from '@/logic/sounds';
 import { useSettings } from '@/logic/settings';
 import { useFridge } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
-import { colors, moodOrder, moods, motion, radius, shadow, space } from '@/theme';
+import { colors, moods, motion, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
@@ -328,12 +328,7 @@ export default function ScanScreen() {
       {phase === 'loading' && (
         <Animated.View entering={FadeIn} style={styles.center}>
           {photoUri && <Image source={{ uri: photoUri }} style={styles.thumb} contentFit="cover" />}
-          <MoodLoader />
-          <View style={styles.dots}>
-            {moodOrder.map((m) => (
-              <View key={m} style={[styles.dot, { backgroundColor: moods[m].color }]} />
-            ))}
-          </View>
+          <ScanLoader />
           {foundNote && (
             <Animated.View entering={FadeIn.duration(200)} style={styles.foundNote}>
               <AppText variant="caption" color={colors.inkMuted} align="center">
@@ -564,8 +559,6 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.lg },
   thumb: { width: 96, height: 96, borderRadius: radius.md, ...shadow.card },
-  dots: { flexDirection: 'row', gap: 8, marginTop: space.xs },
-  dot: { width: 12, height: 12, borderRadius: 6 },
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
   resultRow: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
