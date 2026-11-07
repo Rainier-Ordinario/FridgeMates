@@ -11,11 +11,13 @@ import { StatsLine } from '@/components/Scoreboard';
 import { GearIcon } from '@/components/Icons';
 import { ManagerSheet } from '@/components/ManagerSheet';
 import { Mascot, type MascotExpression, type MascotState } from '@/components/Mascot';
+import { OverviewPanel } from '@/components/OverviewPanel';
 import { Screen } from '@/components/Screen';
+import { Segmented } from '@/components/Segmented';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
 import { urgencyLabel, urgencyOf, type Urgency } from '@/logic/overview';
-import { avatarIcon, useSettings } from '@/logic/settings';
+import { useSettings } from '@/logic/settings';
 import { useFlag } from '@/logic/flags';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, radius, space } from '@/theme';
@@ -23,7 +25,17 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FOOTER_HEIGHT = 150;
@@ -84,7 +96,7 @@ export default function FridgeScreen() {
     dayOffset,
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
-  const { demoMode, avatar } = useSettings();
+  const { demoMode } = useSettings();
   const { showToast } = useNudge();
   const [cheer, setCheer] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
@@ -114,6 +126,21 @@ export default function FridgeScreen() {
   }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
+  // Home is a 2-page horizontal pager: Fridge list, then the overview. Always opens on the Fridge.
+  const { width } = useWindowDimensions();
+  const pagerRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const [page, setPage] = useState(0);
+  const goToPage = useCallback(
+    (i: number) => {
+      pagerRef.current?.scrollTo({ x: i * width, animated: true });
+      setPage(i);
+    },
+    [width],
+  );
+  const onPagerEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (i !== page) setPage(i);
+  };
   const requestedEpitaphs = useRef(new Set<string>());
   const { ready, welcomed, markWelcomed } = useFirstRun();
   // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the cast; /?menu=1 opens settings.
@@ -127,6 +154,7 @@ export default function FridgeScreen() {
     urgency,
     t,
     ask,
+    page: pageParam,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -137,6 +165,7 @@ export default function FridgeScreen() {
     urgency?: string;
     t?: string;
     ask?: string;
+    page?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -169,8 +198,9 @@ export default function FridgeScreen() {
     }
     if (urgency) setTimeout(() => setUrgencyFilter(urgency as Urgency), 0);
     if (hintParam) hint.set(false);
+    if (pageParam === 'overview') setTimeout(() => goToPage(1), 400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask]);
+  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -255,12 +285,6 @@ export default function FridgeScreen() {
             <AppText variant="display">FridgeMates</AppText>
           </Pressable>
           <RoundButton
-            icon={<UiIcon icon={avatarIcon(avatar)} size={26} />}
-            label="Open fridge overview"
-            size={48}
-            onPress={() => router.push('/overview')}
-          />
-          <RoundButton
             icon={<GearIcon />}
             label="Settings"
             size={48}
@@ -274,6 +298,12 @@ export default function FridgeScreen() {
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
           onPressLost={() => router.push('/memorial')}
+        />
+        <Segmented
+          options={['Fridge', 'Overview']}
+          index={page}
+          onChange={goToPage}
+          accessibilityLabel="Fridge or Overview"
         />
         {demoMode && (
           <View style={styles.demoRow}>
@@ -299,106 +329,126 @@ export default function FridgeScreen() {
         )}
       </View>
 
-      <View style={styles.listArea}>
-        <FlatList
-          ref={listRef}
-          data={visibleRows}
-          onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-          keyExtractor={(c) => c.id}
-          initialNumToRender={8}
-          windowSize={7}
-          removeClippedSubviews
-          renderItem={({ item }) => (
-            <CharacterCard
-              character={item}
-              onPress={openCharacter}
-              onAte={ateIt}
-              onToss={tossGhost}
-              isNew={recentlyAddedIds.includes(item.id)}
-            />
-          )}
-          contentContainerStyle={[
-            styles.list,
-            {
-              paddingTop: space.lg,
-              paddingBottom: FOOTER_HEIGHT + insets.bottom,
-            },
-          ]}
-          ListHeaderComponent={
-            rows.length > 0 ? (
-              <View style={styles.listHeader}>
-                <View style={styles.listControls}>
-                  <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
-                    {sectionTitle(sortMode)}
-                  </AppText>
-                  <View style={styles.headerChips}>
-                    {urgencyFilter && (
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        directionalLockEnabled
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onMomentumScrollEnd={onPagerEnd}
+        scrollEventThrottle={32}
+        style={styles.pager}
+        contentContainerStyle={{ width: width * 2 }}
+      >
+        <View style={[styles.listArea, { width }]}>
+          <FlatList
+            ref={listRef}
+            data={visibleRows}
+            onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            keyExtractor={(c) => c.id}
+            initialNumToRender={8}
+            windowSize={7}
+            removeClippedSubviews
+            renderItem={({ item }) => (
+              <CharacterCard
+                character={item}
+                onPress={openCharacter}
+                onAte={ateIt}
+                onToss={tossGhost}
+                isNew={recentlyAddedIds.includes(item.id)}
+              />
+            )}
+            contentContainerStyle={[
+              styles.list,
+              {
+                paddingTop: space.lg,
+                paddingBottom: FOOTER_HEIGHT + insets.bottom,
+              },
+            ]}
+            ListHeaderComponent={
+              rows.length > 0 ? (
+                <View style={styles.listHeader}>
+                  <View style={styles.listControls}>
+                    <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
+                      {sectionTitle(sortMode)}
+                    </AppText>
+                    <View style={styles.headerChips}>
+                      {urgencyFilter && (
+                        <Chip
+                          label={`${urgencyLabel[urgencyFilter]} ✕`}
+                          tone="debug"
+                          onPress={() => setUrgencyFilter(null)}
+                        />
+                      )}
                       <Chip
-                        label={`${urgencyLabel[urgencyFilter]} ✕`}
-                        tone="debug"
-                        onPress={() => setUrgencyFilter(null)}
+                        icon={<UiIcon icon="magnifying-glass-tilted-left" size={16} />}
+                        label={searchOpen ? 'Close' : 'Search'}
+                        onPress={toggleSearch}
                       />
-                    )}
-                    <Chip
-                      icon={<UiIcon icon="magnifying-glass-tilted-left" size={16} />}
-                      label={searchOpen ? 'Close' : 'Search'}
-                      onPress={toggleSearch}
-                    />
-                  </View>
-                </View>
-                {searchOpen && (
-                  <>
-                    <TextInput
-                      accessibilityLabel="Search food in your fridge"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoFocus
-                      onChangeText={setSearchQuery}
-                      placeholder="Search food..."
-                      placeholderTextColor={colors.inkMuted}
-                      returnKeyType="search"
-                      style={styles.searchInput}
-                      value={searchQuery}
-                    />
-                    <View style={styles.sortRow} accessibilityLabel="Sort">
-                      {sortOptions.map((option) => {
-                        const selected = sortMode === option.value;
-                        return (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Sort by ${option.label}`}
-                            accessibilityState={{ selected }}
-                            key={option.value}
-                            onPress={() => setSortMode(option.value)}
-                            style={({ pressed }) => [
-                              styles.sortOption,
-                              selected && styles.sortOptionActive,
-                              pressed && { opacity: 0.8 },
-                            ]}
-                          >
-                            <AppText variant="caption" color={colors.ink}>
-                              {option.label}
-                            </AppText>
-                          </Pressable>
-                        );
-                      })}
                     </View>
-                  </>
-                )}
-                {(searchQuery.trim() || urgencyFilter) && visibleRows.length === 0 ? (
-                  <AppText variant="body" color={colors.inkMuted} align="center" style={styles.emptySearch}>
-                    {urgencyFilter && !searchQuery.trim()
-                      ? `Nothing under “${urgencyLabel[urgencyFilter]}”.`
-                      : 'No food matches that search.'}
-                  </AppText>
-                ) : null}
-              </View>
-            ) : undefined
-          }
-          ListEmptyComponent={<EmptyFridge />}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+                  </View>
+                  {searchOpen && (
+                    <>
+                      <TextInput
+                        accessibilityLabel="Search food in your fridge"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoFocus
+                        onChangeText={setSearchQuery}
+                        placeholder="Search food..."
+                        placeholderTextColor={colors.inkMuted}
+                        returnKeyType="search"
+                        style={styles.searchInput}
+                        value={searchQuery}
+                      />
+                      <View style={styles.sortRow} accessibilityLabel="Sort">
+                        {sortOptions.map((option) => {
+                          const selected = sortMode === option.value;
+                          return (
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Sort by ${option.label}`}
+                              accessibilityState={{ selected }}
+                              key={option.value}
+                              onPress={() => setSortMode(option.value)}
+                              style={({ pressed }) => [
+                                styles.sortOption,
+                                selected && styles.sortOptionActive,
+                                pressed && { opacity: 0.8 },
+                              ]}
+                            >
+                              <AppText variant="caption" color={colors.ink}>
+                                {option.label}
+                              </AppText>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </>
+                  )}
+                  {(searchQuery.trim() || urgencyFilter) && visibleRows.length === 0 ? (
+                    <AppText variant="body" color={colors.inkMuted} align="center" style={styles.emptySearch}>
+                      {urgencyFilter && !searchQuery.trim()
+                        ? `Nothing under “${urgencyLabel[urgencyFilter]}”.`
+                        : 'No food matches that search.'}
+                    </AppText>
+                  ) : null}
+                </View>
+              ) : undefined
+            }
+            ListEmptyComponent={<EmptyFridge />}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          />
+        </View>
+        <View style={{ width }}>
+          <OverviewPanel
+            onShowUrgency={(u) => setUrgencyFilter(u)}
+            bottomPadding={FOOTER_HEIGHT + insets.bottom}
+          />
+        </View>
+      </ScrollView>
 
       <ManagerSheet
         visible={managerOpen}
@@ -512,6 +562,7 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
   },
   hintEmoji: { fontSize: 22, lineHeight: 28 },
+  pager: { flex: 1 },
   listArea: { flex: 1 },
   list: { paddingHorizontal: space.xl },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },
