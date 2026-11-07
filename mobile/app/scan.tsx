@@ -5,20 +5,37 @@ import { AppText } from '@/components/AppText';
 import { PrimaryButton, RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
+import { MoodPill } from '@/components/MoodPill';
 import { Screen } from '@/components/Screen';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
 import { useFridge } from '@/logic/store';
-import { colors, moods, radius, shadow, space } from '@/theme';
+import { colors, moodOrder, moods, radius, shadow, space } from '@/theme';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, LinearTransition, ZoomIn } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  ZoomIn,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Phase = 'pick' | 'loading' | 'reveal';
+type Phase = 'camera' | 'pick' | 'loading' | 'reveal';
 
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -27,21 +44,42 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
   allowsEditing: false,
 };
 
-/** Scan: camera or photo → "bringing your food to life…" → characters pop in → add to fridge. */
+const FRIENDLY_ERROR = 'The fridge brain is napping. Try again, or use the demo scan.';
+
+/** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
-  const [phase, setPhase] = useState<Phase>('pick');
+  // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
+  const { demo, camera } = useLocalSearchParams<{ demo?: string; camera?: string }>();
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
+
+  // Simulators have no camera: start on the picker so the flow still works.
+  const [phase, setPhase] = useState<Phase>(Device.isDevice || camera ? 'camera' : 'pick');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [found, setFound] = useState<ScanItem[]>([]);
   const [shown, setShown] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  // Dev/demo deep link: fridgemates://scan?demo=1 starts a mock scan immediately.
-  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const [foundNote, setFoundNote] = useState<string | null>(null);
 
+  // Dev/demo deep link: fridgemates://scan?demo=1 starts a mock scan immediately.
   useEffect(() => {
-    if (demo && USE_MOCK && phase === 'pick' && found.length === 0) runScan('', null);
+    if (demo && USE_MOCK && found.length === 0) runScan('', null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
+
+  // Ask for the camera once we're on the viewfinder; fall back to the picker if refused.
+  useEffect(() => {
+    if (phase !== 'camera' || !permission || permission.granted) return;
+    if (permission.canAskAgain) {
+      requestPermission().then((res) => {
+        if (!res.granted) setPhase('pick');
+      });
+    } else {
+      const id = setTimeout(() => setPhase('pick'), 0);
+      return () => clearTimeout(id);
+    }
+  }, [phase, permission, requestPermission]);
 
   // Reveal characters one by one with a haptic tick each.
   useEffect(() => {
@@ -51,10 +89,26 @@ export default function ScanScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setShown((n) => n + 1);
       },
-      shown === 0 ? 250 : 950,
+      shown === 0 ? 200 : 420,
     );
     return () => clearTimeout(t);
   }, [phase, shown, found.length]);
+
+  async function shutter() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const pic = await cameraRef.current?.takePictureAsync({
+        base64: true,
+        quality: 0.5,
+        skipProcessing: true,
+      });
+      if (!pic) throw new Error('no picture');
+      await runScan(pic.base64 ?? '', pic.uri);
+    } catch {
+      setError('The camera blinked. Try again or choose a photo.');
+      setPhase('pick');
+    }
+  }
 
   async function pick(source: 'camera' | 'library') {
     setError(null);
@@ -85,20 +139,27 @@ export default function ScanScreen() {
 
   async function runScan(base64: string, uri: string | null) {
     setPhotoUri(uri);
+    setError(null);
+    setFoundNote(null);
     setPhase('loading');
     try {
       const res = await api.scan({ image: base64 });
-      if (res.items.length === 0) {
+      const items = Array.isArray(res?.items) ? res.items : [];
+      if (items.length === 0) {
         setError("Couldn't spot any food in that photo. Try a closer shot.");
         setPhase('pick');
         return;
       }
-      setFound(res.items);
+      const printed = items.filter((i) => i.dateSource === 'printed').length;
+      setFoundNote(
+        `Found ${items.length} item${items.length === 1 ? '' : 's'} · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
+      );
+      setFound(items);
       setShown(0);
-      setPhase('reveal');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setPhase('reveal'), 700);
     } catch {
-      setError("Couldn't reach the fridge brain. Check EXPO_PUBLIC_API_URL, or use mock mode.");
+      setError(FRIENDLY_ERROR);
       setPhase('pick');
     }
   }
@@ -109,12 +170,37 @@ export default function ScanScreen() {
     router.back();
   }
 
+  if (phase === 'camera') {
+    return (
+      <Viewfinder
+        ready={!!permission?.granted}
+        cameraRef={cameraRef}
+        onShutter={shutter}
+        onGallery={() => pick('library')}
+        onClose={() => router.back()}
+      />
+    );
+  }
+
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']}>
       <View style={styles.topBar}>
         <RoundButton emoji="✕" label="Close" size={44} onPress={() => router.back()} />
-        <AppText variant="heading">{phase === 'reveal' ? 'Meet your food' : 'Scan food'}</AppText>
-        <View style={{ width: 44 }} />
+        {phase === 'reveal' ? (
+          <>
+            <AppText variant="title">Meet your food</AppText>
+            <View style={styles.newTag}>
+              <AppText style={styles.newTagText} color={colors.ink}>
+                +{found.length} new
+              </AppText>
+            </View>
+          </>
+        ) : (
+          <>
+            <AppText variant="heading">Scan food</AppText>
+            <View style={{ width: 44 }} />
+          </>
+        )}
       </View>
 
       {phase === 'pick' && (
@@ -130,13 +216,17 @@ export default function ScanScreen() {
           </View>
           {error && (
             <View style={styles.errorBox}>
-              <AppText variant="caption" color={colors.danger} align="center">
+              <AppText variant="caption" color={moods.dramatic.text} align="center">
                 {error}
               </AppText>
             </View>
           )}
           <View style={styles.pickButtons}>
-            <PrimaryButton emoji="📷" label="Take a photo" onPress={() => pick('camera')} />
+            <PrimaryButton
+              emoji="📷"
+              label="Take a photo"
+              onPress={() => (Device.isDevice ? setPhase('camera') : pick('camera'))}
+            />
             <Pressable
               accessibilityRole="button"
               onPress={() => {
@@ -168,58 +258,56 @@ export default function ScanScreen() {
         <Animated.View entering={FadeIn} style={styles.center}>
           {photoUri && <Image source={{ uri: photoUri }} style={styles.thumb} contentFit="cover" />}
           <MoodLoader />
+          <View style={styles.dots}>
+            {moodOrder.map((m) => (
+              <View key={m} style={[styles.dot, { backgroundColor: moods[m].color }]} />
+            ))}
+          </View>
+          {foundNote && (
+            <Animated.View entering={FadeIn.duration(200)} style={styles.foundNote}>
+              <AppText variant="caption" color={colors.inkMuted} align="center">
+                {foundNote}
+              </AppText>
+            </Animated.View>
+          )}
         </Animated.View>
       )}
 
       {phase === 'reveal' && (
         <>
-          <ScrollView contentContainerStyle={styles.reveal} showsVerticalScrollIndicator={false}>
-            {/* Newest first, so every new character pops in at the top and the older ones slide down. */}
-            {found
-              .slice(0, shown)
-              .map((item, i) => ({ item, i }))
-              .reverse()
-              .map(({ item, i }) => {
-                const mood = moodFor(item.daysLeft);
-                return (
-                  <Animated.View
-                    key={`${item.characterName}-${i}`}
-                    entering={ZoomIn.springify().damping(11)}
-                    layout={LinearTransition.springify().damping(14)}
-                  >
-                    <View style={styles.revealCard}>
-                      <Face emoji={item.emoji} mood={mood} size={96} />
-                      <AppText variant="title" align="center">
+          <AppText variant="body" color={colors.inkMuted} style={styles.sub}>
+            They just woke up. Be nice.
+          </AppText>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.reveal}
+            showsVerticalScrollIndicator={false}
+          >
+            {found.slice(0, shown).map((item, i) => {
+              const mood = moodFor(item.daysLeft);
+              return (
+                <Animated.View
+                  key={`${item.characterName}-${i}`}
+                  entering={ZoomIn.springify().damping(12)}
+                  style={styles.row}
+                >
+                  <Face emoji={item.emoji} mood={mood} size={56} />
+                  <View style={styles.rowBody}>
+                    <View style={styles.nameRow}>
+                      <AppText variant="bodyBold" numberOfLines={1} style={{ flexShrink: 1 }}>
                         {item.characterName}
                       </AppText>
-                      <AppText variant="caption" color={moods[mood].text} align="center">
-                        {item.name} · {item.personality} · {item.daysLeft} days left
-                      </AppText>
-                      <SpeechBubble
-                        text={`“${item.intro}”`}
-                        tail="top"
-                        tint={moods[mood].tint}
-                        style={styles.bubble}
-                      />
+                      <MoodPill mood={mood} daysLeft={item.daysLeft} compact />
                     </View>
-                  </Animated.View>
-                );
-              })}
-            {shown < found.length && (
-              <AppText variant="caption" color={colors.inkMuted} align="center">
-                {`${found.length - shown} more waking up…`}
-              </AppText>
-            )}
+                    <SpeechBubble text={item.intro} tail="left" compact style={styles.bubble} />
+                  </View>
+                </Animated.View>
+              );
+            })}
           </ScrollView>
           {shown >= found.length && (
-            <Animated.View entering={FadeIn.delay(300)} style={styles.footer}>
-              <PrimaryButton
-                emoji="🧊"
-                label={
-                  found.length === 1 ? 'Put them in the fridge' : `Put all ${found.length} in the fridge`
-                }
-                onPress={finish}
-              />
+            <Animated.View entering={FadeIn.delay(250)} style={styles.footer}>
+              <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
             </Animated.View>
           )}
         </>
@@ -228,6 +316,74 @@ export default function ScanScreen() {
   );
 }
 
+/** Full-bleed camera with tangerine corner brackets, a sweeping scan line, and the shutter row. */
+function Viewfinder({
+  ready,
+  cameraRef,
+  onShutter,
+  onGallery,
+  onClose,
+}: {
+  ready: boolean;
+  cameraRef: React.RefObject<CameraView | null>;
+  onShutter: () => void;
+  onGallery: () => void;
+  onClose: () => void;
+}) {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
+  const frame = { left: 40, top: 190, width: width - 80, height: 400 };
+
+  const sweep = useSharedValue(0.5);
+  const press = useSharedValue(1);
+  useEffect(() => {
+    if (reduceMotion) return;
+    sweep.value = 0;
+    sweep.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }), -1, true);
+    return () => cancelAnimation(sweep);
+  }, [reduceMotion, sweep]);
+  const lineStyle = useAnimatedStyle(() => ({
+    top: interpolate(sweep.value, [0, 1], [0, frame.height - 3]),
+  }));
+  const shutterStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+
+  return (
+    <View style={styles.cameraGround}>
+      <StatusBar style="light" />
+      {ready && <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />}
+      <View style={[styles.hintPill, { top: Math.max(insets.top + 20, 126) }]}>
+        <AppText style={styles.hintText}>Fit your groceries in the frame</AppText>
+      </View>
+      <View pointerEvents="none" style={[styles.frame, frame]}>
+        <View style={[styles.corner, styles.cornerTL]} />
+        <View style={[styles.corner, styles.cornerTR]} />
+        <View style={[styles.corner, styles.cornerBL]} />
+        <View style={[styles.corner, styles.cornerBR]} />
+        <Animated.View style={[styles.scanLine, lineStyle]} />
+      </View>
+      <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
+        <RoundButton emoji="🖼️" label="Choose a photo" dark onPress={onGallery} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Take photo"
+          onPressIn={() => {
+            press.set(withSequence(withTiming(0.92, { duration: 60 }), withTiming(1, { duration: 120 })));
+          }}
+          onPress={onShutter}
+        >
+          <Animated.View style={[styles.shutterRing, shutterStyle]}>
+            <View style={styles.shutterCore} />
+          </Animated.View>
+        </Pressable>
+        <RoundButton emoji="✕" label="Close" dark onPress={onClose} />
+      </View>
+    </View>
+  );
+}
+
+const CORNER = 44;
+
 const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
@@ -235,7 +391,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
+    minHeight: 64,
   },
+  newTag: {
+    backgroundColor: colors.brand,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
+  sub: { paddingHorizontal: space.lg, paddingBottom: space.md },
   pick: { flex: 1, paddingHorizontal: space.lg, justifyContent: 'space-between', paddingBottom: space.lg },
   hero: {
     flex: 1,
@@ -263,17 +428,64 @@ const styles = StyleSheet.create({
     padding: space.md,
     marginBottom: space.md,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xl, padding: space.lg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.lg },
   thumb: { width: 96, height: 96, borderRadius: radius.md, ...shadow.card },
-  reveal: { padding: space.lg, gap: space.lg, paddingBottom: space.lg },
-  revealCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: space.xl,
-    alignItems: 'center',
-    gap: space.sm,
-    ...shadow.card,
-  },
-  bubble: { marginTop: space.sm, alignSelf: 'stretch' },
+  dots: { flexDirection: 'row', gap: 8, marginTop: space.xs },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
+  reveal: { paddingHorizontal: space.lg, paddingBottom: space.md, gap: 18 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  rowBody: { flex: 1, gap: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
   footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
+  // viewfinder
+  cameraGround: { flex: 1, backgroundColor: '#1F1812' },
+  hintPill: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,247,236,0.94)',
+    borderRadius: radius.pill,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    zIndex: 2,
+  },
+  hintText: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20, color: colors.ink },
+  frame: { position: 'absolute' },
+  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: colors.brand },
+  cornerTL: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 20 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 20 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 20 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 20 },
+  scanLine: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    height: 3,
+    backgroundColor: colors.brand,
+    borderRadius: 2,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  dock: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  shutterRing: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterCore: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.brand },
 });

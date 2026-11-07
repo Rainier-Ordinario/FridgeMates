@@ -9,16 +9,20 @@ interface Props {
   tail?: 'left' | 'top' | 'none';
   tint?: string;
   style?: ViewStyle;
+  /** Scan-results size: padding 10×14, 15/20 text. */
+  compact?: boolean;
 }
 
 /** Chat-style bubble used for intros, chat lines, and the detail screen. */
-export function SpeechBubble({ text, tail = 'left', tint = colors.surface, style }: Props) {
+export function SpeechBubble({ text, tail = 'left', tint = colors.surface, style, compact = false }: Props) {
   return (
     <View style={[styles.wrap, style]}>
       {tail === 'top' && <View style={[styles.tailTop, { borderBottomColor: tint }]} />}
-      <View style={[styles.bubble, { backgroundColor: tint }]}>
+      <View style={[styles.bubble, { backgroundColor: tint }, compact && styles.compact]}>
         {tail === 'left' && <View style={[styles.tailLeft, { borderRightColor: tint }]} />}
-        <AppText variant="body">{text}</AppText>
+        <AppText variant="body" style={compact && styles.compactText}>
+          {text}
+        </AppText>
       </View>
     </View>
   );
@@ -37,6 +41,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
+  compact: { paddingVertical: 10, paddingHorizontal: 14 },
+  compactText: { fontSize: 15, lineHeight: 20 },
   tailTop: {
     width: 0,
     height: 0,
