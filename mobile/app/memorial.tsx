@@ -74,7 +74,7 @@ export default function MemorialScreen() {
       <TopBar title="Memorial wall" />
       <AppText variant="small" color={colors.inkMuted} style={styles.sub}>
         {lost.length === 0
-          ? 'Nobody lost yet. Keep it that way.'
+          ? "No ghosts yet. Let's keep it that way."
           : `${lost.length} lost this month. Gone, not forgotten.`}
       </AppText>
 
@@ -92,7 +92,7 @@ export default function MemorialScreen() {
           <View style={styles.empty}>
             <AppText style={styles.emptyEmoji}>🕯️</AppText>
             <AppText variant="body" color={colors.inkMuted} align="center">
-              When something expires and you toss it, it rests here.
+              Expired food you toss rests here, epitaph and all.
             </AppText>
           </View>
         )}

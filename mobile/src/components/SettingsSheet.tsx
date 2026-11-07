@@ -33,8 +33,8 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
   };
 
   function confirmReset() {
-    Alert.alert('Empty the fridge?', 'Every character goes. Your rescued and lost counts stay.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Reset your fridge?', "Everyone moves out. This can't be undone.", [
+      { text: 'Keep them', style: 'cancel' },
       { text: 'Reset', style: 'destructive', onPress: after(clearAll) },
     ]);
   }
@@ -45,14 +45,14 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
         <ToggleRow
           emoji="🗣️"
           label="Voices"
-          caption="Read the fridge chat aloud"
+          caption="Your food talks out loud"
           value={settings.voices}
           onChange={(v) => settings.set('voices', v)}
         />
         <ToggleRow
           emoji="🔔"
           label="Sounds"
-          caption="Pops and cheers"
+          caption="Pops, sighs and confetti"
           value={settings.sounds}
           onChange={(v) => settings.set('sounds', v)}
         />
@@ -87,7 +87,7 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
       </Section>
 
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.about}>
-        Made at Fall Hacks 2026 by Rainier, Kenneth and Kerwin.
+        v1.0 · Made at Fall Hacks 2026 by Rainier, Kenneth and Kerwin.
       </AppText>
 
       <Section title="Demo mode">
@@ -177,7 +177,7 @@ function ToggleRow({
           Haptics.selectionAsync();
           onChange(v);
         }}
-        trackColor={{ true: colors.brand, false: colors.line }}
+        trackColor={{ true: colors.brandDark, false: colors.inkMuted }}
         thumbColor={colors.surface}
       />
     </View>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingVertical: space.sm,
     paddingHorizontal: space.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     borderRadius: radius.md,
   },
   rowEmoji: {
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     borderRadius: radius.md,
     paddingVertical: space.md,
     gap: 2,

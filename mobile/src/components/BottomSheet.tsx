@@ -34,7 +34,10 @@ export function BottomSheet({ visible, onClose, title, children, scrollToEnd = f
         <Animated.View
           entering={SlideInDown.springify().damping(18)}
           exiting={SlideOutDown.duration(motion.fast)}
-          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24), maxHeight: height * 0.88 }]}
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 24), maxHeight: Math.min(640, height * 0.9) },
+          ]}
         >
           <View style={styles.grabber} />
           <AppText variant="heading" align="center" accessibilityRole="header">
@@ -59,7 +62,7 @@ export function BottomSheet({ visible, onClose, title, children, scrollToEnd = f
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
   sheet: {
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     paddingHorizontal: space.xl,
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
   },
   grabber: {
     alignSelf: 'center',
-    width: 40,
+    width: 36,
     height: 5,
     borderRadius: 3,
     backgroundColor: colors.line,

@@ -9,44 +9,50 @@ import { AppText } from './AppText';
 import { PrimaryButton, SecondaryButton } from './Buttons';
 import { Face } from './Face';
 
-export type RecoveryKind = ApiErrorKind | 'empty' | 'few';
+export type RecoveryKind = ApiErrorKind | 'empty' | 'few' | 'camera';
 
 const copy: Record<RecoveryKind, { emoji: string; mood: Mood; name: string; text: string }> = {
   timeout: {
     emoji: '🥛',
     mood: 'chill',
     name: 'Sir Yogurtsworth',
-    text: 'Fell asleep waiting for the fridge brain. Shall we try again?',
+    text: 'The fridge lost signal. Give it another go.',
   },
   offline: {
     emoji: '🧊',
     mood: 'nervous',
     name: 'The Fridge',
-    text: 'The fridge brain is unreachable. Wi-Fi okay?',
+    text: 'The fridge lost signal. Give it another go.',
   },
   http: {
     emoji: '🍅',
     mood: 'nervous',
     name: 'Big Tom',
-    text: 'The fridge brain said something I did not understand. One more time?',
+    text: 'The fridge lost signal. Give it another go.',
   },
   'bad-response': {
     emoji: '🍅',
     mood: 'nervous',
     name: 'Big Tom',
-    text: 'That answer came back scrambled. One more time?',
+    text: 'The fridge lost signal. Give it another go.',
   },
   empty: {
     emoji: '🔍',
     mood: 'chill',
     name: 'The Fridge',
-    text: 'No food in that photo. Try closer and brighter.',
+    text: "I couldn't spot any food. Try more light or get closer.",
+  },
+  camera: {
+    emoji: '📷',
+    mood: 'nervous',
+    name: 'FridgeMates',
+    text: 'FridgeMates needs your camera to meet your food.',
   },
   few: {
     emoji: '💔',
     mood: 'chill',
     name: 'The Fridge',
-    text: 'It takes two to date. Scan a couple more things.',
+    text: 'No sparks yet. Scan more food to play matchmaker.',
   },
 };
 

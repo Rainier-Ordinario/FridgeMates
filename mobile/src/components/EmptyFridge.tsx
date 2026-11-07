@@ -1,4 +1,4 @@
-import { colors, moods, space } from '@/theme';
+import { moods, space } from '@/theme';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -26,14 +26,15 @@ export function EmptyFridge() {
   const bob = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(t.value, [0, 1], [0, 8]) }] }));
 
   return (
-    <View style={styles.wrap} accessibilityLabel="Your fridge is empty. Scan something to give it a face.">
+    <View style={styles.wrap} accessibilityLabel="Your fridge is quiet. Scan it to wake everyone up.">
       <View style={[styles.tile, { backgroundColor: moods.chill.tint, borderColor: moods.chill.color }]}>
         <AppText style={styles.emoji}>🧊</AppText>
       </View>
-      <SpeechBubble text="It's quiet in here. Too quiet." tail="top" style={styles.bubble} />
-      <AppText variant="body" color={colors.inkMuted} align="center">
-        Tap Scan food to add your first character.
-      </AppText>
+      <SpeechBubble
+        text="Your fridge is quiet. Scan it to wake everyone up."
+        tail="top"
+        style={styles.bubble}
+      />
       <Animated.View style={bob}>
         <AppText style={styles.pointer}>👇</AppText>
       </Animated.View>
@@ -52,6 +53,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emoji: { fontSize: 48, lineHeight: 58 },
-  bubble: { alignSelf: 'center', maxWidth: 240 },
+  bubble: { alignSelf: 'center', maxWidth: 280 },
   pointer: { fontSize: 36, lineHeight: 44, marginTop: space.sm },
 });
