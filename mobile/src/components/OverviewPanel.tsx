@@ -105,7 +105,7 @@ export function OverviewPanel({ onShowUrgency, bottomPadding, pictureOpen, onPic
           />
           <PrimaryButton
             icon={<UiIcon icon="camera" size={24} />}
-            label="Scan your fridge"
+            label="Scan your first food"
             onPress={() => router.push('/scan')}
           />
         </View>
