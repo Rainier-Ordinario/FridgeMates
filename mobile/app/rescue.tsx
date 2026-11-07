@@ -76,12 +76,14 @@ export default function RescueScreen() {
                 .damping(14)}
               style={styles.thankRow}
             >
-              <Face emoji={c.emoji} mood="cocky" size={64} label={`${c.characterName}, rescued`} />
-              <SpeechBubble
-                text={getThanks(i, thankYou)}
-                tint={moods.cocky.tint}
-                style={styles.bubble}
+              <Face
+                food={c.name}
+                emoji={c.emoji}
+                mood="cocky"
+                size={64}
+                label={`${c.characterName}, rescued`}
               />
+              <SpeechBubble text={getThanks(i, thankYou)} tint={moods.cocky.tint} style={styles.bubble} />
             </Animated.View>
           ))}
           {cameo && (
@@ -92,16 +94,14 @@ export default function RescueScreen() {
               style={styles.thankRow}
             >
               <Face
+                food={cameo.name}
                 emoji={cameo.emoji}
                 mood={cameo.mood}
                 size={44}
                 showBadge={false}
                 label={cameo.characterName}
               />
-              <SpeechBubble
-                text={getCameoThanks(cameo.daysLeft)}
-                style={styles.bubble}
-              />
+              <SpeechBubble text={getCameoThanks(cameo.daysLeft)} style={styles.bubble} />
             </Animated.View>
           )}
         </View>

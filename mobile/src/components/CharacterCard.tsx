@@ -60,7 +60,13 @@ function CharacterCardBase({ character, onPress, onAte, onToss, isNew = false }:
             </AppText>
           </View>
         )}
-        <Face emoji={character.emoji} mood={character.mood} size={64} fill={colors.surface} />
+        <Face
+          food={character.name}
+          emoji={character.emoji}
+          mood={character.mood}
+          size={64}
+          fill={colors.surface}
+        />
         <View style={styles.text}>
           <AppText variant="heading" numberOfLines={1}>
             {character.characterName}

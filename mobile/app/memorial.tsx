@@ -16,6 +16,7 @@ const FALLBACK_EPITAPH = 'Gone too soon. Bought with good intentions.';
 
 interface Stone {
   id: string;
+  food: string;
   emoji: string;
   name: string;
   dates: string;
@@ -26,6 +27,7 @@ interface Stone {
 const demoStones: Stone[] = [
   {
     id: 'd1',
+    food: 'Spinach',
     emoji: '🥬',
     name: 'Leafy Lou',
     dates: 'Nov 1 – Nov 4',
@@ -33,6 +35,7 @@ const demoStones: Stone[] = [
   },
   {
     id: 'd2',
+    food: 'Onion',
     emoji: '🧅',
     name: 'Half an Onion',
     dates: 'Oct 20 – Oct 29',
@@ -40,6 +43,7 @@ const demoStones: Stone[] = [
   },
   {
     id: 'd3',
+    food: 'Cilantro',
     emoji: '🌿',
     name: 'Cilantro Carl',
     dates: 'Oct 12 – Oct 15',
@@ -47,6 +51,7 @@ const demoStones: Stone[] = [
   },
   {
     id: 'd4',
+    food: 'Pad Thai',
     emoji: '🍜',
     name: 'Pad Thai',
     dates: 'Oct 3 – Oct 9',
@@ -62,6 +67,7 @@ export default function MemorialScreen() {
     .filter((c) => c.status === 'lost')
     .map((c) => ({
       id: c.id,
+      food: c.name,
       emoji: c.emoji,
       name: c.characterName,
       dates: `${formatShort(c.addedAt)} – ${formatShort(c.resolvedAt ?? c.expiresAt)}`,
@@ -85,7 +91,7 @@ export default function MemorialScreen() {
             entering={FadeInUp.delay(i * 80).duration(motion.base)}
             style={styles.cell}
           >
-            <Tombstone emoji={c.emoji} name={c.name} dates={c.dates} epitaph={c.epitaph} />
+            <Tombstone food={c.food} emoji={c.emoji} name={c.name} dates={c.dates} epitaph={c.epitaph} />
           </Animated.View>
         ))}
         {lost.length === 0 && (

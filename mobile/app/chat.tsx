@@ -188,7 +188,14 @@ export default function ChatScreen() {
             <View style={styles.avatars} accessible accessibilityLabel={`${members.length} members`}>
               {members.slice(0, 6).map((m, i) => (
                 <View key={m.id} style={[styles.avatar, { marginLeft: i === 0 ? 0 : -8, zIndex: 10 - i }]}>
-                  <Face emoji={m.emoji} mood={m.mood} size={32} animated={false} showBadge={false} />
+                  <Face
+                    food={m.name}
+                    emoji={m.emoji}
+                    mood={m.mood}
+                    size={32}
+                    animated={false}
+                    showBadge={false}
+                  />
                 </View>
               ))}
             </View>
@@ -249,6 +256,7 @@ export default function ChatScreen() {
                       style={[styles.introFace, { marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i }]}
                     >
                       <Face
+                        food={m.name}
                         emoji={m.emoji}
                         mood={m.mood}
                         size={44}
@@ -378,6 +386,7 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
       <Animated.View style={[styles.faceCol, faceStyle]}>
         {who ? (
           <Face
+            food={who.name}
             emoji={who.emoji}
             mood={mood}
             size={40}

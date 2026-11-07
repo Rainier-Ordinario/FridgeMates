@@ -102,7 +102,7 @@ export default function MatchScreen() {
               <View style={styles.faces}>
                 {a && (
                   <Animated.View entering={SlideInLeft.springify().damping(14)} style={styles.faceCol}>
-                    <Face emoji={a.emoji} mood={a.mood} size={96} label={a.characterName} />
+                    <Face food={a.name} emoji={a.emoji} mood={a.mood} size={96} label={a.characterName} />
                     <AppText style={styles.faceName} align="center" numberOfLines={1}>
                       {a.characterName}
                     </AppText>
@@ -111,7 +111,7 @@ export default function MatchScreen() {
                 <AppText style={styles.heart}>❤️</AppText>
                 {b && (
                   <Animated.View entering={SlideInRight.springify().damping(14)} style={styles.faceCol}>
-                    <Face emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
+                    <Face food={b.name} emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
                     <AppText style={styles.faceName} align="center" numberOfLines={1}>
                       {b.characterName}
                     </AppText>
@@ -120,7 +120,14 @@ export default function MatchScreen() {
               </View>
               {others.length > 0 && (
                 <View style={styles.thirdWheel}>
-                  <Face emoji={others[0].emoji} mood="cocky" size={32} showBadge={false} animated={false} />
+                  <Face
+                    food={others[0].name}
+                    emoji={others[0].emoji}
+                    mood="cocky"
+                    size={32}
+                    showBadge={false}
+                    animated={false}
+                  />
                   <AppText variant="caption" color={colors.inkMuted}>
                     + {others.map((o) => o.characterName).join(', ')}, third wheel
                   </AppText>

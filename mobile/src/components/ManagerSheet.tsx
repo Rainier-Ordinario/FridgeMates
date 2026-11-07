@@ -181,7 +181,7 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
                   onPress={() => openCharacter(c)}
                   hitSlop={6}
                 >
-                  <Face emoji={c.emoji} mood={c.mood} size={44} />
+                  <Face food={c.name} emoji={c.emoji} mood={c.mood} size={44} />
                 </Pressable>
               ))}
             </View>

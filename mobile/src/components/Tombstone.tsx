@@ -5,6 +5,8 @@ import { AppText } from './AppText';
 import { Face } from './Face';
 
 interface Props {
+  /** Food name for the icon. */
+  food?: string;
   emoji: string;
   name: string;
   /** "Nov 1 – Nov 4" */
@@ -13,7 +15,7 @@ interface Props {
 }
 
 /** Memorial-wall stone: arched top, ghost tint, epitaph from /ghost. */
-export function Tombstone({ emoji, name, dates, epitaph }: Props) {
+export function Tombstone({ food, emoji, name, dates, epitaph }: Props) {
   const g = moods.ghost;
   return (
     <View
@@ -21,7 +23,7 @@ export function Tombstone({ emoji, name, dates, epitaph }: Props) {
       accessible
       accessibilityLabel={`${name}, ${dates}. ${epitaph}`}
     >
-      <Face emoji={emoji} mood="ghost" size={48} showBadge={false} animated={false} />
+      <Face food={food} emoji={emoji} mood="ghost" size={48} showBadge={false} animated={false} />
       <AppText variant="bodyBold" align="center" style={styles.name}>
         {name}
       </AppText>

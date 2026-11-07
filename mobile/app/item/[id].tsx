@@ -73,7 +73,13 @@ export default function CharacterScreen() {
           entering={FadeInDown.springify().damping(14)}
           style={[styles.hero, { backgroundColor: m.tint }]}
         >
-          <Face emoji={c.emoji} mood={c.mood} size={160} label={`${c.characterName}, ${m.label}`} />
+          <Face
+            food={c.name}
+            emoji={c.emoji}
+            mood={c.mood}
+            size={160}
+            label={`${c.characterName}, ${m.label}`}
+          />
           <AppText variant="display" align="center" style={{ opacity: m.opacity }}>
             {c.characterName}
           </AppText>

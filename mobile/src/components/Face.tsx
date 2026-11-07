@@ -1,20 +1,24 @@
 import { colors, moods, type Mood } from '@/theme';
 import { faceOverlays } from '@/theme/faceOverlays';
-import { SvgXml } from 'react-native-svg';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
+import { SvgXml } from 'react-native-svg';
 import { AppText } from './AppText';
+import { FoodIcon, UiIcon, type FluentIconName } from './FoodIcon';
 import { useMoodMotion } from './useMoodMotion';
 
 interface Props {
-  emoji: string;
+  /** Food name: picks a Fluent Emoji icon (preferred). */
+  food?: string;
+  /** Fallback glyph when no food name is known. */
+  emoji?: string;
   mood: Mood;
   size?: number;
   /** Animate per mood (default true). Pass false in long lists you want cheap. */
   animated?: boolean;
   showBadge?: boolean;
-  /** Draw the mood expression over the emoji (emoji dimmed to 40%). Off automatically under 36px. */
+  /** Draw the mood expression over the icon (icon dimmed to 40%). Off automatically under 36px. */
   expression?: boolean;
   /** Accessibility label, e.g. "Avo, dramatic". Omit when a parent control already describes it. */
   label?: string;
@@ -22,9 +26,19 @@ interface Props {
   fill?: string;
 }
 
-/** The character's face: food emoji in a mood-tinted circle with a mood badge. */
+/** Mood badge icons (Fluent Emoji) instead of system emoji. */
+const badgeIcon: Record<Mood, FluentIconName> = {
+  cocky: 'smiling-face-with-sunglasses',
+  chill: 'relieved-face',
+  nervous: 'grimacing-face',
+  dramatic: 'face-screaming-in-fear',
+  ghost: 'ghost',
+};
+
+/** The character's face: a Fluent food icon in a mood-tinted circle with a mood badge. */
 export function Face({
-  emoji,
+  food,
+  emoji = '🍽️',
   mood,
   size = 64,
   animated = true,
@@ -37,6 +51,7 @@ export function Face({
   const m = moods[mood];
   const { faceStyle } = useMoodMotion(mood);
   const badgeSize = Math.max(20, Math.round(size * 0.34));
+  const iconSize = Math.round(size * 0.58);
 
   return (
     <Animated.View
@@ -57,9 +72,13 @@ export function Face({
           },
         ]}
       >
-        <AppText style={{ fontSize: size * 0.52, lineHeight: size * 0.62, opacity: getEmojiOpacity(overlay) }}>
-          {emoji}
-        </AppText>
+        <View style={{ opacity: getIconOpacity(overlay) }}>
+          {food ? (
+            <FoodIcon name={food} size={iconSize} />
+          ) : (
+            <AppText style={{ fontSize: size * 0.52, lineHeight: size * 0.62 }}>{emoji}</AppText>
+          )}
+        </View>
         {overlay && (
           <View pointerEvents="none" style={styles.overlay}>
             <SvgXml xml={faceOverlays[mood]} width={size} height={size} />
@@ -79,14 +98,14 @@ export function Face({
             },
           ]}
         >
-          <AppText style={{ fontSize: badgeSize * 0.6, lineHeight: badgeSize * 0.75 }}>{m.badge}</AppText>
+          <UiIcon icon={badgeIcon[mood]} size={Math.round(badgeSize * 0.7)} />
         </View>
       )}
     </Animated.View>
   );
 }
 
-function getEmojiOpacity(overlay: boolean): number {
+function getIconOpacity(overlay: boolean): number {
   if (overlay) {
     return 0.4;
   }

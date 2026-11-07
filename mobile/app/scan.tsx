@@ -365,6 +365,7 @@ export default function ScanScreen() {
                   style={[styles.row, { backgroundColor: moods[mood].tint, borderColor: moods[mood].color }]}
                 >
                   <Face
+                    food={item.name}
                     emoji={item.emoji}
                     mood={mood}
                     size={56}

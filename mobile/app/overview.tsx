@@ -182,6 +182,7 @@ export default function OverviewScreen() {
                         style={[styles.categoryFace, { marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i }]}
                       >
                         <Face
+                          food={c.name}
                           emoji={c.emoji}
                           mood={c.mood}
                           size={36}

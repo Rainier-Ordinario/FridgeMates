@@ -71,7 +71,7 @@ export function RecoveryCard({ kind, onRetry, retryLabel = 'Try again', closeAft
   return (
     <Animated.View entering={FadeInDown.springify().damping(14)} style={styles.card}>
       <View style={styles.row}>
-        <Face emoji={c.emoji} mood={c.mood} size={56} label={c.name} />
+        <Face food={c.name} emoji={c.emoji} mood={c.mood} size={56} label={c.name} />
         <View style={{ flex: 1, gap: 2 }}>
           <AppText variant="caption" color={colors.inkMuted}>
             {c.name}
