@@ -99,7 +99,7 @@ export default function FridgeScreen() {
     dayOffset,
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
-  const { demoMode } = useSettings();
+  const { demoMode, fridgeName } = useSettings();
   const { showToast } = useNudge();
   const [cheer, setCheer] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
@@ -294,7 +294,7 @@ export default function FridgeScreen() {
         <View style={styles.titleRow}>
           <Pressable
             accessibilityRole="header"
-            accessibilityLabel="FridgeMates"
+            accessibilityLabel={`${fridgeName}. FridgeMates`}
             accessibilityHint="Long press for settings"
             delayLongPress={500}
             onLongPress={() => {
@@ -303,7 +303,9 @@ export default function FridgeScreen() {
             }}
             style={{ flex: 1 }}
           >
-            <AppText variant="display">FridgeMates</AppText>
+            <AppText style={styles.title} numberOfLines={1}>
+              {fridgeName}
+            </AppText>
           </Pressable>
           <RoundButton
             icon={<GearIcon />}
@@ -546,9 +548,10 @@ export default function FridgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
+  header: { paddingHorizontal: space.xl, paddingTop: 0, gap: 6 },
+  title: { fontFamily: 'Nunito_600SemiBold', fontSize: 22, lineHeight: 28 },
   tagline: { marginTop: -space.xs },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48 },
   sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
   listHeader: { gap: space.sm, paddingBottom: space.sm },
   headerChips: { flexDirection: 'row', gap: space.xs },
