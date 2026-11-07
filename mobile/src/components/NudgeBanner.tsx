@@ -239,7 +239,7 @@ function Banner({ nudge, onDismiss }: { nudge: Nudge; onDismiss: () => void }) {
         <Face food={nudge.name} emoji={nudge.emoji} mood={nudge.mood} size={40} showBadge={false} />
         <View style={{ flex: 1 }}>
           <AppText variant="bodyBold" numberOfLines={1}>
-            {nudge.name} {nudge.emoji}
+            {nudge.name}
           </AppText>
           <AppText variant="body" numberOfLines={2}>
             {nudge.text}

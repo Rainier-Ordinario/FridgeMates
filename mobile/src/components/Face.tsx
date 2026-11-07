@@ -4,14 +4,13 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SvgXml } from 'react-native-svg';
-import { AppText } from './AppText';
 import { FoodIcon, UiIcon, type FluentIconName } from './FoodIcon';
 import { useMoodMotion } from './useMoodMotion';
 
 interface Props {
-  /** Food name: picks a Fluent Emoji icon (preferred). */
+  /** Food name: picks a Fluent Emoji icon. An empty name gets the generic plate. */
   food?: string;
-  /** Fallback glyph when no food name is known. */
+  /** Ignored. Kept so older call sites compile; the backend's emoji is never drawn (system emoji look out of place). */
   emoji?: string;
   mood: Mood;
   size?: number;
@@ -38,7 +37,6 @@ const badgeIcon: Record<Mood, FluentIconName> = {
 /** The character's face: a Fluent food icon in a mood-tinted circle with a mood badge. */
 export function Face({
   food,
-  emoji = '🍽️',
   mood,
   size = 64,
   animated = true,
@@ -73,11 +71,7 @@ export function Face({
         ]}
       >
         <View style={{ opacity: getIconOpacity(overlay) }}>
-          {food ? (
-            <FoodIcon name={food} size={iconSize} />
-          ) : (
-            <AppText style={{ fontSize: size * 0.52, lineHeight: size * 0.62 }}>{emoji}</AppText>
-          )}
+          <FoodIcon name={food ?? ''} size={iconSize} />
         </View>
         {overlay && (
           <View pointerEvents="none" style={styles.overlay}>
