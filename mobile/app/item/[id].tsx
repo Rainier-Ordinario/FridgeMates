@@ -136,7 +136,7 @@ export default function CharacterScreen() {
                   }}
                   style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
                 >
-                  <AppText variant="bodyBold" color={colors.brandDark}>
+                  <AppText variant="bodyBold" color={colors.brandText}>
                     📦 Opened today
                   </AppText>
                 </Pressable>
@@ -145,7 +145,7 @@ export default function CharacterScreen() {
                   onPress={() => finish('toss')}
                   style={({ pressed }) => [styles.secondary, styles.tossSecondary, pressed && styles.pressed]}
                 >
-                  <AppText variant="bodyBold" color={colors.danger}>
+                  <AppText variant="bodyBold" color={moods.dramatic.text}>
                     🗑️ Toss
                   </AppText>
                 </Pressable>

@@ -19,7 +19,7 @@ const cycleColors = cycle.map((m) => m.color);
 const cycleTints = cycle.map((m) => m.tint);
 const stops = cycle.map((_, i) => i);
 
-const phrases = [
+const defaultPhrases = [
   'bringing your food to life…',
   'assigning personalities…',
   'reading the tiny printed dates…',
@@ -29,7 +29,12 @@ const phrases = [
 const emojis = ['🥛', '🍅', '🥑', '🧀', '🥬', '🍓', '🥚'];
 
 /** Playful loader: a big face that cycles through the mood colors, plus rotating phrases. */
-export function MoodLoader() {
+interface Props {
+  phrases?: string[];
+  sub?: string;
+}
+
+export function MoodLoader({ phrases = defaultPhrases, sub = 'this takes a few seconds' }: Props) {
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
   const [tick, setTick] = useState(0);
@@ -73,7 +78,7 @@ export function MoodLoader() {
         {phrases[Math.floor(tick / 2) % phrases.length]}
       </AppText>
       <AppText variant="caption" color={colors.inkMuted} align="center">
-        this takes a few seconds
+        {sub}
       </AppText>
     </View>
   );

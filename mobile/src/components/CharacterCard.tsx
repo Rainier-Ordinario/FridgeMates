@@ -38,7 +38,7 @@ export function CharacterCard({ character, onPress, isNew = false }: Props) {
         <View style={[styles.tintStripe, { backgroundColor: m.color }]} />
         {isNew && (
           <View style={styles.newTag}>
-            <AppText variant="caption" color={colors.brandInk}>
+            <AppText variant="caption" color={colors.ink}>
               NEW
             </AppText>
           </View>

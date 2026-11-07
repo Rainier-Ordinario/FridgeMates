@@ -14,8 +14,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
 export default function FridgeScreen() {
-  const { characters, ghosts, scoreboard, dayOffset, skipDay, recentlyAddedIds, clearRecentlyAdded } =
-    useFridge();
+  const {
+    characters,
+    ghosts,
+    scoreboard,
+    dayOffset,
+    skipDay,
+    recentlyAddedIds,
+    clearRecentlyAdded,
+    recentRescue,
+    clearRecentRescue,
+  } = useFridge();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
 
@@ -29,6 +38,13 @@ export default function FridgeScreen() {
     const t = setTimeout(clearRecentlyAdded, 6000);
     return () => clearTimeout(t);
   }, [recentlyAddedIds, characters, clearRecentlyAdded]);
+
+  // After "I cooked it": show +N on the rescued tile for a few seconds.
+  useEffect(() => {
+    if (!recentRescue) return;
+    const t = setTimeout(clearRecentRescue, 6000);
+    return () => clearTimeout(t);
+  }, [recentRescue, clearRecentRescue]);
 
   const openCharacter = useCallback((c: Character) => {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
@@ -51,7 +67,11 @@ export default function FridgeScreen() {
             onPress={skipDay}
           />
         </View>
-        <Scoreboard data={scoreboard} onPressLost={() => console.log('TODO memorial')} />
+        <Scoreboard
+          data={scoreboard}
+          rescuedBump={recentRescue?.count ?? 0}
+          onPressLost={() => console.log('TODO memorial')}
+        />
       </View>
 
       <View style={styles.listArea}>
@@ -85,14 +105,14 @@ export default function FridgeScreen() {
         style={[styles.fade, { height: 150 + insets.bottom }]}
       />
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
-        <RoundButton emoji="💬" label="Fridge group chat" onPress={() => console.log('TODO chat')} />
+        <RoundButton emoji="💬" label="Fridge group chat" onPress={() => router.push('/chat')} />
         <PrimaryButton
           emoji="📷"
           label="Scan food"
           onPress={() => router.push('/scan')}
           style={styles.scan}
         />
-        <RoundButton emoji="💘" label="Matchmaking" onPress={() => console.log('TODO match')} />
+        <RoundButton emoji="💘" label="Matchmaking" onPress={() => router.push('/match')} />
       </View>
     </Screen>
   );

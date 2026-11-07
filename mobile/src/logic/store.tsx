@@ -31,6 +31,8 @@ interface State {
   items: FoodItem[];
   /** Ids from the latest scan, so the Fridge can highlight them once. */
   recentlyAddedIds: string[];
+  /** The latest "I cooked it" rescue, for the +N celebration. */
+  recentRescue: { ids: string[]; count: number } | null;
   /** Demo-only: days to skip ahead. */
   dayOffset: number;
 }
@@ -39,6 +41,8 @@ type Action =
   | { type: 'addItems'; items: FoodItem[] }
   | { type: 'clearRecentlyAdded' }
   | { type: 'eat'; id: string }
+  | { type: 'rescueMany'; ids: string[] }
+  | { type: 'clearRecentRescue' }
   | { type: 'toss'; id: string }
   | { type: 'openedToday'; id: string; shelfDaysOnceOpened?: number }
   | { type: 'adjustDays'; id: string; delta: number }
@@ -69,6 +73,19 @@ function reducer(state: State, action: Action): State {
           resolvedAt: todayISO(state.dayOffset),
         })),
       };
+    case 'rescueMany': {
+      const today = todayISO(state.dayOffset);
+      const ids = new Set(action.ids);
+      return {
+        ...state,
+        items: state.items.map((i) =>
+          ids.has(i.id) && i.status === 'inFridge' ? { ...i, status: 'rescued', resolvedAt: today } : i,
+        ),
+        recentRescue: { ids: action.ids, count: action.ids.length },
+      };
+    }
+    case 'clearRecentRescue':
+      return state.recentRescue ? { ...state, recentRescue: null } : state;
     case 'toss':
       return {
         ...state,
@@ -108,7 +125,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(): State {
-  return { items: USE_MOCK ? mockFridgeItems() : [], recentlyAddedIds: [], dayOffset: 0 };
+  return { items: USE_MOCK ? mockFridgeItems() : [], recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
 }
 
 interface FridgeContextValue {
@@ -124,11 +141,15 @@ interface FridgeContextValue {
   dayOffset: number;
   todayISO: string;
   recentlyAddedIds: string[];
+  recentRescue: { ids: string[]; count: number } | null;
   getById: (id: string) => Character | undefined;
   /** Assigns local ids, adds to the fridge, returns the new ids. */
   addScanned: (scanned: ScanItem[]) => string[];
   clearRecentlyAdded: () => void;
   eat: (id: string) => void;
+  /** Marks every id as rescued in one go (matchmaking "I cooked it"). */
+  rescueMany: (ids: string[]) => void;
+  clearRecentRescue: () => void;
   toss: (id: string) => void;
   openedToday: (id: string) => void;
   adjustDays: (id: string, delta: number) => void;
@@ -167,6 +188,7 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       dayOffset: state.dayOffset,
       todayISO: todayISO(state.dayOffset),
       recentlyAddedIds: state.recentlyAddedIds,
+      recentRescue: state.recentRescue,
       getById: (id) => all.find((c) => c.id === id),
       addScanned: (scanned) => {
         const items = scanned.map((s) => scanItemToFoodItem(s, state.dayOffset));
@@ -175,6 +197,8 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       },
       clearRecentlyAdded: () => dispatch({ type: 'clearRecentlyAdded' }),
       eat: (id) => dispatch({ type: 'eat', id }),
+      rescueMany: (ids) => dispatch({ type: 'rescueMany', ids }),
+      clearRecentRescue: () => dispatch({ type: 'clearRecentRescue' }),
       toss: (id) => dispatch({ type: 'toss', id }),
       openedToday: (id) => dispatch({ type: 'openedToday', id }),
       adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
