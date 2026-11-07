@@ -8,6 +8,7 @@ import { EmptyFridge } from '@/components/EmptyFridge';
 import { useNudge } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
 import { GearIcon } from '@/components/Icons';
+import { ManagerSheet } from '@/components/ManagerSheet';
 import { Mascot, type MascotExpression, type MascotState } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
@@ -48,7 +49,7 @@ export default function FridgeScreen() {
   const { demoMode } = useSettings();
   const { showToast } = useNudge();
   const [cheer, setCheer] = useState(false);
-  const [, setManagerOpen] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
   // Ghosts need action first, then the living, most urgent first.
   const rows = [...ghosts, ...characters];
   const insets = useSafeAreaInsets();
@@ -62,12 +63,14 @@ export default function FridgeScreen() {
     menu,
     hint: hintParam,
     big,
+    manager,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
     menu?: string;
     hint?: string;
     big?: string;
+    manager?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -92,9 +95,10 @@ export default function FridgeScreen() {
       setTimeout(() => addScanned(mockScanResponse.items), 100);
     }
     if (menu) setTimeout(() => setMenuOpen('settings'), 300);
+    if (manager) setTimeout(() => setManagerOpen(true), 300);
     if (hintParam) hint.set(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big]);
+  }, [hydrated, demo, menu, hintParam, big, manager]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -255,6 +259,8 @@ export default function FridgeScreen() {
         />
       </View>
 
+      <ManagerSheet visible={managerOpen} onClose={() => setManagerOpen(false)} />
+
       <SettingsSheet
         visible={menuOpen !== false}
         demoFirst={menuOpen === 'demo'}
@@ -291,7 +297,6 @@ export default function FridgeScreen() {
             onPress={() => {
               Haptics.selectionAsync();
               setManagerOpen(true);
-              showToast('The fridge manager is on the way.');
             }}
             style={({ pressed }) => [styles.mascotButton, pressed && { opacity: 0.85 }]}
           >
