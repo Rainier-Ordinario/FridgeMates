@@ -5,6 +5,7 @@ import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
 import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
+import { closeOpenRow } from '@/components/FoodRow';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { useNudge } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
@@ -28,7 +29,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -36,6 +36,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FOOTER_HEIGHT = 150;
@@ -88,6 +89,8 @@ export default function FridgeScreen() {
     clearRecentRescue,
     setEpitaph,
     toss,
+    remove,
+    restore,
     loadDemo,
     rescueMany,
     hydrated,
@@ -130,6 +133,8 @@ export default function FridgeScreen() {
   const { width } = useWindowDimensions();
   const pagerRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [page, setPage] = useState(0);
+  // While a row is being swiped, the pager must not change pages.
+  const [pagerEnabled, setPagerEnabled] = useState(true);
   const [pictureOpen, setPictureOpen] = useState(false);
   const goToPage = useCallback(
     (i: number) => {
@@ -260,6 +265,18 @@ export default function FridgeScreen() {
     [rescueMany, showToast],
   );
 
+  const removeItem = useCallback(
+    (c: Character) => {
+      const removed = remove(c.id);
+      if (!removed) return;
+      showToast(`Removed ${c.characterName}`, {
+        label: 'Undo',
+        onPress: () => restore(removed.item, removed.index),
+      });
+    },
+    [remove, restore, showToast],
+  );
+
   const tossGhost = useCallback(
     (g: Character) => {
       toss(g.id);
@@ -337,6 +354,7 @@ export default function FridgeScreen() {
         ref={pagerRef}
         horizontal
         pagingEnabled
+        scrollEnabled={pagerEnabled}
         directionalLockEnabled
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -350,6 +368,7 @@ export default function FridgeScreen() {
             ref={listRef}
             data={visibleRows}
             onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            onScrollBeginDrag={closeOpenRow}
             keyExtractor={(c) => c.id}
             initialNumToRender={8}
             windowSize={7}
@@ -360,6 +379,8 @@ export default function FridgeScreen() {
                 onPress={openCharacter}
                 onAte={ateIt}
                 onToss={tossGhost}
+                onRemove={removeItem}
+                onSwipeState={setPagerEnabled}
                 isNew={recentlyAddedIds.includes(item.id)}
               />
             )}

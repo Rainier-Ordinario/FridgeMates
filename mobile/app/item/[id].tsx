@@ -7,6 +7,7 @@ import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { dateSourceLabel, plainTimeLabel } from '@/logic/mood';
+import { useNudge } from '@/components/NudgeBanner';
 import { useFridge } from '@/logic/store';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -28,7 +29,8 @@ const sourceIcon = { printed: 'label', estimated: 'crystal-ball', adjusted: 'wri
 /** Character detail: big face, countdown, date source, and the actions that change its fate. */
 export default function CharacterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getById, eat, toss, openedToday, adjustDays } = useFridge();
+  const { getById, eat, toss, openedToday, adjustDays, remove, restore } = useFridge();
+  const { showToast } = useNudge();
   const c = id ? getById(id) : undefined;
 
   if (!c) {
@@ -57,6 +59,18 @@ export default function CharacterScreen() {
       toss(c.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
+    router.back();
+  }
+
+  function removeFromFridge() {
+    if (!c) return;
+    const removed = remove(c.id);
+    if (!removed) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    showToast(`Removed ${c.characterName}`, {
+      label: 'Undo',
+      onPress: () => restore(removed.item, removed.index),
+    });
     router.back();
   }
 
@@ -172,6 +186,17 @@ export default function CharacterScreen() {
               </View>
             </>
           )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove from fridge"
+            accessibilityHint="Deletes this item. Not a rescue, not a loss."
+            onPress={removeFromFridge}
+            style={({ pressed }) => [styles.removeLink, pressed && { opacity: 0.7 }]}
+          >
+            <AppText variant="caption" color={colors.inkMuted}>
+              Remove from fridge
+            </AppText>
+          </Pressable>
           {isGhost && (
             <PrimaryButton
               icon={<UiIcon icon="headstone" size={22} />}
@@ -281,4 +306,5 @@ const styles = StyleSheet.create({
     borderColor: '#FFB8AE',
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  removeLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
 });

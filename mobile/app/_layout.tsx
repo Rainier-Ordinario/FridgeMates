@@ -16,6 +16,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -35,29 +36,31 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 
   return (
-    <SettingsProvider>
-      <FridgeProvider>
-        <NudgeProvider>
-          <NotificationSync />
-          <StatusBar style="dark" />
-          <ErrorBoundary>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.bg },
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
-              <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="item/[id]" />
-              <Stack.Screen name="memorial" />
-              <Stack.Screen name="match" />
-              <Stack.Screen name="rescue" options={{ gestureEnabled: false }} />
-            </Stack>
-          </ErrorBoundary>
-        </NudgeProvider>
-      </FridgeProvider>
-    </SettingsProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SettingsProvider>
+        <FridgeProvider>
+          <NudgeProvider>
+            <NotificationSync />
+            <StatusBar style="dark" />
+            <ErrorBoundary>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              >
+                <Stack.Screen name="index" />
+                <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
+                <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="item/[id]" />
+                <Stack.Screen name="memorial" />
+                <Stack.Screen name="match" />
+                <Stack.Screen name="rescue" options={{ gestureEnabled: false }} />
+              </Stack>
+            </ErrorBoundary>
+          </NudgeProvider>
+        </FridgeProvider>
+      </SettingsProvider>
+    </GestureHandlerRootView>
   );
 }

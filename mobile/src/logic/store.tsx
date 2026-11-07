@@ -46,6 +46,8 @@ type Action =
   | { type: 'rescueMany'; ids: string[] }
   | { type: 'clearRecentRescue' }
   | { type: 'toss'; id: string }
+  | { type: 'remove'; id: string }
+  | { type: 'restore'; item: FoodItem; index: number }
   | { type: 'openedToday'; id: string; shelfDaysOnceOpened?: number }
   | { type: 'adjustDays'; id: string; delta: number }
   | { type: 'setEpitaph'; id: string; epitaph: string }
@@ -90,6 +92,15 @@ function reducer(state: State, action: Action): State {
     }
     case 'clearRecentRescue':
       return state.recentRescue ? { ...state, recentRescue: null } : state;
+    case 'remove':
+      // Wrong scan or thrown out: just delete. Not a rescue, not a ghost, nothing in the memorial or the stats.
+      return { ...state, items: state.items.filter((i) => i.id !== action.id) };
+    case 'restore': {
+      if (state.items.some((i) => i.id === action.item.id)) return state;
+      const items = [...state.items];
+      items.splice(Math.min(action.index, items.length), 0, action.item);
+      return { ...state, items };
+    }
     case 'toss':
       return {
         ...state,
@@ -164,6 +175,10 @@ interface FridgeContextValue {
   rescueMany: (ids: string[]) => void;
   clearRecentRescue: () => void;
   toss: (id: string) => void;
+  /** Deletes an item outright and returns what was removed (for undo), or null. */
+  remove: (id: string) => { item: FoodItem; index: number } | null;
+  /** Puts a removed item back exactly where it was. */
+  restore: (item: FoodItem, index: number) => void;
   openedToday: (id: string) => void;
   adjustDays: (id: string, delta: number) => void;
   setEpitaph: (id: string, epitaph: string) => void;
@@ -259,6 +274,14 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       rescueMany: (ids) => dispatch({ type: 'rescueMany', ids }),
       clearRecentRescue: () => dispatch({ type: 'clearRecentRescue' }),
       toss: (id) => dispatch({ type: 'toss', id }),
+      remove: (id) => {
+        const index = state.items.findIndex((i) => i.id === id);
+        if (index < 0) return null;
+        const item = state.items[index];
+        dispatch({ type: 'remove', id });
+        return { item, index };
+      },
+      restore: (item, index) => dispatch({ type: 'restore', item, index }),
       openedToday: (id) => dispatch({ type: 'openedToday', id }),
       adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
       setEpitaph: (id, epitaph) => dispatch({ type: 'setEpitaph', id, epitaph }),

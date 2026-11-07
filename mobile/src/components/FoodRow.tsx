@@ -1,11 +1,19 @@
 import { plainTimeLabel } from '@/logic/mood';
 import { colors, moods, space, type Mood } from '@/theme';
 import * as Haptics from 'expo-haptics';
-import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { ZoomIn } from 'react-native-reanimated';
+import React, { useRef } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, {
+  ZoomIn,
+  useAnimatedReaction,
+  useSharedValue,
+  type SharedValue,
+  runOnJS,
+} from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { Face } from './Face';
+import { UiIcon } from './FoodIcon';
 import { MoodPill } from './MoodPill';
 
 export interface FoodRowProps {
@@ -24,7 +32,21 @@ export interface FoodRowProps {
   isNew?: boolean;
   /** Face motion loop (off for long static lists). */
   animated?: boolean;
+  /** Swipe left to reveal "Remove"; a full swipe removes right away. */
+  onRemove?: () => void;
+  /** Called while a row is being dragged / closed, so a parent pager can lock horizontal paging. */
+  onSwipeState?: (dragging: boolean) => void;
 }
+
+/** Only one row stays open at a time. */
+let openRow: SwipeableMethods | null = null;
+export function closeOpenRow() {
+  openRow?.close();
+  openRow = null;
+}
+
+const ACTION_WIDTH = 96;
+const FULL_SWIPE_RATIO = 0.6;
 
 /**
  * Compact 72pt row: food icon in a mood-tinted circle, name, plain-language time + mood pill, and one action.
@@ -41,10 +63,17 @@ function FoodRowBase({
   accessibilityHint,
   isNew = false,
   animated = true,
+  onRemove,
+  onSwipeState,
 }: FoodRowProps) {
   const m = moods[mood];
   const isGhost = mood === 'ghost';
   const isDramatic = mood === 'dramatic';
+  const swipeRef = useRef<SwipeableMethods>(null);
+  const rowWidth = useSharedValue(300);
+  const farthest = useSharedValue(0);
+  const fullSwipe = useRef(false);
+
   const body = (
     <Animated.View
       entering={isNew ? ZoomIn.springify().damping(12) : undefined}
@@ -96,21 +125,117 @@ function FoodRowBase({
       )}
     </Animated.View>
   );
-  if (!onPress) return <View style={styles.wrap}>{body}</View>;
-  return (
+
+  const pressable = onPress ? (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`}
       accessibilityHint={accessibilityHint ?? 'Opens the character'}
+      accessibilityActions={onRemove ? [{ name: 'remove', label: 'Remove' }] : undefined}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'remove') onRemove?.();
+      }}
       onPress={() => {
+        // Tapping a row (or any row) closes whichever row is open.
+        if (openRow && openRow !== swipeRef.current) {
+          closeOpenRow();
+          return;
+        }
+        if (openRow === swipeRef.current && openRow) {
+          closeOpenRow();
+          return;
+        }
         Haptics.selectionAsync();
         onPress();
       }}
-      style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
+      style={({ pressed }) => [pressed && styles.pressed]}
     >
       {body}
     </Pressable>
+  ) : (
+    body
   );
+
+  if (!onRemove) return <View style={styles.wrap}>{pressable}</View>;
+
+  function remove() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    openRow = null;
+    onRemove?.();
+  }
+
+  return (
+    <View style={styles.wrap} onLayout={(e: LayoutChangeEvent) => rowWidth.set(e.nativeEvent.layout.width)}>
+      <ReanimatedSwipeable
+        ref={swipeRef}
+        friction={1.6}
+        rightThreshold={56}
+        overshootRight
+        onSwipeableOpenStartDrag={() => {
+          onSwipeState?.(true);
+          farthest.set(0);
+          fullSwipe.current = false;
+        }}
+        onSwipeableWillOpen={() => {
+          if (openRow && openRow !== swipeRef.current) openRow.close();
+          openRow = swipeRef.current;
+          if (!fullSwipe.current) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
+        onSwipeableOpen={() => {
+          onSwipeState?.(false);
+          if (fullSwipe.current) remove();
+        }}
+        onSwipeableClose={() => {
+          onSwipeState?.(false);
+          if (openRow === swipeRef.current) openRow = null;
+        }}
+        renderRightActions={(_progress, translation) => (
+          <RemoveAction
+            translation={translation}
+            rowWidth={rowWidth}
+            onFull={() => (fullSwipe.current = true)}
+            onPress={remove}
+          />
+        )}
+      >
+        {pressable}
+      </ReanimatedSwipeable>
+    </View>
+  );
+}
+
+function RemoveAction({
+  translation,
+  rowWidth,
+  onFull,
+  onPress,
+}: {
+  translation: SharedValue<number>;
+  rowWidth: SharedValue<number>;
+  onFull: () => void;
+  onPress: () => void;
+}) {
+  // A drag past 60% of the row counts as a full swipe (decided on the UI thread, applied on open).
+  useAnimatedReaction(
+    () => translation.value,
+    (x) => {
+      if (x < -rowWidth.value * FULL_SWIPE_RATIO) runOnJSOnce(onFull);
+    },
+  );
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="Remove" onPress={onPress} style={styles.remove}>
+      <UiIcon icon="wastebasket" size={22} />
+      <AppText style={styles.removeText} color={colors.surface}>
+        Remove
+      </AppText>
+    </Pressable>
+  );
+}
+
+// Reanimated worklet → JS bridge for the full-swipe flag.
+function runOnJSOnce(fn: () => void) {
+  'worklet';
+  runOnJS(fn)();
 }
 
 export const FoodRow = React.memo(FoodRowBase);
@@ -156,4 +281,14 @@ const styles = StyleSheet.create({
   },
   actionPressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
   actionText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
+  remove: {
+    width: ACTION_WIDTH,
+    marginLeft: 8,
+    borderRadius: 16,
+    backgroundColor: colors.dangerStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  removeText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
 });

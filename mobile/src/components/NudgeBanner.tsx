@@ -26,11 +26,18 @@ export interface Nudge {
   text: string;
 }
 
+export interface ToastAction {
+  label: string;
+  onPress: () => void;
+  /** Default 2600 ms, or 5000 ms when an action is present. */
+  durationMs?: number;
+}
+
 interface NudgeContextValue {
   showNudge: (n: Nudge) => void;
   dismiss: () => void;
-  /** Small bottom toast, auto-dismisses. */
-  showToast: (text: string) => void;
+  /** Small bottom toast, auto-dismisses; optional action button (e.g. Undo). */
+  showToast: (text: string, action?: ToastAction) => void;
 }
 
 const NudgeContext = createContext<NudgeContextValue | null>(null);
@@ -38,7 +45,7 @@ const NudgeContext = createContext<NudgeContextValue | null>(null);
 /** Shows "your food texted you" banners over every screen. Mount once in the root layout. */
 export function NudgeProvider({ children }: { children: React.ReactNode }) {
   const [nudge, setNudge] = useState<Nudge | null>(null);
-  const [toast, setToast] = useState<{ key: number; text: string } | null>(null);
+  const [toast, setToast] = useState<{ key: number; text: string; action?: ToastAction } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,10 +65,10 @@ export function NudgeProvider({ children }: { children: React.ReactNode }) {
     [dismiss],
   );
 
-  const showToast = useCallback((text: string) => {
+  const showToast = useCallback((text: string, action?: ToastAction) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ key: Date.now(), text });
-    toastTimer.current = setTimeout(() => setToast(null), 2600);
+    setToast({ key: Date.now(), text, action });
+    toastTimer.current = setTimeout(() => setToast(null), action?.durationMs ?? (action ? 5000 : 2600));
   }, []);
 
   useEffect(
@@ -78,7 +85,9 @@ export function NudgeProvider({ children }: { children: React.ReactNode }) {
     <NudgeContext.Provider value={value}>
       {children}
       {nudge && <Banner nudge={nudge} onDismiss={dismiss} />}
-      {toast && <Toast key={toast.key} text={toast.text} />}
+      {toast && (
+        <Toast key={toast.key} text={toast.text} action={toast.action} onDone={() => setToast(null)} />
+      )}
     </NudgeContext.Provider>
   );
 }
@@ -113,20 +122,36 @@ export function useTextMe() {
   }, [characters, showNudge]);
 }
 
-function Toast({ text }: { text: string }) {
+function Toast({ text, action, onDone }: { text: string; action?: ToastAction; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <Animated.View
       entering={FadeInUp.duration(200)}
       exiting={FadeOut.duration(150)}
       style={[styles.toastWrap, { bottom: Math.max(insets.bottom, 24) + 120 }]}
-      pointerEvents="none"
+      pointerEvents={action ? 'box-none' : 'none'}
       accessibilityLiveRegion="polite"
     >
       <View style={styles.toast}>
-        <AppText variant="caption" color={colors.surface} align="center">
+        <AppText variant="caption" color={colors.surface} align="center" style={{ flexShrink: 1 }}>
           {text}
         </AppText>
+        {action && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={() => {
+              action.onPress();
+              onDone();
+            }}
+            hitSlop={8}
+            style={({ pressed }) => [styles.toastAction, pressed && { opacity: 0.8 }]}
+          >
+            <AppText variant="captionBold" color={colors.brand}>
+              {action.label}
+            </AppText>
+          </Pressable>
+        )}
       </View>
     </Animated.View>
   );
@@ -193,12 +218,16 @@ const styles = StyleSheet.create({
   },
   toastWrap: { position: 'absolute', left: space.xl, right: space.xl, alignItems: 'center', zIndex: 100 },
   toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
     backgroundColor: colors.ink,
     borderRadius: radius.pill,
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
-    maxWidth: 320,
+    maxWidth: 340,
   },
+  toastAction: { minHeight: 32, justifyContent: 'center', paddingHorizontal: space.xs },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.92 },
 });

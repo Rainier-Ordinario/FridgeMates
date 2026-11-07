@@ -12,10 +12,21 @@ interface Props {
   onToss?: (character: Character) => void;
   /** Freshly scanned: NEW tag + pop-in. */
   isNew?: boolean;
+  /** Swipe left to remove (wrong scan / thrown out). */
+  onRemove?: (character: Character) => void;
+  onSwipeState?: (dragging: boolean) => void;
 }
 
 /** Fridge list row: the compact FoodRow with Ate it / Toss. */
-function CharacterCardBase({ character, onPress, onAte, onToss, isNew = false }: Props) {
+function CharacterCardBase({
+  character,
+  onPress,
+  onAte,
+  onToss,
+  isNew = false,
+  onRemove,
+  onSwipeState,
+}: Props) {
   const isGhost = character.mood === 'ghost';
   const action = isGhost
     ? onToss && {
@@ -38,6 +49,8 @@ function CharacterCardBase({ character, onPress, onAte, onToss, isNew = false }:
       isNew={isNew}
       action={action || undefined}
       onPress={onPress ? () => onPress(character) : undefined}
+      onRemove={onRemove ? () => onRemove(character) : undefined}
+      onSwipeState={onSwipeState}
       accessibilityLabel={`${character.characterName}, ${character.name}, ${moods[character.mood].label}`}
     />
   );
