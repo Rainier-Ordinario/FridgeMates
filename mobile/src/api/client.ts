@@ -1,4 +1,4 @@
-import { API_URL, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS, USE_MOCK } from './config';
+import { API_URL, APP_TOKEN, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS, USE_MOCK } from './config';
 import { mockChatResponse } from './mocks/chat';
 import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
@@ -44,7 +44,9 @@ async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 15_000): P
   try {
     res = await fetch(`${API_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: APP_TOKEN
+        ? { 'Content-Type': 'application/json', 'x-app-token': APP_TOKEN }
+        : { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: controller.signal,
     });

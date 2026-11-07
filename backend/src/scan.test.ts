@@ -25,3 +25,13 @@ test('drops junk and survives bad input', () => {
   assert.deepEqual(sanitizeItems({ items: 'nope' }), []);
   assert.deepEqual(sanitizeItems({ items: [{ name: '', daysLeft: 2 }, { name: 'X' }, { name: 'Y', daysLeft: NaN }] }), []);
 });
+
+import { isQuotaError } from './scan.js';
+
+test('recognises quota errors, ignores others', () => {
+  assert.equal(isQuotaError({ status: 429 }), true);
+  assert.equal(isQuotaError(new Error('RESOURCE_EXHAUSTED: quota exceeded')), true);
+  assert.equal(isQuotaError(new Error('got 429 from upstream')), true);
+  assert.equal(isQuotaError(new Error('network down')), false);
+  assert.equal(isQuotaError(null), false);
+});

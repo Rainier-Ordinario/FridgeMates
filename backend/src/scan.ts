@@ -107,6 +107,32 @@ function getDateSource(item: Partial<RawItem>): RawItem['dateSource'] {
   return 'estimated';
 }
 
+/** Gemini said we're out of quota (HTTP 429 / RESOURCE_EXHAUSTED). The route turns this into a clear 429. */
+export class QuotaError extends Error {
+  constructor() {
+    super('Gemini quota reached');
+    this.name = 'QuotaError';
+  }
+}
+
+/** Gemini took too long. Kept under the app's 30s scan timeout so the server answers first. */
+export class ScanTimeoutError extends Error {
+  constructor() {
+    super('Gemini took too long');
+    this.name = 'ScanTimeoutError';
+  }
+}
+
+const GEMINI_TIMEOUT_MS = 25_000;
+
+export function isQuotaError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { status?: unknown; code?: unknown; message?: unknown };
+  if (e.status === 429 || e.code === 429) return true;
+  const message = typeof e.message === 'string' ? e.message : '';
+  return /\b429\b|RESOURCE_EXHAUSTED|quota/i.test(message);
+}
+
 let client: GoogleGenAI | null = null;
 
 export async function scanImage(imageBase64: string, today: string): Promise<ScanItem[]> {
@@ -115,7 +141,7 @@ export async function scanImage(imageBase64: string, today: string): Promise<Sca
     client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
 
-  const interaction = await client.interactions.create({
+  const request = client.interactions.create({
     model: MODEL,
     input: [
       { type: 'text', text: buildPrompt(today) },
@@ -125,6 +151,21 @@ export async function scanImage(imageBase64: string, today: string): Promise<Sca
     // Don't let Google keep the user's fridge photo around.
     store: false,
   });
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new ScanTimeoutError()), GEMINI_TIMEOUT_MS);
+  });
+  let interaction: Awaited<typeof request>;
+  try {
+    interaction = await Promise.race([request, timeout]);
+  } catch (err) {
+    request.catch(() => {}); // a late failure after the timeout must not crash the server
+    if (isQuotaError(err)) throw new QuotaError();
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   let parsed: unknown;
   try {

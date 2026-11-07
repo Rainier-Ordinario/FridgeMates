@@ -4,6 +4,9 @@
  */
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 
+/** Shared token the deployed backend checks (header x-app-token). Leave empty for a local backend. Not the Gemini key. */
+export const APP_TOKEN = process.env.EXPO_PUBLIC_APP_TOKEN ?? '';
+
 /** Default to mock data until the backend is deployed. Set EXPO_PUBLIC_USE_MOCK=false to go live. */
 export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false';
 

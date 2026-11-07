@@ -42,6 +42,19 @@ EXPO_PUBLIC_API_URL=http://localhost:8000        # simulator
 Once the backend is deployed, teammates only set `EXPO_PUBLIC_API_URL` to the deployed URL and need no key.
 Never commit `.env`, and send keys privately.
 
+## Deployed backend (Render)
+The backend is hosted on Render (free tier) so nobody needs a Gemini key or their own server. URL: see the pinned message / below once deployed.
+Teammates only need these lines in `mobile/.env` (then restart Expo):
+```
+EXPO_PUBLIC_USE_MOCK=false
+EXPO_PUBLIC_API_URL=https://<render-url>
+EXPO_PUBLIC_APP_TOKEN=<shared token, ask Kenneth>
+```
+- `GET /health` is open; every other route needs the header `x-app-token`. It's a casual-abuse gate, not real security.
+- Free Render sleeps after 15 min idle (first request then takes 30-60s). An UptimeRobot monitor pings `/health` every 5-10 min to keep it awake. Before a demo, open `/health` to be sure.
+- Errors: 429 = Gemini quota reached, 504 = Gemini too slow, 401 = wrong token. Quota is per Google project and resets at midnight Pacific (AI Studio, Usage, Rate limit tab).
+- Render env vars: `GEMINI_API_KEY`, `APP_TOKEN`. Root directory `backend`, build `npm install`, start `npm start`.
+
 Before pushing: `cd mobile && npm run typecheck && npx expo lint` and `cd backend && npm run typecheck && npm test`.
 If typecheck complains about routes that exist, start `npx expo start` once to regenerate the typed-route files.
 
