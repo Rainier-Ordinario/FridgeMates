@@ -18,16 +18,15 @@ export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false
   const rescued = useCountUp(data.rescued, countUp ? data.rescued - rescuedBump : data.rescued);
   return (
     <View style={styles.row}>
-      <Tile emoji="🧊" label="in fridge" value={data.inFridge} color={colors.ink} />
+      <Tile label="in fridge" value={data.inFridge} color={colors.ink} />
       <Tile
-        emoji="🎉"
         label="rescued"
         value={rescued}
         color={colors.successText}
         highlight={rescuedBump > 0}
         bump={rescuedBump}
       />
-      <Tile emoji="🪦" label="lost" value={data.lost} color={colors.dangerStrong} onPress={onPressLost} />
+      <Tile label="lost" value={data.lost} color={colors.dangerStrong} onPress={onPressLost} />
     </View>
   );
 }
@@ -96,7 +95,6 @@ function useCountUp(to: number, from: number): number {
 }
 
 function Tile({
-  emoji,
   label,
   value,
   color,
@@ -104,7 +102,6 @@ function Tile({
   highlight = false,
   bump = 0,
 }: {
-  emoji: string;
   label: string;
   value: number;
   color: string;
@@ -127,11 +124,10 @@ function Tile({
           </AppText>
         </View>
       )}
-      <AppText style={styles.emoji}>{emoji}</AppText>
-      <AppText variant="title" color={color} style={styles.value}>
+      <AppText style={styles.value} color={color}>
         {value}
       </AppText>
-      <AppText variant="caption" color={colors.inkMuted}>
+      <AppText style={styles.label} color={colors.inkMuted}>
         {label}
       </AppText>
     </Pressable>
@@ -146,7 +142,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    paddingVertical: space.md,
+    height: 84,
+    justifyContent: 'center',
     gap: 2,
     ...shadow.card,
   },
@@ -161,6 +158,6 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   pressed: { opacity: 0.8 },
-  emoji: { fontSize: 20, lineHeight: 24 },
-  value: { fontVariant: ['tabular-nums'] },
+  value: { fontFamily: 'Nunito_800ExtraBold', fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'] },
+  label: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
 });

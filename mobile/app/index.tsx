@@ -231,8 +231,8 @@ export default function FridgeScreen() {
           ]}
           ListHeaderComponent={
             rows.length > 0 ? (
-              <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
-                MOST URGENT FIRST
+              <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
+                Eat these first
               </AppText>
             ) : undefined
           }
@@ -257,18 +257,20 @@ export default function FridgeScreen() {
         <View style={styles.secondaryRow}>
           <SecondaryButton
             emoji="💬"
-            label="Fridge chat"
+            label="Chat"
+            accessibilityLabel="Open fridge chat"
             onPress={() => router.push('/chat')}
             style={styles.half}
           />
           <SecondaryButton
             emoji="🍳"
-            label="What to cook?"
+            label="Match"
+            accessibilityLabel="Find a recipe match"
             onPress={() => router.push('/match')}
             style={styles.half}
           />
         </View>
-        <PrimaryButton emoji="📷" label="Scan food" onPress={() => router.push('/scan')} />
+        <PrimaryButton emoji="📷" label="Scan your fridge" big onPress={() => router.push('/scan')} />
       </View>
     </Screen>
   );
@@ -277,7 +279,7 @@ export default function FridgeScreen() {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
+  sectionLabel: { marginBottom: space.sm, fontFamily: 'Nunito_800ExtraBold' },
   demoRow: { flexDirection: 'row' },
   hint: {
     flexDirection: 'row',
