@@ -78,7 +78,7 @@ export default function MatchScreen() {
 
   return (
     <Screen>
-      <TopBar title="Matchmaker" />
+      <TopBar title="Date night" />
 
       {characters.length < 2 ? (
         <View style={styles.center}>
@@ -101,29 +101,23 @@ export default function MatchScreen() {
               </AppText>
               <View style={styles.faces}>
                 {a && (
-                  <Animated.View entering={SlideInLeft.springify().damping(14)}>
+                  <Animated.View entering={SlideInLeft.springify().damping(14)} style={styles.faceCol}>
                     <Face emoji={a.emoji} mood={a.mood} size={96} label={a.characterName} />
+                    <AppText style={styles.faceName} align="center" numberOfLines={1}>
+                      {a.characterName}
+                    </AppText>
                   </Animated.View>
                 )}
                 <AppText style={styles.heart}>❤️</AppText>
                 {b && (
-                  <Animated.View entering={SlideInRight.springify().damping(14)}>
+                  <Animated.View entering={SlideInRight.springify().damping(14)} style={styles.faceCol}>
                     <Face emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
+                    <AppText style={styles.faceName} align="center" numberOfLines={1}>
+                      {b.characterName}
+                    </AppText>
                   </Animated.View>
                 )}
               </View>
-              <AppText variant="title" align="center">
-                {a?.characterName}
-                {b ? (
-                  <>
-                    <AppText variant="title" color={colors.brandDark}>
-                      {' '}
-                      &amp;{' '}
-                    </AppText>
-                    {b.characterName}
-                  </>
-                ) : null}
-              </AppText>
               {others.length > 0 && (
                 <View style={styles.thirdWheel}>
                   <Face emoji={others[0].emoji} mood="cocky" size={32} showBadge={false} animated={false} />
@@ -146,13 +140,9 @@ export default function MatchScreen() {
               {match.steps.map((step, i) => (
                 <View key={i} style={styles.step}>
                   <View style={styles.stepNum}>
-                    <AppText variant="caption" color={colors.ink}>
-                      {i + 1}
-                    </AppText>
+                    <AppText style={styles.stepNumText}>{i + 1}</AppText>
                   </View>
-                  <AppText variant="small" style={styles.stepText}>
-                    {step}
-                  </AppText>
+                  <AppText style={styles.stepText}>{step}</AppText>
                 </View>
               ))}
               <Pressable
@@ -197,8 +187,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadow.card,
   },
-  faces: { flexDirection: 'row', alignItems: 'center', marginVertical: space.xs },
-  heart: { fontSize: 34, lineHeight: 40, marginHorizontal: -8, zIndex: 2 },
+  faces: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: space.xs },
+  faceCol: { alignItems: 'center', gap: 6, maxWidth: 130 },
+  faceName: { fontFamily: 'Nunito_800ExtraBold', fontSize: 18, lineHeight: 24 },
+  heart: { fontSize: 34, lineHeight: 40, marginHorizontal: -8, marginTop: 28, zIndex: 2 },
   thirdWheel: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
   recipe: { gap: space.sm },
   recipeHead: {
@@ -220,8 +212,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: radius.md,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
@@ -229,11 +223,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepText: { flex: 1 },
+  stepNumText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 15, lineHeight: 20 },
+  stepText: { flex: 1, fontFamily: 'Nunito_600SemiBold', fontSize: 16, lineHeight: 22 },
   skip: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
   bigButton: { minHeight: 64 },
 });
