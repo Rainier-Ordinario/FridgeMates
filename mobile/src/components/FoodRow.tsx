@@ -198,7 +198,7 @@ function FoodRowBase({
           />
         )}
       >
-        {pressable}
+        <View style={styles.opaque}>{pressable}</View>
       </ReanimatedSwipeable>
     </View>
   );
@@ -242,6 +242,7 @@ export const FoodRow = React.memo(FoodRowBase);
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 8 },
+  opaque: { backgroundColor: colors.bg, borderRadius: 16 },
   pressed: { transform: [{ scale: 0.99 }] },
   row: {
     minHeight: 72,
