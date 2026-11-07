@@ -51,7 +51,7 @@ If typecheck complains about routes that exist, start `npx expo start` once to r
 | Fridge, scan, item detail, chat, match, rescue, memorial screens | Built (UI) |
 | `POST /scan` | **Live** (Gemini `gemini-3.1-flash-lite`, structured JSON output) |
 | `/chat`, `/match`, `/ghost`, `/messages` | **Mock only**: not on the backend yet, so live mode shows errors on those screens |
-| Saving the fridge on the phone | Not done: items are in memory and reset on restart |
+| Saving the fridge on the phone | Done: AsyncStorage persistence in `mobile/src/logic/store.tsx` (items, day offset, settings) |
 | Notifications | Stub (`mobile/src/logic/notifications.ts`), not wired up |
 | Backend deployed | Not yet |
 | USDA FoodKeeper shelf-life data | Not yet: `daysLeft` is currently Gemini's own estimate |
@@ -71,6 +71,8 @@ If typecheck complains about routes that exist, start `npx expo start` once to r
 
 ## API contract (backend returns exactly this)
 The app uses mock data until the backend is deployed. Base URL lives in one config constant.
+
+**Family-friendly rule (organizers' requirement).** Every prompt the app sends carries: "Always family-friendly and kind. Never use profanity, slurs, sexual content, insults about people, or crude jokes. Playful teasing about food only." (`mobile/src/logic/safety.ts`). The app also blocks such input locally before calling the API and filters every response (chat lines, scan intros, match text, epitaphs, messages) with in-character fallbacks. Backend prompts must follow the same rule.
 
 `POST /scan` body `{ "image": "<base64 jpeg>" }`
 ```json
