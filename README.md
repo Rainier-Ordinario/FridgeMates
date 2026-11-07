@@ -51,7 +51,7 @@ EXPO_PUBLIC_API_URL=https://<render-url>
 EXPO_PUBLIC_APP_TOKEN=<shared token, ask Kenneth>
 ```
 - `GET /health` is open; every other route needs the header `x-app-token`. It's a casual-abuse gate, not real security.
-- Free Render sleeps after 15 min idle (first request then takes 30-60s). An UptimeRobot monitor pings `/health` every 5-10 min to keep it awake. Before a demo, open `/health` to be sure.
+- Free Render **sleeps after 15 min idle**, and the first request after that takes 30-60s (a scan in that window will likely time out, just retry). **Before testing or a demo, open `<render-url>/health` in a browser and wait for it to load.** There is no keep-awake ping.
 - Errors: 429 = Gemini quota reached, 504 = Gemini too slow, 401 = wrong token. Quota is per Google project and resets at midnight Pacific (AI Studio, Usage, Rate limit tab).
 - Render env vars: `GEMINI_API_KEY`, `APP_TOKEN`. Root directory `backend`, build `npm install`, start `npm start`.
 
