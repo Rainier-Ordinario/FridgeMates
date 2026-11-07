@@ -68,7 +68,9 @@ export function SecondaryButton({ label, emoji, onPress, style }: SecondaryProps
 }
 
 interface RoundProps {
-  emoji: string;
+  /** Emoji glyph, or pass `icon` for an SVG. */
+  emoji?: string;
+  icon?: React.ReactNode;
   label: string;
   onPress?: () => void;
   size?: number;
@@ -77,7 +79,7 @@ interface RoundProps {
 }
 
 /** Small round tonal button (Chat, Match, back, etc.). */
-export function RoundButton({ emoji, label, onPress, size = hit.primary, dark = false }: RoundProps) {
+export function RoundButton({ emoji, icon, label, onPress, size = hit.primary, dark = false }: RoundProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -93,12 +95,14 @@ export function RoundButton({ emoji, label, onPress, size = hit.primary, dark = 
         pressed && styles.pressed,
       ]}
     >
-      <AppText
-        style={{ fontSize: size * 0.42, lineHeight: size * 0.52 }}
-        color={dark ? colors.surface : colors.ink}
-      >
-        {emoji}
-      </AppText>
+      {icon ?? (
+        <AppText
+          style={{ fontSize: size * 0.42, lineHeight: size * 0.52 }}
+          color={dark ? colors.surface : colors.ink}
+        >
+          {emoji}
+        </AppText>
+      )}
     </Pressable>
   );
 }

@@ -7,6 +7,7 @@ import { CharacterCard } from '@/components/CharacterCard';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { GHOST_LANE_HEIGHT, GhostLayer } from '@/components/GhostLayer';
 import { StatsLine } from '@/components/Scoreboard';
+import { GearIcon } from '@/components/Icons';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
@@ -158,7 +159,12 @@ export default function FridgeScreen() {
               Spoil alert: your food has feelings.
             </AppText>
           </Pressable>
-          <RoundButton emoji="⚙️" label="Settings" size={48} onPress={() => setMenuOpen('settings')} />
+          <RoundButton
+            icon={<GearIcon />}
+            label="Settings"
+            size={48}
+            onPress={() => setMenuOpen('settings')}
+          />
         </View>
         <StatsLine
           data={scoreboard}
