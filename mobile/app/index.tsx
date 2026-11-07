@@ -314,9 +314,6 @@ export default function FridgeScreen() {
             onPress={() => setMenuOpen('settings')}
           />
         </View>
-        <AppText variant="body" color={colors.inkMuted} style={styles.tagline}>
-          Spoil alert: your food has feelings.
-        </AppText>
         <StatsLine
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
@@ -550,7 +547,6 @@ export default function FridgeScreen() {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: 0, gap: 6 },
   title: { fontFamily: 'Nunito_600SemiBold', fontSize: 22, lineHeight: 28 },
-  tagline: { marginTop: -space.xs },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48 },
   sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
   listHeader: { gap: space.sm, paddingBottom: space.sm },
