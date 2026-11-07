@@ -10,6 +10,7 @@ import { StatsLine } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
+import { useSettings } from '@/logic/settings';
 import { useFlag } from '@/logic/flags';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, radius, space } from '@/theme';
@@ -38,8 +39,11 @@ export default function FridgeScreen() {
     rescueMany,
     hydrated,
     addScanned,
+    skipDay,
+    dayOffset,
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
+  const { demoMode } = useSettings();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
   const requestedEpitaphs = useRef(new Set<string>());
@@ -161,6 +165,16 @@ export default function FridgeScreen() {
           rescuedBump={recentRescue?.count ?? 0}
           onPressLost={() => router.push('/memorial')}
         />
+        {demoMode && (
+          <View style={styles.demoRow}>
+            <Chip
+              emoji="⏭"
+              label={dayOffset ? `Skip ahead a day (+${dayOffset})` : 'Skip ahead a day'}
+              tone="debug"
+              onPress={skipDay}
+            />
+          </View>
+        )}
         {characters.length > 0 && hint.ready && !hint.value && (
           <View
             style={styles.hint}
@@ -250,6 +264,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
+  demoRow: { flexDirection: 'row' },
   hint: {
     flexDirection: 'row',
     alignItems: 'center',

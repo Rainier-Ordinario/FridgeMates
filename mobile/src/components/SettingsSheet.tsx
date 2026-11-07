@@ -94,7 +94,7 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
         <ToggleRow
           emoji="🎬"
           label="Demo mode"
-          caption="Show the stage tools"
+          caption="Shows the stage tools and a Skip ahead a day chip"
           value={settings.demoMode}
           onChange={(v) => settings.set('demoMode', v)}
         />
