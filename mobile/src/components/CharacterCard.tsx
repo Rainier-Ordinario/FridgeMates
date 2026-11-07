@@ -3,7 +3,7 @@ import { colors, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { Face } from './Face';
 import { MoodPill } from './MoodPill';
@@ -12,12 +12,14 @@ import { useMoodMotion } from './useMoodMotion';
 interface Props {
   character: Character;
   onPress?: (character: Character) => void;
+  /** Freshly scanned: brand border, NEW tag, pop-in. */
+  isNew?: boolean;
 }
 
 /** Fridge list row. Dramatic items get the pulsing red border; the face carries the mood motion. */
-export function CharacterCard({ character, onPress }: Props) {
+export function CharacterCard({ character, onPress, isNew = false }: Props) {
   const m = moods[character.mood];
-  const { borderStyle } = useMoodMotion(character.mood);
+  const { borderStyle } = useMoodMotion(character.mood, isNew);
 
   return (
     <Pressable
@@ -29,8 +31,18 @@ export function CharacterCard({ character, onPress }: Props) {
       }}
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
-      <Animated.View style={[styles.card, { opacity: m.opacity }, borderStyle]}>
+      <Animated.View
+        entering={isNew ? ZoomIn.springify().damping(12) : undefined}
+        style={[styles.card, { opacity: m.opacity }, borderStyle]}
+      >
         <View style={[styles.tintStripe, { backgroundColor: m.color }]} />
+        {isNew && (
+          <View style={styles.newTag}>
+            <AppText variant="caption" color={colors.brandInk}>
+              NEW
+            </AppText>
+          </View>
+        )}
         <Face emoji={character.emoji} mood={character.mood} size={64} />
         <View style={styles.text}>
           <AppText variant="heading" numberOfLines={1}>
@@ -67,6 +79,16 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   tintStripe: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6 },
+  newTag: {
+    position: 'absolute',
+    top: 0,
+    right: space.lg,
+    backgroundColor: colors.brand,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderBottomLeftRadius: radius.sm,
+    borderBottomRightRadius: radius.sm,
+  },
   text: { flex: 1, gap: 2 },
   pillRow: { marginTop: space.sm },
 });

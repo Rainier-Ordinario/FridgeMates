@@ -1,25 +1,34 @@
 import type { ScanResponse } from '../types';
 
-/** What /scan returns for a photo of a yogurt tub and a bag of spinach. */
+/** What /scan returns for a photo of a grocery haul: milk, strawberries, eggs. */
 export const mockScanResponse: ScanResponse = {
   items: [
     {
-      name: 'Greek yogurt',
+      name: 'Milk',
       emoji: '🥛',
-      characterName: 'Sir Yogurtsworth',
-      personality: 'dramatic, needy',
-      daysLeft: 4,
+      characterName: 'Moo-dy Judy',
+      personality: 'passive-aggressive, lactose-proud',
+      daysLeft: 5,
       dateSource: 'printed',
-      intro: 'Finally, someone opened the door.',
+      intro: 'Oh, NOW you want me. Where was this energy at breakfast?',
     },
     {
-      name: 'Spinach',
-      emoji: '🥬',
-      characterName: 'Leafy Lou',
-      personality: 'anxious overachiever',
-      daysLeft: 3,
+      name: 'Strawberries',
+      emoji: '🍓',
+      characterName: 'The Berry Twins',
+      personality: 'clingy, sweet, zero chill',
+      daysLeft: 2,
       dateSource: 'estimated',
-      intro: 'Hi! Quick question: when were you planning to eat me? Asking for a friend. The friend is me.',
+      intro: 'We go everywhere together. Including, soon, the bin, unless you act.',
+    },
+    {
+      name: 'Eggs',
+      emoji: '🥚',
+      characterName: 'The Dozen',
+      personality: 'calm, collective, slightly cult-like',
+      daysLeft: 12,
+      dateSource: 'printed',
+      intro: 'We are twelve. We are patient. We are not going anywhere.',
     },
   ],
 };

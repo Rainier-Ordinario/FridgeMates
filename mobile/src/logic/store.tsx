@@ -29,12 +29,15 @@ export interface Scoreboard {
 
 interface State {
   items: FoodItem[];
+  /** Ids from the latest scan, so the Fridge can highlight them once. */
+  recentlyAddedIds: string[];
   /** Demo-only: days to skip ahead. */
   dayOffset: number;
 }
 
 type Action =
-  | { type: 'addScanned'; scanned: ScanItem[] }
+  | { type: 'addItems'; items: FoodItem[] }
+  | { type: 'clearRecentlyAdded' }
   | { type: 'eat'; id: string }
   | { type: 'toss'; id: string }
   | { type: 'openedToday'; id: string; shelfDaysOnceOpened?: number }
@@ -49,11 +52,14 @@ function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem)
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'addScanned':
+    case 'addItems':
       return {
         ...state,
-        items: [...state.items, ...action.scanned.map((s) => scanItemToFoodItem(s, state.dayOffset))],
+        items: [...state.items, ...action.items],
+        recentlyAddedIds: action.items.map((i) => i.id),
       };
+    case 'clearRecentlyAdded':
+      return state.recentlyAddedIds.length === 0 ? state : { ...state, recentlyAddedIds: [] };
     case 'eat':
       return {
         ...state,
@@ -102,7 +108,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(): State {
-  return { items: USE_MOCK ? mockFridgeItems() : [], dayOffset: 0 };
+  return { items: USE_MOCK ? mockFridgeItems() : [], recentlyAddedIds: [], dayOffset: 0 };
 }
 
 interface FridgeContextValue {
@@ -117,8 +123,11 @@ interface FridgeContextValue {
   scoreboard: Scoreboard;
   dayOffset: number;
   todayISO: string;
+  recentlyAddedIds: string[];
   getById: (id: string) => Character | undefined;
-  addScanned: (scanned: ScanItem[]) => void;
+  /** Assigns local ids, adds to the fridge, returns the new ids. */
+  addScanned: (scanned: ScanItem[]) => string[];
+  clearRecentlyAdded: () => void;
   eat: (id: string) => void;
   toss: (id: string) => void;
   openedToday: (id: string) => void;
@@ -157,8 +166,14 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       },
       dayOffset: state.dayOffset,
       todayISO: todayISO(state.dayOffset),
+      recentlyAddedIds: state.recentlyAddedIds,
       getById: (id) => all.find((c) => c.id === id),
-      addScanned: (scanned) => dispatch({ type: 'addScanned', scanned }),
+      addScanned: (scanned) => {
+        const items = scanned.map((s) => scanItemToFoodItem(s, state.dayOffset));
+        dispatch({ type: 'addItems', items });
+        return items.map((i) => i.id);
+      },
+      clearRecentlyAdded: () => dispatch({ type: 'clearRecentlyAdded' }),
       eat: (id) => dispatch({ type: 'eat', id }),
       toss: (id) => dispatch({ type: 'toss', id }),
       openedToday: (id) => dispatch({ type: 'openedToday', id }),
