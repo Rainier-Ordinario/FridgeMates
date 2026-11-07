@@ -1,4 +1,4 @@
-import { API_URL, MOCK_DELAY_MS, USE_MOCK } from './config';
+import { API_URL, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS, USE_MOCK } from './config';
 import { mockChatResponse } from './mocks/chat';
 import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
@@ -35,7 +35,7 @@ async function post<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
 export const api = {
   async scan(req: ScanRequest): Promise<ScanResponse> {
     if (USE_MOCK) {
-      await sleep(MOCK_DELAY_MS * 2);
+      await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
     return post('/scan', req);

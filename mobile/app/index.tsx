@@ -8,14 +8,27 @@ import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
 export default function FridgeScreen() {
-  const { characters, ghosts, scoreboard, dayOffset, skipDay } = useFridge();
+  const { characters, ghosts, scoreboard, dayOffset, skipDay, recentlyAddedIds, clearRecentlyAdded } =
+    useFridge();
   const insets = useSafeAreaInsets();
+  const listRef = useRef<FlatList<Character>>(null);
+
+  // After a scan: scroll to the first new character, keep the highlight for a few seconds.
+  useEffect(() => {
+    if (recentlyAddedIds.length === 0) return;
+    const index = characters.findIndex((c) => recentlyAddedIds.includes(c.id));
+    if (index >= 0) {
+      setTimeout(() => listRef.current?.scrollToIndex({ index, viewPosition: 0.2, animated: true }), 350);
+    }
+    const t = setTimeout(clearRecentlyAdded, 6000);
+    return () => clearTimeout(t);
+  }, [recentlyAddedIds, characters, clearRecentlyAdded]);
 
   const openCharacter = useCallback((c: Character) => {
     // TODO(step 3): navigate to /item/[id] once the detail screen exists.
@@ -44,9 +57,17 @@ export default function FridgeScreen() {
 
       <View style={styles.listArea}>
         <FlatList
+          ref={listRef}
           data={characters}
+          onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
           keyExtractor={(c) => c.id}
-          renderItem={({ item }) => <CharacterCard character={item} onPress={openCharacter} />}
+          renderItem={({ item }) => (
+            <CharacterCard
+              character={item}
+              onPress={openCharacter}
+              isNew={recentlyAddedIds.includes(item.id)}
+            />
+          )}
           contentContainerStyle={[styles.list, { paddingBottom: 140 + insets.bottom }]}
           ListHeaderComponent={
             <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>

@@ -25,7 +25,7 @@ const timing: Record<Mood, { duration: number; easing: (t: number) => number }> 
   ghost: { duration: 1400, easing: Easing.inOut(Easing.sin) },
 };
 
-export function useMoodMotion(mood: Mood) {
+export function useMoodMotion(mood: Mood, highlight = false) {
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
   const pulse = useSharedValue(0);
@@ -67,9 +67,9 @@ export function useMoodMotion(mood: Mood) {
     }
   });
 
-  /** Pulsing red border; transparent for every mood but dramatic. */
+  /** Pulsing red border for dramatic, brand border for freshly scanned items, transparent otherwise. */
   const borderStyle = useAnimatedStyle(() => {
-    if (motion !== 'shake') return { borderColor: 'transparent' };
+    if (motion !== 'shake') return { borderColor: highlight ? colors.brand : 'transparent' };
     return { borderColor: interpolateColor(pulse.value, [0, 1], ['rgba(229,72,58,0.25)', colors.danger]) };
   });
 
