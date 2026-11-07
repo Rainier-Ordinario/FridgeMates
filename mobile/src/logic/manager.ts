@@ -1,6 +1,8 @@
 import type { Character, Scoreboard } from './store';
 import { plainTimeLabel } from './mood';
+import { pickPair } from './matchmaking';
 import { formatDollars } from './prices';
+import { toChatItem } from '@/api/types';
 
 /**
  * The fridge manager's local answers: instant, correct, offline. Pure functions over the store.
@@ -64,9 +66,13 @@ export function answerLocally(q: ManagerQuestion, snap: Snapshot): ManagerAnswer
           tone: 'badNews',
           faces: characters,
         };
-      const pair = characters.slice(0, 2);
+      // Same local matchmaker as the Match screen, so the manager and the date card agree.
+      const picked = pickPair(characters.map((c) => toChatItem(c, c.daysLeft)));
+      const ids = picked ? picked.pair.map((p) => p.id) : characters.slice(0, 2).map((c) => c.id);
+      const pair = ids.map((id) => characters.find((c) => c.id === id)).filter((c): c is Character => !!c);
+      const dish = picked ? ` ${picked.recipe.title}.` : '';
       return {
-        text: `${pair[0].characterName} and ${pair[1].characterName} should date tonight. Want me to set it up?`,
+        text: `${pair[0].characterName} and ${pair[1].characterName} should date tonight:${dish} Want me to set it up?`,
         tone: 'goodNews',
         faces: pair,
         action: 'match',

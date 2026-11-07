@@ -1,4 +1,4 @@
-import { API_URL, APP_TOKEN, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS, USE_MOCK } from './config';
+import { API_URL, APP_TOKEN, isLive, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS } from './config';
 import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
 import { mockMessagesResponse } from './mocks/messages';
@@ -26,10 +26,16 @@ export class ApiError extends Error {
   constructor(
     public kind: ApiErrorKind,
     message: string,
+    public status?: number,
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** A missing route (404/405): the backend is reachable but does not serve this yet. */
+export function isRouteMissing(err: unknown): boolean {
+  return err instanceof ApiError && err.kind === 'http' && (err.status === 404 || err.status === 405);
 }
 
 export function apiErrorKind(err: unknown): ApiErrorKind {
@@ -56,7 +62,7 @@ async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 15_000): P
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok) throw new ApiError('http', `${path} failed: ${res.status}`);
+  if (!res.ok) throw new ApiError('http', `${path} failed: ${res.status}`, res.status);
   try {
     return (await res.json()) as TRes;
   } catch {
@@ -126,39 +132,59 @@ const normalize = {
 /** Thin client. Every call falls back to mocks when USE_MOCK is on, so all screens work offline. */
 export const api = {
   async scan(req: ScanRequest): Promise<ScanResponse> {
-    if (USE_MOCK) {
+    if (!isLive('scan')) {
       await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
     return normalize.scan(await post('/scan', req, 45_000));
   },
   async chat(req: ChatRequest): Promise<ChatResponse> {
-    if (USE_MOCK) {
+    // Local: the only chat left is the fridge manager, which answers on its own.
+    if (!isLive('chat')) {
       await sleep(MOCK_DELAY_MS);
-      // Mock mode: the only chat left is the fridge manager, which answers locally.
       return { lines: [] };
     }
-    return normalize.chat(await post('/chat', req));
+    try {
+      return normalize.chat(await post('/chat', req));
+    } catch (err) {
+      if (isRouteMissing(err)) return { lines: [] };
+      throw err;
+    }
   },
   async match(req: MatchRequest): Promise<MatchResponse> {
-    if (USE_MOCK) {
+    if (!isLive('match')) {
       await sleep(MOCK_DELAY_MS);
       return mockMatchResponse(req);
     }
-    return normalize.match(await post('/match', req));
+    try {
+      return normalize.match(await post('/match', req));
+    } catch (err) {
+      if (isRouteMissing(err)) return mockMatchResponse(req);
+      throw err;
+    }
   },
   async ghost(req: GhostRequest): Promise<GhostResponse> {
-    if (USE_MOCK) {
+    if (!isLive('ghost')) {
       await sleep(MOCK_DELAY_MS / 2);
       return mockGhostResponse(req);
     }
-    return normalize.ghost(await post('/ghost', req));
+    try {
+      return normalize.ghost(await post('/ghost', req));
+    } catch (err) {
+      if (isRouteMissing(err)) return mockGhostResponse(req);
+      throw err;
+    }
   },
   async messages(req: MessagesRequest): Promise<MessagesResponse> {
-    if (USE_MOCK) {
+    if (!isLive('messages')) {
       await sleep(MOCK_DELAY_MS / 2);
       return mockMessagesResponse(req);
     }
-    return normalize.messages(await post('/messages', req));
+    try {
+      return normalize.messages(await post('/messages', req));
+    } catch (err) {
+      if (isRouteMissing(err)) return mockMessagesResponse(req);
+      throw err;
+    }
   },
 };
