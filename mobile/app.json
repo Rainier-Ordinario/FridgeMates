@@ -40,7 +40,13 @@
         }
       ],
       "expo-font",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

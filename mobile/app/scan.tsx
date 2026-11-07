@@ -13,6 +13,8 @@ import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { moodFor } from '@/logic/mood';
 import { playPop, playTada } from '@/logic/sounds';
+import { requestNotificationPermission } from '@/logic/notifications';
+import { useSettings } from '@/logic/settings';
 import { useFridge } from '@/logic/store';
 import { colors, moods, motion, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -23,7 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -51,6 +53,7 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
 /** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
+  const settings = useSettings();
   const reduceMotion = useReducedMotion();
   // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
   const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
@@ -201,8 +204,30 @@ export default function ScanScreen() {
   function finish(next?: '/match') {
     addScanned(found);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.back();
-    if (next) setTimeout(() => router.push(next), 80);
+    const go = () => {
+      router.back();
+      if (next) setTimeout(() => router.push(next), 80);
+    };
+    // Sensible moment to ask: right after the first scan, with a one-line explanation.
+    if (!settings.notificationsAsked) {
+      settings.set('notificationsAsked', true);
+      Alert.alert(
+        'Let your food text you?',
+        'At most 2 a day, never at night. You can change this in Settings.',
+        [
+          { text: 'Not now', style: 'cancel', onPress: go },
+          {
+            text: 'Allow',
+            onPress: () => {
+              requestNotificationPermission().then((ok) => settings.set('notifications', ok));
+              go();
+            },
+          },
+        ],
+      );
+      return;
+    }
+    go();
   }
 
   if (phase === 'camera') {

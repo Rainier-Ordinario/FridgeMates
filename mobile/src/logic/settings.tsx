@@ -26,6 +26,10 @@ export interface Settings {
   /** Profile-lite: a fridge name and an emoji avatar, saved locally. */
   fridgeName: string;
   avatar: Avatar;
+  /** Local 'your food texts you' notifications (on by default once permission is granted). */
+  notifications: boolean;
+  /** Whether we already asked for notification permission (asked after the first scan, not on launch). */
+  notificationsAsked: boolean;
 }
 
 const KEY = 'fridgemates.settings.v1';
@@ -34,6 +38,8 @@ const defaults: Settings = {
   demoMode: false,
   fridgeName: 'My fridge',
   avatar: '🧊',
+  notifications: false,
+  notificationsAsked: false,
 };
 
 interface Value extends Settings {

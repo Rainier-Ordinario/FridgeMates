@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { NotificationSync } from '@/components/NotificationSync';
 import { NudgeProvider } from '@/components/NudgeBanner';
 import { SettingsProvider } from '@/logic/settings';
 import { FridgeProvider } from '@/logic/store';
@@ -37,6 +38,7 @@ export default function RootLayout() {
     <SettingsProvider>
       <FridgeProvider>
         <NudgeProvider>
+          <NotificationSync />
           <StatusBar style="dark" />
           <ErrorBoundary>
             <Stack
