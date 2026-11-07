@@ -8,7 +8,7 @@ import {
   type ManagerAnswer,
   type ManagerQuestion,
 } from '@/logic/manager';
-import { withSafetyRule } from '@/logic/safety';
+import { FRIDGE_FRIENDLY_LINE, isBlocked, withSafetyRule } from '@/logic/safety';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, hit, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -58,6 +58,7 @@ export function ManagerSheet({ visible, onClose }: Props) {
   const [answer, setAnswer] = useState<ManagerAnswer | null>(null);
   const [hopKey, setHopKey] = useState(0);
   const [draft, setDraft] = useState('');
+  const [highlightChips, setHighlightChips] = useState(false);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const session = useRef(0);
 
@@ -91,6 +92,16 @@ export function ManagerSheet({ visible, onClose }: Props) {
     const id = ++session.current;
     setPhase('thinking');
     const fallback = (): ManagerAnswer => ({ text: managerFallback(q), tone: 'answering', faces: [] });
+    // Organizers' rule: blocked input never reaches the API; the manager points at the chips.
+    if (isBlocked(q)) {
+      pending.current = setTimeout(() => {
+        if (session.current !== id) return;
+        deliver({ text: FRIDGE_FRIENDLY_LINE, tone: 'answering', faces: [] });
+        setHighlightChips(true);
+        setTimeout(() => setHighlightChips(false), 1600);
+      }, 300);
+      return;
+    }
     if (USE_MOCK) {
       pending.current = setTimeout(() => session.current === id && deliver(fallback()), THINK_MS);
       return;
@@ -185,7 +196,11 @@ export function ManagerSheet({ visible, onClose }: Props) {
             accessibilityRole="button"
             accessibilityLabel={`Ask: ${c.label}`}
             onPress={() => ask(c.id)}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.chip,
+              highlightChips && styles.chipHighlight,
+              pressed && styles.pressed,
+            ]}
           >
             <AppText style={styles.chipText}>{c.label}</AppText>
           </Pressable>
@@ -242,6 +257,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     justifyContent: 'center',
   },
+  chipHighlight: { borderColor: colors.brand, backgroundColor: colors.surfaceAlt },
   chipText: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm },
   input: {

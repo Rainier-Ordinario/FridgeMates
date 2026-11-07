@@ -8,7 +8,7 @@ import { useNudge } from '@/components/NudgeBanner';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { TypingDots } from '@/components/TypingDots';
-import { withSafetyRule } from '@/logic/safety';
+import { FRIDGE_FRIENDLY_LINE, isBlocked, withSafetyRule } from '@/logic/safety';
 import { useSettings } from '@/logic/settings';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
@@ -103,6 +103,11 @@ export default function ChatScreen() {
   function sendText(text: string) {
     setDraft('');
     setMsgs((prev) => [...prev, { key: `m${seq.current++}`, from: 'me', text }]);
+    // Organizers' rule: nothing vulgar reaches the API; the fridge nudges toward the chips instead.
+    if (isBlocked(text)) {
+      setMsgs((prev) => [...prev, { key: `m${seq.current++}`, from: 'fridge', text: FRIDGE_FRIENDLY_LINE }]);
+      return;
+    }
     ask(text);
   }
 
