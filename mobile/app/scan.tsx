@@ -59,6 +59,7 @@ export default function ScanScreen() {
   const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const nonce = useRef(0);
 
   // Simulators have no camera: start on the picker so the flow still works.
   const [phase, setPhase] = useState<Phase>(Device.isDevice || camera ? 'camera' : 'pick');
@@ -201,12 +202,20 @@ export default function ScanScreen() {
   }
 
   /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
-  function finish(next?: '/match') {
+  function finish(next?: 'cook') {
     addScanned(found);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const go = () => {
       router.back();
-      if (next) setTimeout(() => router.push(next), 80);
+      if (next)
+        setTimeout(
+          () =>
+            router.navigate({
+              pathname: '/',
+              params: { manager: '1', cook: '1', t: String(++nonce.current) },
+            }),
+          120,
+        );
     };
     // Sensible moment to ask: right after the first scan, with a one-line explanation.
     if (!settings.notificationsAsked) {
@@ -381,9 +390,9 @@ export default function ScanScreen() {
                 <DockedFooter>
                   <View style={styles.resultRow}>
                     <SecondaryButton
-                      label="Find a match"
+                      label="What should I cook?"
                       outlined
-                      onPress={() => finish('/match')}
+                      onPress={() => finish('cook')}
                       style={styles.half}
                     />
                   </View>

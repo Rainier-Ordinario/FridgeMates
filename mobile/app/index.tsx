@@ -3,7 +3,7 @@ import { mockScanResponse } from '@/api/mocks/scan';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
-import { Chip, PrimaryButton, SecondaryButton } from '@/components/Buttons';
+import { Chip, PrimaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { closeOpenRow } from '@/components/FoodRow';
 import { EmptyFridge } from '@/components/EmptyFridge';
@@ -17,6 +17,7 @@ import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
+import type { ManagerQuestion } from '@/logic/manager';
 import { urgencyLabel, urgencyOf, type Urgency } from '@/logic/overview';
 import { useSettings } from '@/logic/settings';
 import { useFlag } from '@/logic/flags';
@@ -39,7 +40,7 @@ import {
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FOOTER_HEIGHT = 150;
+const FOOTER_HEIGHT = 110;
 
 type SortMode = 'expiry' | 'alphabetical' | 'newest';
 
@@ -104,6 +105,7 @@ export default function FridgeScreen() {
   const [cheer, setCheer] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [managerQuestion, setManagerQuestion] = useState<string | null>(null);
+  const [managerChip, setManagerChip] = useState<ManagerQuestion | null>(null);
   // Ghosts need action first, then the living, most urgent first.
   const rows = [...ghosts, ...characters];
   // Search and sort (Kerwin): filter by food or character name; sort by expiry, A–Z, or newest.
@@ -161,6 +163,7 @@ export default function FridgeScreen() {
     ask,
     page: pageParam,
     picture: pictureParam,
+    cook,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -173,6 +176,7 @@ export default function FridgeScreen() {
     ask?: string;
     page?: string;
     picture?: string;
+    cook?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo' | 'picture'>(false);
 
@@ -200,6 +204,7 @@ export default function FridgeScreen() {
     if (manager) {
       setTimeout(() => {
         if (ask) setManagerQuestion(ask);
+        if (cook) setManagerChip('cookTonight');
         setManagerOpen(true);
       }, 300);
     }
@@ -208,7 +213,7 @@ export default function FridgeScreen() {
     if (pageParam === 'overview') setTimeout(() => goToPage(1), 400);
     if (pictureParam) setTimeout(() => setMenuOpen('picture'), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam, pictureParam]);
+  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam, pictureParam, cook]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -482,9 +487,11 @@ export default function FridgeScreen() {
       <ManagerSheet
         visible={managerOpen}
         initialQuestion={managerQuestion}
+        initialChip={managerChip}
         onClose={() => {
           setManagerOpen(false);
           setManagerQuestion(null);
+          setManagerChip(null);
         }}
       />
 
@@ -506,14 +513,6 @@ export default function FridgeScreen() {
         style={[styles.fade, { height: FOOTER_HEIGHT + 20 + insets.bottom }]}
       />
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
-        <View style={styles.secondaryRow}>
-          <SecondaryButton
-            icon={<UiIcon icon="cooking" size={20} />}
-            label="What to cook?"
-            accessibilityLabel="Find a recipe match"
-            onPress={() => router.push('/match')}
-          />
-        </View>
         <View style={styles.scanRow}>
           <Pressable
             accessibilityRole="button"
@@ -525,12 +524,13 @@ export default function FridgeScreen() {
             style={({ pressed }) => [styles.mascotButton, pressed && { opacity: 0.85 }]}
           >
             <Mascot
-              size={44}
+              size={40}
               state={mascotState}
               expression={cheer ? 'excited' : mascotExpression}
               hideBubble
               accessibilityLabel=""
             />
+            <AppText style={styles.askLabel}>Ask</AppText>
           </Pressable>
           <PrimaryButton
             icon={<UiIcon icon="camera" size={24} />}
@@ -607,17 +607,20 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     zIndex: 20,
   },
-  secondaryRow: { flexDirection: 'row', gap: space.md },
   scanRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   scan: { flex: 1 },
+  askLabel: { fontFamily: 'Nunito_800ExtraBold', fontSize: 15, lineHeight: 20, paddingRight: 4 },
   mascotButton: {
-    width: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     height: 56,
+    paddingLeft: 6,
+    paddingRight: 12,
     borderRadius: 28,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.line,
-    alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
   },

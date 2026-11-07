@@ -1,5 +1,5 @@
 import { api } from '@/api/client';
-import { USE_MOCK } from '@/api/config';
+import { isLive, USE_MOCK } from '@/api/config';
 import { toChatItem } from '@/api/types';
 import {
   answerLocally,
@@ -17,11 +17,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { AppText } from './AppText';
-import { UiIcon } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
 import { SecondaryButton } from './Buttons';
 import { Face } from './Face';
 import { SendIcon } from './Icons';
+import { UiIcon } from './FoodIcon';
 import { Mascot, type MascotExpression, type MascotState } from './Mascot';
 
 interface Props {
@@ -29,6 +29,8 @@ interface Props {
   onClose: () => void;
   /** Asked automatically when the sheet opens (demo: Test safety filter). */
   initialQuestion?: string | null;
+  /** A chip sent automatically when the sheet opens (e.g. 'cookTonight' from scan results). */
+  initialChip?: ManagerQuestion | null;
 }
 
 const INTRO = 'I keep an eye on everyone in here. Ask me anything about your food.';
@@ -55,7 +57,7 @@ function useTypewriter(text: string): string {
 }
 
 /** "Ask the fridge manager": chips answer locally from the store; free text asks the backend. */
-export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props) {
+export function ManagerSheet({ visible, onClose, initialQuestion = null, initialChip = null }: Props) {
   const { characters, ghosts, scoreboard } = useFridge();
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'answer'>('idle');
   const [answer, setAnswer] = useState<ManagerAnswer | null>(null);
@@ -74,6 +76,13 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialQuestion]);
 
+  useEffect(() => {
+    if (!visible || !initialChip) return;
+    const id = setTimeout(() => ask(initialChip), 450);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialChip]);
+
   const typed = useTypewriter(phase === 'answer' && answer ? answer.text : INTRO);
 
   function deliver(a: ManagerAnswer) {
@@ -90,6 +99,29 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
     if (pending.current) clearTimeout(pending.current);
     pending.current = setTimeout(() => {
       if (session.current !== id) return;
+      if (q === 'cookTonight' && isLive('match') && characters.length >= 2) {
+        // The backend matches when it is live; otherwise the local matchmaker (same as the Match screen).
+        api
+          .match({ items: characters.map((c) => toChatItem(c, c.daysLeft)) })
+          .then((res) => {
+            if (session.current !== id) return;
+            const pair = res.rescues
+              .map((rid) => characters.find((c) => c.id === rid))
+              .filter((c): c is Character => !!c);
+            if (pair.length < 2) throw new Error('unknown ids');
+            deliver({
+              text: `${pair[0].characterName} and ${pair[1].characterName} should date tonight.`,
+              tone: 'goodNews',
+              faces: [],
+              action: 'match',
+              match: { pair: [pair[0], pair[1]], title: res.title, minutes: res.minutes },
+            });
+          })
+          .catch(
+            () => session.current === id && deliver(answerLocally(q, { characters, ghosts, scoreboard })),
+          );
+        return;
+      }
       deliver(answerLocally(q, { characters, ghosts, scoreboard }));
     }, THINK_MS);
   }
@@ -170,7 +202,7 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
         />
       </View>
 
-      {phase === 'answer' && answer && (answer.faces.length > 0 || answer.action) && (
+      {phase === 'answer' && answer && (answer.faces.length > 0 || answer.match) && (
         <View style={styles.answerRow}>
           {answer.faces.length > 0 && (
             <View style={styles.faces}>
@@ -187,16 +219,33 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
               ))}
             </View>
           )}
-          {answer.action === 'match' && (
-            <SecondaryButton
-              icon={<UiIcon icon="cooking" size={20} />}
-              label="Find a match"
-              outlined
-              onPress={() => {
-                onClose();
-                setTimeout(() => router.push('/match'), 120);
-              }}
-            />
+          {answer.action === 'match' && answer.match && (
+            <View
+              style={styles.matchCard}
+              accessible
+              accessibilityLabel={`It's a match: ${answer.match.pair[0].characterName} and ${answer.match.pair[1].characterName}. ${answer.match.title}, ${answer.match.minutes} minutes`}
+            >
+              <AppText variant="kicker" color={colors.ink} align="center">
+                It’s a match!
+              </AppText>
+              <View style={styles.matchFaces}>
+                <Face food={answer.match.pair[0].name} mood={answer.match.pair[0].mood} size={56} />
+                <UiIcon icon="red-heart" size={24} />
+                <Face food={answer.match.pair[1].name} mood={answer.match.pair[1].mood} size={56} />
+              </View>
+              <AppText variant="bodyBold" align="center">
+                {answer.match.title} · {answer.match.minutes} min
+              </AppText>
+              <SecondaryButton
+                icon={<UiIcon icon="cooking" size={20} />}
+                label="See recipe"
+                outlined
+                onPress={() => {
+                  onClose();
+                  setTimeout(() => router.push('/match'), 120);
+                }}
+              />
+            </View>
           )}
         </View>
       )}
@@ -258,6 +307,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   answerRow: { alignItems: 'center', gap: space.md },
+  matchCard: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: space.sm,
+    backgroundColor: colors.bg,
+    borderRadius: 20,
+    padding: space.lg,
+  },
+  matchFaces: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   faces: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingTop: space.sm },
   chip: {

@@ -18,11 +18,13 @@ export interface ManagerAnswer {
   faces: Character[];
   /** An optional follow-up action. */
   action?: 'match';
+  /** The date card shown inside the manager for 'What should I cook?'. */
+  match?: { pair: [Character, Character]; title: string; minutes: number };
 }
 
 export const managerChips: { id: ManagerQuestion; label: string }[] = [
+  { id: 'cookTonight', label: 'What should I cook?' },
   { id: 'eatFirst', label: 'What should I eat first?' },
-  { id: 'cookTonight', label: 'What can I cook tonight?' },
   { id: 'expiring', label: "What's about to expire?" },
   { id: 'saved', label: 'How much have I saved?' },
   { id: 'longest', label: "Who's been here the longest?" },
@@ -70,12 +72,15 @@ export function answerLocally(q: ManagerQuestion, snap: Snapshot): ManagerAnswer
       const picked = pickPair(characters.map((c) => toChatItem(c, c.daysLeft)));
       const ids = picked ? picked.pair.map((p) => p.id) : characters.slice(0, 2).map((c) => c.id);
       const pair = ids.map((id) => characters.find((c) => c.id === id)).filter((c): c is Character => !!c);
-      const dish = picked ? ` ${picked.recipe.title}.` : '';
       return {
-        text: `${pair[0].characterName} and ${pair[1].characterName} should date tonight:${dish} Want me to set it up?`,
+        text: `${pair[0].characterName} and ${pair[1].characterName} should date tonight.`,
         tone: 'goodNews',
-        faces: pair,
+        faces: [],
         action: 'match',
+        match:
+          picked && pair.length === 2
+            ? { pair: [pair[0], pair[1]], title: picked.recipe.title, minutes: picked.recipe.minutes }
+            : undefined,
       };
     }
     case 'expiring': {
