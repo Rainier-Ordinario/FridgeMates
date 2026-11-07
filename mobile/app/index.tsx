@@ -4,9 +4,12 @@ import { CharacterCard } from '@/components/CharacterCard';
 import { GhostLayer } from '@/components/GhostLayer';
 import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
+import { api } from '@/api/client';
+import { toChatItem } from '@/api/types';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -24,7 +27,30 @@ export default function FridgeScreen() {
     clearRecentlyAdded,
     recentRescue,
     clearRecentRescue,
+    setEpitaph,
+    toss,
   } = useFridge();
+  const requestedEpitaphs = useRef(new Set<string>());
+
+  // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
+  useEffect(() => {
+    ghosts
+      .filter((g) => !g.epitaph && !requestedEpitaphs.current.has(g.id))
+      .forEach((g) => {
+        requestedEpitaphs.current.add(g.id);
+        api
+          .ghost({ item: toChatItem(g, g.daysLeft) })
+          .then((res) => setEpitaph(g.id, res.epitaph))
+          .catch(() => setEpitaph(g.id, `Here lies ${g.name}. The fridge was not enough.`));
+      });
+  }, [ghosts, setEpitaph]);
+
+  function takeOutTrash() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    ghosts.forEach((g) => toss(g.id));
+    // Let the ghosts drift up and fade (500 ms) before showing the wall.
+    setTimeout(() => router.push('/memorial'), 550);
+  }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
 
@@ -70,7 +96,7 @@ export default function FridgeScreen() {
         <Scoreboard
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
-          onPressLost={() => console.log('TODO memorial')}
+          onPressLost={() => router.push('/memorial')}
         />
       </View>
 
@@ -87,7 +113,10 @@ export default function FridgeScreen() {
               isNew={recentlyAddedIds.includes(item.id)}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: 140 + insets.bottom }]}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: (ghosts.length ? 210 : 140) + insets.bottom },
+          ]}
           ListHeaderComponent={
             <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
               {characters.length === 0 ? 'Your fridge is quiet. Suspiciously quiet.' : 'MOST URGENT FIRST'}
@@ -102,17 +131,28 @@ export default function FridgeScreen() {
         pointerEvents="none"
         colors={['rgba(255,247,236,0)', colors.bg, colors.bg]}
         locations={[0, 0.45, 1]}
-        style={[styles.fade, { height: 150 + insets.bottom }]}
+        style={[styles.fade, { height: (ghosts.length ? 220 : 150) + insets.bottom }]}
       />
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
-        <RoundButton emoji="💬" label="Fridge group chat" onPress={() => router.push('/chat')} />
-        <PrimaryButton
-          emoji="📷"
-          label="Scan food"
-          onPress={() => router.push('/scan')}
-          style={styles.scan}
-        />
-        <RoundButton emoji="💘" label="Matchmaking" onPress={() => router.push('/match')} />
+        {ghosts.length > 0 && (
+          <PrimaryButton
+            emoji="🗑️"
+            label={ghosts.length === 1 ? 'Take out the trash' : `Take out the trash (${ghosts.length})`}
+            tone="danger"
+            onPress={takeOutTrash}
+            style={styles.trash}
+          />
+        )}
+        <View style={styles.actionRow}>
+          <RoundButton emoji="💬" label="Fridge group chat" onPress={() => router.push('/chat')} />
+          <PrimaryButton
+            emoji="📷"
+            label="Scan food"
+            onPress={() => router.push('/scan')}
+            style={styles.scan}
+          />
+          <RoundButton emoji="💘" label="Matchmaking" onPress={() => router.push('/match')} />
+        </View>
       </View>
     </Screen>
   );
@@ -130,12 +170,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: space.md,
     paddingHorizontal: space.lg,
     paddingTop: space.md,
     zIndex: 20,
   },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  trash: { alignSelf: 'stretch' },
   scan: { flex: 1 },
 });
