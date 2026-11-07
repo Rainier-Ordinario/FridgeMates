@@ -25,8 +25,8 @@ import Animated, {
 
 const beats: { icon: FluentIconName; text: string }[] = [
   { icon: 'camera', text: 'Scan your groceries.' },
-  { icon: 'face-screaming-in-fear', text: 'Each one gets a face, a name and a mood.' },
-  { icon: 'cooking', text: 'Eat them before they haunt you.' },
+  { icon: 'face-screaming-in-fear', text: 'Each one gets a face and a mood that changes as it ages.' },
+  { icon: 'cooking', text: 'Ask the fridge manager what to eat first.' },
 ];
 
 /** First run: the smiling fridge, the tagline, three beats, Get started. */

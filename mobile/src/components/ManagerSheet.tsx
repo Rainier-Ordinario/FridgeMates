@@ -31,7 +31,7 @@ interface Props {
   initialQuestion?: string | null;
 }
 
-const INTRO = 'I keep an eye on everyone in here. Ask me anything.';
+const INTRO = 'I keep an eye on everyone in here. Ask me anything about your food.';
 const THINK_MS = 600;
 
 /** Types a string in, ~18 ms per character. Instant under Reduce Motion. */
