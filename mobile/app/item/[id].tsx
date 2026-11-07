@@ -16,6 +16,14 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+const moodIcon = {
+  cocky: 'smiling-face-with-sunglasses',
+  chill: 'relieved-face',
+  nervous: 'grimacing-face',
+  dramatic: 'face-screaming-in-fear',
+  ghost: 'ghost',
+} as const;
+
 const sourceIcon = { printed: 'label', estimated: 'crystal-ball', adjusted: 'writing-hand' } as const;
 
 /** Character detail: big face, countdown, date source, and the actions that change its fate. */
@@ -63,9 +71,12 @@ export default function CharacterScreen() {
     <Screen>
       <TopBar
         right={
-          <AppText variant="caption" color={colors.inkMuted}>
-            {m.badge} {m.label.toUpperCase()}
-          </AppText>
+          <View style={styles.moodTag}>
+            <UiIcon icon={moodIcon[c.mood]} size={16} />
+            <AppText variant="caption" color={colors.inkMuted}>
+              {m.label.toUpperCase()}
+            </AppText>
+          </View>
         }
       />
 
@@ -229,6 +240,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     flexWrap: 'wrap',
   },
+  moodTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sourceChip: {
     flexDirection: 'row',
     alignItems: 'center',
