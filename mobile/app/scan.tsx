@@ -2,6 +2,7 @@ import { api } from '@/api/client';
 import { USE_MOCK } from '@/api/config';
 import type { ScanItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { Confetti } from '@/components/Confetti';
 import { PrimaryButton, RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
@@ -9,6 +10,7 @@ import { MoodPill } from '@/components/MoodPill';
 import { Screen } from '@/components/Screen';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
+import { playPop, playTada } from '@/logic/sounds';
 import { useFridge } from '@/logic/store';
 import { colors, moodOrder, moods, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -23,6 +25,7 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import Animated, {
   Easing,
   FadeIn,
+  FadeInUp,
   ZoomIn,
   cancelAnimation,
   interpolate,
@@ -81,18 +84,27 @@ export default function ScanScreen() {
     }
   }, [phase, permission, requestPermission]);
 
-  // Reveal characters one by one with a haptic tick each.
+  // Reveal characters one by one: haptic tick + soft pop as each one lands.
   useEffect(() => {
     if (phase !== 'reveal' || shown >= found.length) return;
     const t = setTimeout(
       () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        playPop();
         setShown((n) => n + 1);
       },
-      shown === 0 ? 200 : 420,
+      shown === 0 ? 150 : 380,
     );
     return () => clearTimeout(t);
   }, [phase, shown, found.length]);
+
+  // Everyone has arrived: a short celebration before the button appears.
+  const allArrived = phase === 'reveal' && found.length > 0 && shown >= found.length;
+  useEffect(() => {
+    if (!allArrived) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    playTada();
+  }, [allArrived]);
 
   async function shutter() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -157,7 +169,7 @@ export default function ScanScreen() {
       setFound(items);
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setTimeout(() => setPhase('reveal'), 700);
+      setTimeout(() => setPhase('reveal'), 600);
     } catch {
       setError(FRIENDLY_ERROR);
       setPhase('pick');
@@ -305,10 +317,18 @@ export default function ScanScreen() {
               );
             })}
           </ScrollView>
-          {shown >= found.length && (
-            <Animated.View entering={FadeIn.delay(250)} style={styles.footer}>
-              <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
-            </Animated.View>
+          {allArrived && (
+            <>
+              <Confetti count={24} />
+              <Animated.View entering={FadeIn.duration(260)} style={styles.arrived}>
+                <AppText variant="caption" color={colors.inkMuted} align="center">
+                  🎉 Everyone’s here. Be nice to them.
+                </AppText>
+              </Animated.View>
+              <Animated.View entering={FadeInUp.delay(250).duration(260)} style={styles.footer}>
+                <PrimaryButton emoji="🧊" label="Put them in the fridge" onPress={finish} />
+              </Animated.View>
+            </>
           )}
         </>
       )}
@@ -438,6 +458,7 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  arrived: { paddingTop: space.xs },
   footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
   // viewfinder
   cameraGround: { flex: 1, backgroundColor: '#1F1812' },
