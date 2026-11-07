@@ -12,19 +12,15 @@ import { DockedFooter } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
-import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
 import { playPop, playTada } from '@/logic/sounds';
-import { useSettings } from '@/logic/settings';
 import { useFridge } from '@/logic/store';
-import { voiceFor } from '@/logic/voices';
 import { colors, moods, motion, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import * as Speech from 'expo-speech';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
@@ -46,15 +42,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Phase = 'camera' | 'pick' | 'loading' | 'reveal';
 
-/** One quote of 32 characters or fewer: live intros can run long. */
-function shortQuote(intro: string): string {
-  const t = intro.trim();
-  if (t.length <= 32) return t;
-  const cut = t.slice(0, 31);
-  const at = cut.lastIndexOf(' ');
-  return `${(at > 12 ? cut.slice(0, at) : cut).replace(/[,.;:!?]+$/, '')}…`;
-}
-
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   quality: 0.5,
@@ -65,7 +52,6 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
 /** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
-  const { voices } = useSettings();
   const reduceMotion = useReducedMotion();
   // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
   const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
@@ -126,17 +112,12 @@ export default function ScanScreen() {
       () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         playPop();
-        const item = found[shown];
-        if (voices && item) {
-          const v = voiceFor(item);
-          Speech.speak(shortQuote(item.intro), { pitch: v.pitch, rate: v.rate, language: v.language });
-        }
         setShown((n) => n + 1);
       },
       shown === 0 ? 150 : 350,
     );
     return () => clearTimeout(t);
-  }, [phase, shown, found, reduceMotion, voices]);
+  }, [phase, shown, found, reduceMotion]);
 
   // Everyone has arrived: a short celebration before the button appears.
   const allArrived = phase === 'reveal' && found.length > 0 && shown >= found.length;
@@ -375,9 +356,6 @@ export default function ScanScreen() {
                       </AppText>
                       <MoodPill mood={mood} variant="time" daysLeft={item.daysLeft} compact />
                     </View>
-                    {item.intro.trim() ? (
-                      <SpeechBubble text={shortQuote(item.intro)} tail="left" compact style={styles.bubble} />
-                    ) : null}
                   </View>
                 </Animated.View>
               );
@@ -567,7 +545,6 @@ const styles = StyleSheet.create({
   },
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
   arrived: { paddingTop: space.xs },
   // viewfinder
   cameraGround: { flex: 1, backgroundColor: '#1F1812' },

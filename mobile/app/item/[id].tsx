@@ -6,7 +6,6 @@ import { MoodPill } from '@/components/MoodPill';
 import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
-import { SpeechBubble } from '@/components/SpeechBubble';
 import { dateSourceLabel, plainTimeLabel } from '@/logic/mood';
 import { useFridge } from '@/logic/store';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
@@ -98,11 +97,6 @@ export default function CharacterScreen() {
           <AppText variant="body" color={m.text} align="center">
             {c.name} · {c.personality}
           </AppText>
-          <SpeechBubble
-            text={`“${isGhost && c.epitaph ? c.epitaph : c.intro}”`}
-            tail="top"
-            style={styles.bubble}
-          />
         </Animated.View>
 
         <View style={styles.countdownCard}>
@@ -225,7 +219,6 @@ const styles = StyleSheet.create({
     padding: space.xl,
     paddingTop: space.xl,
   },
-  bubble: { marginTop: space.md, alignSelf: 'stretch' },
   countdownCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
