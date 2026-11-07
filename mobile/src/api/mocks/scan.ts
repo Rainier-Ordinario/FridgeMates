@@ -10,7 +10,7 @@ export const mockScanResponse: ScanResponse = {
       personality: 'passive-aggressive, lactose-proud',
       daysLeft: 5,
       dateSource: 'printed',
-      intro: 'Oh, NOW you want me. Where was this energy at breakfast?',
+      intro: 'Took you long enough.',
     },
     {
       name: 'Strawberries',
@@ -19,7 +19,7 @@ export const mockScanResponse: ScanResponse = {
       personality: 'clingy, sweet, zero chill',
       daysLeft: 2,
       dateSource: 'estimated',
-      intro: 'We go everywhere together. Including, soon, the bin, unless you act.',
+      intro: 'We go everywhere. Even the bin?',
     },
     {
       name: 'Eggs',
@@ -28,7 +28,7 @@ export const mockScanResponse: ScanResponse = {
       personality: 'calm, collective, slightly cult-like',
       daysLeft: 12,
       dateSource: 'printed',
-      intro: 'We are twelve. We are patient. We are not going anywhere.',
+      intro: 'Twelve of us. Not worried.',
     },
   ],
 };

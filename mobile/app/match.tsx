@@ -1,4 +1,4 @@
-import { api, apiErrorKind } from '@/api/client';
+import { api, ApiError, apiErrorKind } from '@/api/client';
 import type { MatchResponse } from '@/api/types';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
@@ -36,9 +36,11 @@ export default function MatchScreen() {
     setError(null);
     try {
       const res = await api.match({ items: characters.map((c) => toChatItem(c, c.daysLeft)) });
-      // If the backend names ids we don't have, pair the two most urgent so the screen still works.
+      // The card, the steps and the rescued items must agree: use only ids we actually have.
       const known = res.rescues.filter((id) => characters.some((c) => c.id === id));
-      setMatch({ ...res, rescues: known.length >= 1 ? known : characters.slice(0, 2).map((c) => c.id) });
+      if (known.length < 2)
+        throw new ApiError('bad-response', 'match named items that are not in this fridge');
+      setMatch({ ...res, rescues: known });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       setError(apiErrorKind(err));
@@ -100,13 +102,13 @@ export default function MatchScreen() {
               <View style={styles.faces}>
                 {a && (
                   <Animated.View entering={SlideInLeft.springify().damping(14)}>
-                    <Face emoji={a.emoji} mood="nervous" size={96} label={a.characterName} />
+                    <Face emoji={a.emoji} mood={a.mood} size={96} label={a.characterName} />
                   </Animated.View>
                 )}
                 <AppText style={styles.heart}>❤️</AppText>
                 {b && (
                   <Animated.View entering={SlideInRight.springify().damping(14)}>
-                    <Face emoji={b.emoji} mood="nervous" size={96} label={b.characterName} />
+                    <Face emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
                   </Animated.View>
                 )}
               </View>
