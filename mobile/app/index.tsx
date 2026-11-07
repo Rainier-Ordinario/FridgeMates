@@ -444,7 +444,10 @@ export default function FridgeScreen() {
         </View>
         <View style={{ width }}>
           <OverviewPanel
-            onShowUrgency={(u) => setUrgencyFilter(u)}
+            onShowUrgency={(u) => {
+              setUrgencyFilter(u);
+              goToPage(0);
+            }}
             bottomPadding={FOOTER_HEIGHT + insets.bottom}
           />
         </View>
