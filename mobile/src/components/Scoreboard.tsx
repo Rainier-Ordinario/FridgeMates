@@ -32,6 +32,48 @@ export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false
   );
 }
 
+/** One quiet line under the Fridge title: "5 in fridge · 2 rescued · 1 lost". */
+export function StatsLine({
+  data,
+  rescuedBump = 0,
+  onPressLost,
+}: {
+  data: ScoreboardData;
+  rescuedBump?: number;
+  onPressLost?: () => void;
+}) {
+  return (
+    <View
+      style={styles.line}
+      accessible
+      accessibilityLabel={`${data.inFridge} in fridge, ${data.rescued} rescued, ${data.lost} lost`}
+    >
+      <AppText variant="caption" color={colors.inkMuted}>
+        {data.inFridge} in fridge
+      </AppText>
+      <AppText variant="caption" color={colors.inkFaint}>
+        ·
+      </AppText>
+      <AppText variant="caption" color={rescuedBump > 0 ? colors.success : colors.inkMuted}>
+        {data.rescued} rescued{rescuedBump > 0 ? ` (+${rescuedBump})` : ''}
+      </AppText>
+      <AppText variant="caption" color={colors.inkFaint}>
+        ·
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${data.lost} lost, open the memorial`}
+        onPress={onPressLost}
+        hitSlop={8}
+      >
+        <AppText variant="caption" color={data.lost > 0 ? colors.danger : colors.inkMuted}>
+          {data.lost} lost{data.lost > 0 ? ' ›' : ''}
+        </AppText>
+      </Pressable>
+    </View>
+  );
+}
+
 /** Counts from `from` to `to` over ~600ms whenever `to` changes. */
 function useCountUp(to: number, from: number): number {
   const [value, setValue] = useState(to);
@@ -98,6 +140,7 @@ function Tile({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: space.md },
+  line: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   tile: {
     flex: 1,
     alignItems: 'center',

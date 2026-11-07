@@ -40,6 +40,33 @@ export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand' }: 
   );
 }
 
+interface SecondaryProps {
+  label: string;
+  emoji?: string;
+  onPress: () => void;
+  style?: ViewStyle;
+}
+
+/** Labeled tonal button, 48pt: the quiet sibling of PrimaryButton. */
+export function SecondaryButton({ label, emoji, onPress, style }: SecondaryProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
+      style={({ pressed }) => [styles.secondary, pressed && styles.pressed, style]}
+    >
+      {emoji ? <AppText style={styles.secondaryEmoji}>{emoji}</AppText> : null}
+      <AppText variant="bodyBold" color={colors.ink} numberOfLines={1}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
 interface RoundProps {
   emoji: string;
   label: string;
@@ -116,6 +143,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   primaryEmoji: { fontSize: 22, lineHeight: 26 },
+  secondary: {
+    minHeight: hit.min,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+  },
+  secondaryEmoji: { fontSize: 18, lineHeight: 22 },
   round: {
     alignItems: 'center',
     justifyContent: 'center',

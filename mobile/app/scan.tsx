@@ -389,7 +389,12 @@ function Viewfinder({
         <Animated.View style={[styles.scanLine, lineStyle]} />
       </View>
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
-        <RoundButton emoji="🖼️" label="Choose a photo" dark onPress={onGallery} />
+        <View style={styles.dockItem}>
+          <RoundButton emoji="🖼️" label="Choose a photo" dark onPress={onGallery} />
+          <AppText variant="caption" color={colors.surface}>
+            Photos
+          </AppText>
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Take photo"
@@ -398,11 +403,21 @@ function Viewfinder({
           }}
           onPress={onShutter}
         >
-          <Animated.View style={[styles.shutterRing, shutterStyle]}>
-            <View style={styles.shutterCore} />
-          </Animated.View>
+          <View style={styles.dockItem}>
+            <Animated.View style={[styles.shutterRing, shutterStyle]}>
+              <View style={styles.shutterCore} />
+            </Animated.View>
+            <AppText variant="caption" color={colors.surface}>
+              Snap
+            </AppText>
+          </View>
         </Pressable>
-        <RoundButton emoji="✕" label="Close" dark onPress={onClose} />
+        <View style={styles.dockItem}>
+          <RoundButton emoji="✕" label="Close" dark onPress={onClose} />
+          <AppText variant="caption" color={colors.surface}>
+            Close
+          </AppText>
+        </View>
       </View>
     </View>
   );
@@ -496,9 +511,10 @@ const styles = StyleSheet.create({
     right: 24,
     bottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
+  dockItem: { alignItems: 'center', gap: 6 },
   shutterRing: {
     width: 84,
     height: 84,

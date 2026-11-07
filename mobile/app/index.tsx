@@ -1,32 +1,32 @@
-import { AppText } from '@/components/AppText';
-import { Chip, PrimaryButton, RoundButton } from '@/components/Buttons';
-import { CharacterCard } from '@/components/CharacterCard';
-import { GhostLayer } from '@/components/GhostLayer';
-import { Scoreboard } from '@/components/Scoreboard';
-import { Screen } from '@/components/Screen';
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
+import { AppText } from '@/components/AppText';
+import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
+import { CharacterCard } from '@/components/CharacterCard';
 import { DemoMenu } from '@/components/DemoMenu';
 import { EmptyFridge } from '@/components/EmptyFridge';
+import { GhostLayer } from '@/components/GhostLayer';
 import { useTextMe } from '@/components/NudgeBanner';
+import { StatsLine } from '@/components/Scoreboard';
+import { Screen } from '@/components/Screen';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
+const FOOTER_HEIGHT = 150;
+
+/** Fridge (home): header, characters sorted by urgency, and one big Scan button. */
 export default function FridgeScreen() {
   const {
     characters,
     ghosts,
     scoreboard,
-    dayOffset,
-    skipDay,
     recentlyAddedIds,
     clearRecentlyAdded,
     recentRescue,
@@ -35,31 +35,11 @@ export default function FridgeScreen() {
     toss,
     loadDemo,
   } = useFridge();
-  const requestedEpitaphs = useRef(new Set<string>());
-
-  // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
-  useEffect(() => {
-    ghosts
-      .filter((g) => !g.epitaph && !requestedEpitaphs.current.has(g.id))
-      .forEach((g) => {
-        requestedEpitaphs.current.add(g.id);
-        api
-          .ghost({ item: toChatItem(g, g.daysLeft) })
-          .then((res) => setEpitaph(g.id, res.epitaph))
-          .catch(() => setEpitaph(g.id, `Here lies ${g.name}. The fridge was not enough.`));
-      });
-  }, [ghosts, setEpitaph]);
-
-  function takeOutTrash() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    ghosts.forEach((g) => toss(g.id));
-    // Let the ghosts drift up and fade (500 ms) before showing the wall.
-    setTimeout(() => router.push('/memorial'), 550);
-  }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
+  const requestedEpitaphs = useRef(new Set<string>());
   const { ready, welcomed, markWelcomed } = useFirstRun();
-  // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the demo cast.
+  // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the cast; /?menu=1 opens settings; /?nudge=1 texts you.
   const { skipWelcome, demo, menu, nudge } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -86,6 +66,19 @@ export default function FridgeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, menu, nudge]);
 
+  // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
+  useEffect(() => {
+    ghosts
+      .filter((g) => !g.epitaph && !requestedEpitaphs.current.has(g.id))
+      .forEach((g) => {
+        requestedEpitaphs.current.add(g.id);
+        api
+          .ghost({ item: toChatItem(g, g.daysLeft) })
+          .then((res) => setEpitaph(g.id, res.epitaph))
+          .catch(() => setEpitaph(g.id, `Here lies ${g.name}. The fridge was not enough.`));
+      });
+  }, [ghosts, setEpitaph]);
+
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
     if (recentlyAddedIds.length === 0) return;
@@ -97,7 +90,7 @@ export default function FridgeScreen() {
     return () => clearTimeout(t);
   }, [recentlyAddedIds, characters, clearRecentlyAdded]);
 
-  // After "I cooked it": show +N on the rescued tile for a few seconds.
+  // After a rescue: show +N on the stats line for a few seconds.
   useEffect(() => {
     if (!recentRescue) return;
     const t = setTimeout(clearRecentRescue, 6000);
@@ -108,6 +101,15 @@ export default function FridgeScreen() {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
   }, []);
 
+  const tossGhost = useCallback(
+    (g: Character) => {
+      toss(g.id);
+      // Let the ghost drift up and fade (500 ms) before showing the wall.
+      setTimeout(() => router.push('/memorial'), 550);
+    },
+    [toss],
+  );
+
   if (!ready || !welcomed) return <Screen />;
 
   return (
@@ -117,7 +119,7 @@ export default function FridgeScreen() {
           <Pressable
             accessibilityRole="header"
             accessibilityLabel="FridgeMates"
-            accessibilityHint="Long press for demo tools"
+            accessibilityHint="Long press for settings"
             delayLongPress={500}
             onLongPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -126,18 +128,13 @@ export default function FridgeScreen() {
             style={{ flex: 1 }}
           >
             <AppText variant="display">FridgeMates</AppText>
+            <AppText variant="body" color={colors.inkMuted}>
+              Spoil alert: your food has feelings.
+            </AppText>
           </Pressable>
-          <Chip
-            emoji="⏭"
-            label={dayOffset === 0 ? 'Skip a day' : `Day +${dayOffset}`}
-            tone="debug"
-            onPress={skipDay}
-          />
+          <RoundButton emoji="⚙️" label="Settings" size={48} onPress={() => setMenuOpen(true)} />
         </View>
-        <AppText variant="body" color={colors.inkMuted} style={styles.tagline}>
-          Spoil alert: your food has feelings.
-        </AppText>
-        <Scoreboard
+        <StatsLine
           data={scoreboard}
           rescuedBump={recentRescue?.count ?? 0}
           onPressLost={() => router.push('/memorial')}
@@ -157,10 +154,7 @@ export default function FridgeScreen() {
               isNew={recentlyAddedIds.includes(item.id)}
             />
           )}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: (ghosts.length ? 210 : 140) + insets.bottom },
-          ]}
+          contentContainerStyle={[styles.list, { paddingBottom: FOOTER_HEIGHT + insets.bottom }]}
           ListHeaderComponent={
             characters.length > 0 ? (
               <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
@@ -171,7 +165,7 @@ export default function FridgeScreen() {
           ListEmptyComponent={<EmptyFridge />}
           showsVerticalScrollIndicator={false}
         />
-        <GhostLayer ghosts={ghosts} onPress={openCharacter} />
+        <GhostLayer ghosts={ghosts} onPress={openCharacter} onToss={tossGhost} />
       </View>
 
       <DemoMenu
@@ -193,41 +187,36 @@ export default function FridgeScreen() {
       <LinearGradient
         pointerEvents="none"
         colors={['rgba(255,247,236,0)', colors.bg, colors.bg]}
-        locations={[0, 0.45, 1]}
-        style={[styles.fade, { height: (ghosts.length ? 220 : 150) + insets.bottom }]}
+        locations={[0, 0.4, 1]}
+        style={[styles.fade, { height: FOOTER_HEIGHT + 20 + insets.bottom }]}
       />
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
-        {ghosts.length > 0 && (
-          <PrimaryButton
-            emoji="🗑️"
-            label={ghosts.length === 1 ? 'Take out the trash' : `Take out the trash (${ghosts.length})`}
-            tone="danger"
-            onPress={takeOutTrash}
-            style={styles.trash}
+        <View style={styles.secondaryRow}>
+          <SecondaryButton
+            emoji="💬"
+            label="Fridge chat"
+            onPress={() => router.push('/chat')}
+            style={styles.half}
           />
-        )}
-        <View style={styles.actionRow}>
-          <RoundButton emoji="💬" label="Fridge group chat" onPress={() => router.push('/chat')} />
-          <PrimaryButton
-            emoji="📷"
-            label="Scan food"
-            onPress={() => router.push('/scan')}
-            style={styles.scan}
+          <SecondaryButton
+            emoji="🍳"
+            label="What should I cook?"
+            onPress={() => router.push('/match')}
+            style={styles.half}
           />
-          <RoundButton emoji="💘" label="Matchmaking" onPress={() => router.push('/match')} />
         </View>
+        <PrimaryButton emoji="📷" label="Scan food" onPress={() => router.push('/scan')} />
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.md },
-  tagline: { marginTop: -space.sm },
+  header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
   listArea: { flex: 1 },
-  list: { paddingHorizontal: space.xl, paddingTop: space.xl },
+  list: { paddingHorizontal: space.xl, paddingTop: space.lg },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },
   actionBar: {
     position: 'absolute',
@@ -239,7 +228,6 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     zIndex: 20,
   },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  trash: { alignSelf: 'stretch' },
-  scan: { flex: 1 },
+  secondaryRow: { flexDirection: 'row', gap: space.md },
+  half: { flex: 1, paddingHorizontal: space.sm },
 });

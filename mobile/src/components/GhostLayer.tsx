@@ -9,7 +9,10 @@ import { Face } from './Face';
 
 interface Props {
   ghosts: Character[];
+  /** Face tap: open the character. */
   onPress?: (ghost: Character) => void;
+  /** Bubble tap: take out the trash (toss this ghost). */
+  onToss?: (ghost: Character) => void;
 }
 
 const lines = [
@@ -22,7 +25,7 @@ const lines = [
  * Expired characters haunt the Fridge screen until tossed: face 72 floating at the
  * right edge with a dashed speech bubble. When tossed they drift up and fade out.
  */
-export function GhostLayer({ ghosts, onPress }: Props) {
+export function GhostLayer({ ghosts, onPress, onToss }: Props) {
   if (ghosts.length === 0) return null;
   return (
     <View pointerEvents="box-none" style={styles.layer}>
@@ -40,9 +43,17 @@ export function GhostLayer({ ghosts, onPress }: Props) {
             },
           ]}
         >
-          <View style={styles.bubble}>
-            <AppText style={styles.bubbleText}>{lines[i % lines.length]}</AppText>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Take out the trash: toss ${g.characterName}`}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onToss?.(g);
+            }}
+            style={({ pressed }) => [styles.bubble, pressed && { opacity: 0.8 }]}
+          >
+            <AppText style={styles.bubbleText}>{lines[i % lines.length]} 🗑️</AppText>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Ghost of ${g.characterName}`}
