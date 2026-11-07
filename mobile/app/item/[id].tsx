@@ -6,7 +6,7 @@ import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { SpeechBubble } from '@/components/SpeechBubble';
-import { dateSourceLabel, daysLeftLabel } from '@/logic/mood';
+import { dateSourceLabel, plainTimeLabel } from '@/logic/mood';
 import { useFridge } from '@/logic/store';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -93,11 +93,11 @@ export default function CharacterScreen() {
               {isGhost ? '👻' : c.daysLeft}
             </AppText>
             <View style={{ flex: 1, gap: space.xs }}>
-              <AppText variant="heading">{isGhost ? 'Expired' : daysLeftLabel(c.daysLeft)}</AppText>
+              <AppText variant="heading">{plainTimeLabel(c.daysLeft)}</AppText>
               <AppText variant="caption" color={colors.inkMuted}>
                 {isGhost
                   ? 'Haunting the fridge until tossed.'
-                  : `Use by ${c.expiresAt}. A "use soon" nudge, not a safety verdict.`}
+                  : `${c.daysLeft === 1 ? '1 day' : `${c.daysLeft} days`} left · use by ${c.expiresAt}. A nudge, not a safety verdict.`}
               </AppText>
             </View>
           </View>
@@ -111,7 +111,7 @@ export default function CharacterScreen() {
               <View style={styles.stepper}>
                 <StepButton label="−" onPress={() => nudge(-1)} accessibilityLabel="One day less" />
                 <AppText variant="caption" color={colors.inkMuted} style={styles.stepValue}>
-                  fix date
+                  adjust
                 </AppText>
                 <StepButton label="+" onPress={() => nudge(1)} accessibilityLabel="One day more" />
               </View>

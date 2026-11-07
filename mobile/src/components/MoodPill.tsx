@@ -1,4 +1,4 @@
-import { daysLeftLabel } from '@/logic/mood';
+import { plainTimeLabel } from '@/logic/mood';
 import { moods, radius, space, type Mood } from '@/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -16,7 +16,7 @@ export function MoodPill({ mood, daysLeft, compact }: Props) {
   return (
     <View style={[styles.pill, { backgroundColor: m.tint, borderColor: m.color }, compact && styles.compact]}>
       <AppText variant="caption" color={m.text}>
-        {daysLeftLabel(daysLeft)}
+        {plainTimeLabel(daysLeft)}
       </AppText>
     </View>
   );

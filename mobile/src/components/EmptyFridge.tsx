@@ -32,7 +32,7 @@ export function EmptyFridge() {
       </View>
       <SpeechBubble text="It's quiet in here. Too quiet." tail="top" style={styles.bubble} />
       <AppText variant="body" color={colors.inkMuted} align="center">
-        Scan something and give it a face.
+        Tap Scan food to add your first character.
       </AppText>
       <Animated.View style={bob}>
         <AppText style={styles.pointer}>👇</AppText>

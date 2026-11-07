@@ -32,12 +32,23 @@ export function daysLeftLabel(daysLeft: number): string {
   return `${daysLeft} days left`;
 }
 
+/** Plain-language time for cards and pills: what to do, not a number. */
+export function plainTimeLabel(daysLeft: number): string {
+  if (daysLeft < 0) return 'Expired';
+  if (daysLeft === 0) return 'Eat today!';
+  if (daysLeft === 1) return 'Eat by tomorrow';
+  if (daysLeft <= 5) return `Eat within ${daysLeft} days`;
+  if (daysLeft <= 13) return 'Good for a week';
+  if (daysLeft <= 27) return 'Good for 2 weeks';
+  return 'Good for a month+';
+}
+
 export function dateSourceLabel(source: FoodItem['dateSource']): string {
   switch (source) {
     case 'printed':
-      return 'printed date';
+      return 'from the label';
     case 'estimated':
-      return 'our estimate';
+      return 'estimated';
     case 'adjusted':
       return 'adjusted by you';
   }

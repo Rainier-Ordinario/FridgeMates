@@ -1,7 +1,7 @@
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
-import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
+import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { GhostLayer } from '@/components/GhostLayer';
@@ -9,8 +9,9 @@ import { StatsLine } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
+import { useFlag } from '@/logic/flags';
 import { useFridge, type Character } from '@/logic/store';
-import { colors, space } from '@/theme';
+import { colors, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -33,16 +34,24 @@ export default function FridgeScreen() {
     setEpitaph,
     toss,
     loadDemo,
+    rescueMany,
   } = useFridge();
+  const hint = useFlag('fridgemates.hint.moods.v1');
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
   const requestedEpitaphs = useRef(new Set<string>());
   const { ready, welcomed, markWelcomed } = useFirstRun();
   // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the cast; /?menu=1 opens settings.
-  const { skipWelcome, demo, menu } = useLocalSearchParams<{
+  const {
+    skipWelcome,
+    demo,
+    menu,
+    hint: hintParam,
+  } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
     menu?: string;
+    hint?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -59,8 +68,9 @@ export default function FridgeScreen() {
   useEffect(() => {
     if (demo) loadDemo();
     if (menu) setTimeout(() => setMenuOpen('settings'), 300);
+    if (hintParam) hint.set(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, menu]);
+  }, [demo, menu, hintParam]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -96,6 +106,8 @@ export default function FridgeScreen() {
   const openCharacter = useCallback((c: Character) => {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
   }, []);
+
+  const ateIt = useCallback((c: Character) => rescueMany([c.id]), [rescueMany]);
 
   const tossGhost = useCallback(
     (g: Character) => {
@@ -135,6 +147,19 @@ export default function FridgeScreen() {
           rescuedBump={recentRescue?.count ?? 0}
           onPressLost={() => router.push('/memorial')}
         />
+        {characters.length > 0 && hint.ready && !hint.value && (
+          <View
+            style={styles.hint}
+            accessible
+            accessibilityLabel="Tip: the more worried they look, the sooner you should eat them."
+          >
+            <AppText style={styles.hintEmoji}>💡</AppText>
+            <AppText variant="body" style={{ flex: 1 }}>
+              The more worried they look, the sooner you should eat them.
+            </AppText>
+            <Chip label="Got it" onPress={() => hint.set(true)} />
+          </View>
+        )}
       </View>
 
       <View style={styles.listArea}>
@@ -147,6 +172,7 @@ export default function FridgeScreen() {
             <CharacterCard
               character={item}
               onPress={openCharacter}
+              onAte={ateIt}
               isNew={recentlyAddedIds.includes(item.id)}
             />
           )}
@@ -201,6 +227,16 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: space.md,
+    marginTop: space.xs,
+  },
+  hintEmoji: { fontSize: 22, lineHeight: 28 },
   listArea: { flex: 1 },
   list: { paddingHorizontal: space.xl, paddingTop: space.lg },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },

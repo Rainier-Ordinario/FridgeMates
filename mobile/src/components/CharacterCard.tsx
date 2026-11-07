@@ -12,12 +12,14 @@ import { useMoodMotion } from './useMoodMotion';
 interface Props {
   character: Character;
   onPress?: (character: Character) => void;
+  /** One-tap "Ate it" from the list. */
+  onAte?: (character: Character) => void;
   /** Freshly scanned: brand border, NEW tag, pop-in. */
   isNew?: boolean;
 }
 
 /** Fridge list row. Dramatic items get the pulsing red border; the face carries the mood motion. */
-export function CharacterCard({ character, onPress, isNew = false }: Props) {
+function CharacterCardBase({ character, onPress, onAte, isNew = false }: Props) {
   const m = moods[character.mood];
   const { borderStyle } = useMoodMotion(character.mood, isNew);
 
@@ -55,16 +57,46 @@ export function CharacterCard({ character, onPress, isNew = false }: Props) {
             <MoodPill mood={character.mood} daysLeft={character.daysLeft} />
           </View>
         </View>
-        <AppText variant="heading" color={colors.inkFaint}>
-          ›
-        </AppText>
+        {onAte && character.mood !== 'ghost' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ate it: ${character.characterName}`}
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onAte(character);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => [styles.ate, pressed && styles.atePressed]}
+          >
+            <AppText variant="caption" color={colors.ink}>
+              ✓ Ate it
+            </AppText>
+          </Pressable>
+        ) : (
+          <AppText variant="heading" color={colors.inkFaint}>
+            ›
+          </AppText>
+        )}
       </Animated.View>
     </Pressable>
   );
 }
 
+/** Memoized: the Fridge list re-renders often (highlights, stats) and faces animate on their own. */
+export const CharacterCard = React.memo(CharacterCardBase);
+
 const styles = StyleSheet.create({
   pressable: { marginBottom: space.md },
+  ate: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1.5,
+    borderColor: '#FFD3B3',
+  },
+  atePressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
   pressed: { transform: [{ scale: 0.985 }] },
   card: {
     flexDirection: 'row',

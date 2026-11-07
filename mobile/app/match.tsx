@@ -165,7 +165,7 @@ export default function MatchScreen() {
               ))}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Not tonight, find the next match"
+                accessibilityLabel="Show me another match"
                 onPress={() => {
                   Haptics.selectionAsync();
                   setAttempt((n) => n + 1);
@@ -173,7 +173,7 @@ export default function MatchScreen() {
                 style={({ pressed }) => [styles.skip, pressed && { opacity: 0.7 }]}
               >
                 <AppText variant="caption" color={colors.inkMuted}>
-                  Not tonight → next match
+                  Show me another
                 </AppText>
               </Pressable>
             </Animated.View>

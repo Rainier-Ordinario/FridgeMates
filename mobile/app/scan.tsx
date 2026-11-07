@@ -217,10 +217,10 @@ export default function ScanScreen() {
           <View style={styles.hero}>
             <AppText style={styles.heroEmoji}>🧊</AppText>
             <AppText variant="title" align="center">
-              Who’s in the bag?
+              What did you bring home?
             </AppText>
             <AppText variant="body" color={colors.inkMuted} align="center">
-              Snap your groceries or the inside of your fridge. Every item gets a face, a name and feelings.
+              Snap your groceries or your fridge shelf. Every item gets a face, a name and feelings.
             </AppText>
           </View>
           {error && (
@@ -257,7 +257,7 @@ export default function ScanScreen() {
                 style={({ pressed }) => [styles.demo, pressed && styles.pressed]}
               >
                 <AppText variant="caption" color={colors.inkMuted}>
-                  ✨ Try a demo scan (mock mode, no photo needed)
+                  No camera? Try a demo scan ✨
                 </AppText>
               </Pressable>
             )}
