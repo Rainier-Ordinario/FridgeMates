@@ -5,9 +5,8 @@ import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
 import { Confetti } from '@/components/Confetti';
 import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
-import { Face } from '@/components/Face';
+import { FoodRow } from '@/components/FoodRow';
 import { ScanLoader } from '@/components/ScanLoader';
-import { MoodPill } from '@/components/MoodPill';
 import { DockedFooter } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
@@ -339,24 +338,8 @@ export default function ScanScreen() {
                 <Animated.View
                   key={`${item.name}-${i}`}
                   entering={reduceMotion ? undefined : ZoomIn.springify().damping(12)}
-                  style={[styles.row, { backgroundColor: moods[mood].tint, borderColor: moods[mood].color }]}
                 >
-                  <Face
-                    food={item.name}
-                    emoji={item.emoji}
-                    mood={mood}
-                    size={56}
-                    fill={colors.surface}
-                    label={`${item.characterName}, ${moods[mood].label}`}
-                  />
-                  <View style={styles.rowBody}>
-                    <View style={styles.nameRow}>
-                      <AppText variant="bodyBold" numberOfLines={1} style={{ flexShrink: 1 }}>
-                        {item.characterName}
-                      </AppText>
-                      <MoodPill mood={mood} variant="time" daysLeft={item.daysLeft} compact />
-                    </View>
-                  </View>
+                  <FoodRow food={item.name} name={item.characterName} mood={mood} daysLeft={item.daysLeft} />
                 </Animated.View>
               );
             })}
@@ -534,7 +517,7 @@ const styles = StyleSheet.create({
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
   resultRow: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
-  reveal: { paddingHorizontal: space.xl, paddingBottom: space.md, gap: 12 },
+  reveal: { paddingHorizontal: space.xl, paddingBottom: space.md },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
