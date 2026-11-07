@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
-import { scanImage } from './scan.js';
+import { isAuthorized } from './auth.js';
+import { QuotaError, ScanTimeoutError, scanImage } from './scan.js';
 
 const app = express();
 app.use(cors());
@@ -14,8 +15,17 @@ const localToday = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
 
+// /health stays open so uptime pings and warm-ups work. Everything below it needs the app token.
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, geminiKeySet: Boolean(process.env.GEMINI_API_KEY) });
+  res.json({ ok: true, geminiKeySet: Boolean(process.env.GEMINI_API_KEY), tokenRequired: Boolean(process.env.APP_TOKEN) });
+});
+
+app.use((req, res, next) => {
+  if (isAuthorized(process.env.APP_TOKEN, req.get('x-app-token'))) {
+    next();
+    return;
+  }
+  res.status(401).json({ error: 'Missing or wrong app token' });
 });
 
 /** POST /scan  { image: "<base64 jpeg, no data: prefix>" }  ->  { items: ScanItem[] } */
@@ -29,11 +39,22 @@ app.post('/scan', async (req, res) => {
     return;
   }
   const clean = image.replace(/^data:image\/\w+;base64,/, '');
+  const started = Date.now();
   try {
     const items = await scanImage(clean, localToday());
+    // One line per scan: handy for a rough usage count in the host's logs.
+    console.log(`scan ok: ${items.length} items in ${Date.now() - started}ms`);
     res.json({ items });
   } catch (err) {
-    console.error('scan failed:', err);
+    console.error(`scan failed after ${Date.now() - started}ms:`, err);
+    if (err instanceof QuotaError) {
+      res.status(429).json({ error: err.message });
+      return;
+    }
+    if (err instanceof ScanTimeoutError) {
+      res.status(504).json({ error: err.message });
+      return;
+    }
     let message = 'scan failed';
     if (err instanceof Error) {
       message = err.message;

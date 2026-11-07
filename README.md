@@ -42,6 +42,20 @@ EXPO_PUBLIC_API_URL=http://localhost:8000        # simulator
 Once the backend is deployed, teammates only set `EXPO_PUBLIC_API_URL` to the deployed URL and need no key.
 Never commit `.env`, and send keys privately.
 
+## Deployed backend (Render)
+The backend is hosted on Render (free tier) so nobody needs a Gemini key or their own server. URL: **https://fridgemates.onrender.com**
+Teammates only need these lines in `mobile/.env` (then restart Expo):
+```
+EXPO_PUBLIC_USE_MOCK=false
+EXPO_PUBLIC_API_URL=https://fridgemates.onrender.com
+EXPO_PUBLIC_APP_TOKEN=<shared token, ask Kenneth>
+```
+Scans take about 2-15s (the backend tries `gemini-3.1-flash-lite`, then falls back to `gemini-3.5-flash-lite` if Google reports it overloaded).
+- `GET /health` is open; every other route needs the header `x-app-token`. It's a casual-abuse gate, not real security.
+- Free Render **sleeps after 15 min idle**, and the first request after that takes 30-60s (a scan in that window will likely time out, just retry). **Before testing or a demo, open https://fridgemates.onrender.com/health in a browser and wait for it to load.** There is no keep-awake ping.
+- Errors: 429 = Gemini quota reached, 504 = Gemini too slow, 401 = wrong token. Quota is per Google project and resets at midnight Pacific (AI Studio, Usage, Rate limit tab).
+- Render env vars: `GEMINI_API_KEY`, `APP_TOKEN`. Root directory `backend`, build `npm install`, start `npm start`.
+
 Before pushing: `cd mobile && npm run typecheck && npx expo lint` and `cd backend && npm run typecheck && npm test`.
 If typecheck complains about routes that exist, start `npx expo start` once to regenerate the typed-route files.
 
@@ -53,7 +67,7 @@ If typecheck complains about routes that exist, start `npx expo start` once to r
 | `/chat`, `/match`, `/ghost`, `/messages` | **Mock only**: not on the backend yet, so live mode shows errors on those screens |
 | Saving the fridge on the phone | Done: AsyncStorage persistence in `mobile/src/logic/store.tsx` (items, day offset, settings) |
 | Notifications | Stub (`mobile/src/logic/notifications.ts`), not wired up |
-| Backend deployed | Not yet |
+| Backend deployed | **Live** on Render (manual deploys from `dev`) |
 | USDA FoodKeeper shelf-life data | Not yet: `daysLeft` is currently Gemini's own estimate |
 | Re-scan updates existing items instead of duplicating | Planned |
 

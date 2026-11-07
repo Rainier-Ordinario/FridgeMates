@@ -19,12 +19,12 @@ interface RawItem {
   dateSource: 'printed' | 'estimated';
 }
 
-let model = process.env.GEMINI_MODEL;
-if (!model) {
-  // gemini-3.5-flash-lite took 20-40s on new images and tripped the app's 12s timeout. 3.1 answers in ~1-3s.
-  model = 'gemini-3.1-flash-lite';
-}
-const MODEL = model;
+// Models are tried in order. 3.1 is fast (~2s) but sometimes returns 503 "high demand"; 3.5 is slower but a good fallback.
+// Override with GEMINI_MODELS="a,b" (or a single GEMINI_MODEL).
+const MODELS = (process.env.GEMINI_MODELS ?? process.env.GEMINI_MODEL ?? 'gemini-3.1-flash-lite,gemini-3.5-flash-lite')
+  .split(',')
+  .map((m) => m.trim())
+  .filter(Boolean);
 const MAX_ITEMS = 25;
 const MIN_DAYS = -3;
 const MAX_DAYS = 365;
@@ -107,6 +107,35 @@ function getDateSource(item: Partial<RawItem>): RawItem['dateSource'] {
   return 'estimated';
 }
 
+/** Gemini said we're out of quota (HTTP 429 / RESOURCE_EXHAUSTED). The route turns this into a clear 429. */
+export class QuotaError extends Error {
+  constructor() {
+    super('Gemini quota reached');
+    this.name = 'QuotaError';
+  }
+}
+
+/** Gemini took too long. Kept under the app's 45s scan timeout so the server answers first. */
+export class ScanTimeoutError extends Error {
+  constructor() {
+    super('Gemini took too long');
+    this.name = 'ScanTimeoutError';
+  }
+}
+
+// Total time we spend on one scan across all models. Must stay under the app's scan timeout (45s).
+const TOTAL_BUDGET_MS = 40_000;
+// A model that hasn't answered by now is probably overloaded, so move on to the next one.
+const FIRST_ATTEMPT_MS = 12_000;
+
+export function isQuotaError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { status?: unknown; code?: unknown; message?: unknown };
+  if (e.status === 429 || e.code === 429) return true;
+  const message = typeof e.message === 'string' ? e.message : '';
+  return /\b429\b|RESOURCE_EXHAUSTED|quota/i.test(message);
+}
+
 let client: GoogleGenAI | null = null;
 
 export async function scanImage(imageBase64: string, today: string): Promise<ScanItem[]> {
@@ -115,26 +144,46 @@ export async function scanImage(imageBase64: string, today: string): Promise<Sca
     client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
 
-  const interaction = await client.interactions.create({
-    model: MODEL,
-    input: [
-      { type: 'text', text: buildPrompt(today) },
-      { type: 'image', data: imageBase64, mime_type: 'image/jpeg' },
-    ],
-    response_format: { type: 'text', mime_type: 'application/json', schema: SCHEMA },
-    // Don't let Google keep the user's fridge photo around.
-    store: false,
-  });
+  const gemini = client;
+  const started = Date.now();
+  let lastError: unknown = new Error('No Gemini models configured');
 
-  let parsed: unknown;
-  try {
-    let outputText = interaction.output_text;
-    if (!outputText) {
-      outputText = '';
+  for (let i = 0; i < MODELS.length; i++) {
+    const model = MODELS[i];
+    const remaining = TOTAL_BUDGET_MS - (Date.now() - started);
+    if (remaining < 3_000) break;
+    const isLast = i === MODELS.length - 1;
+    const timeoutMs = isLast ? remaining : Math.min(FIRST_ATTEMPT_MS, remaining);
+
+    const request = gemini.interactions.create({
+      model,
+      input: [
+        { type: 'text', text: buildPrompt(today) },
+        { type: 'image', data: imageBase64, mime_type: 'image/jpeg' },
+      ],
+      response_format: { type: 'text', mime_type: 'application/json', schema: SCHEMA },
+      // Don't let Google keep the user's fridge photo around.
+      store: false,
+    });
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new ScanTimeoutError()), timeoutMs);
+    });
+    try {
+      const interaction = await Promise.race([request, timeout]);
+      const parsed: unknown = JSON.parse(interaction.output_text || '');
+      console.log(`gemini ${model} answered in ${Date.now() - started}ms`);
+      return sanitizeItems(parsed);
+    } catch (err) {
+      request.catch(() => {}); // a late failure after the timeout must not crash the server
+      lastError = err instanceof SyntaxError ? new Error('Gemini returned something that was not valid JSON') : err;
+      console.warn(`gemini ${model} failed after ${Date.now() - started}ms:`, String((err as Error)?.message ?? err).slice(0, 200));
+    } finally {
+      clearTimeout(timer);
     }
-    parsed = JSON.parse(outputText);
-  } catch {
-    throw new Error('Gemini returned something that was not valid JSON');
   }
-  return sanitizeItems(parsed);
+
+  if (isQuotaError(lastError)) throw new QuotaError();
+  throw lastError;
 }
