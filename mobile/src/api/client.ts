@@ -88,7 +88,12 @@ const normalize = {
   },
   chat(r: Partial<ChatResponse> | null | undefined): ChatResponse {
     return {
-      lines: arr<ChatResponse['lines'][number]>(r?.lines).filter((l) => l && typeof l.text === 'string'),
+      lines: arr<ChatResponse['lines'][number]>(r?.lines)
+        .filter((l) => l && typeof l.text === 'string')
+        .map((l) => ({
+          ...l,
+          text: safeText(l.text, 'I had a thought, but it was not fridge-friendly. Anyway, eat me soon.'),
+        })),
     };
   },
   match(r: Partial<MatchResponse> | null | undefined): MatchResponse {
