@@ -1,4 +1,4 @@
-import { api } from '@/api/client';
+import { api, apiErrorKind } from '@/api/client';
 import { USE_MOCK } from '@/api/config';
 import type { ScanItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
@@ -8,6 +8,7 @@ import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
 import { MoodPill } from '@/components/MoodPill';
 import { DockedFooter } from '@/components/DockedFooter';
+import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { SpeechBubble } from '@/components/SpeechBubble';
@@ -49,13 +50,11 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
   allowsEditing: false,
 };
 
-const FRIENDLY_ERROR = 'The fridge brain is napping. Try again, or use the demo scan.';
-
 /** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
   // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
-  const { demo, camera } = useLocalSearchParams<{ demo?: string; camera?: string }>();
+  const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -65,13 +64,22 @@ export default function ScanScreen() {
   const [found, setFound] = useState<ScanItem[]>([]);
   const [shown, setShown] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<RecoveryKind | null>(null);
   const [foundNote, setFoundNote] = useState<string | null>(null);
 
   // Dev/demo deep link: fridgemates://scan?demo=1 starts a mock scan immediately.
   useEffect(() => {
     if (demo && USE_MOCK && found.length === 0) runScan('', null);
+    // ?fail=timeout|offline|empty previews the recovery cards.
+    if (fail && USE_MOCK) {
+      const id = setTimeout(() => {
+        setPhase('pick');
+        setFailure(fail as RecoveryKind);
+      }, 0);
+      return () => clearTimeout(id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
+  }, [demo, fail]);
 
   // Ask for the camera once we're on the viewfinder; fall back to the picker if refused.
   useEffect(() => {
@@ -154,13 +162,14 @@ export default function ScanScreen() {
   async function runScan(base64: string, uri: string | null) {
     setPhotoUri(uri);
     setError(null);
+    setFailure(null);
     setFoundNote(null);
     setPhase('loading');
     try {
       const res = await api.scan({ image: base64 });
       const items = Array.isArray(res?.items) ? res.items : [];
       if (items.length === 0) {
-        setError("Couldn't spot any food in that photo. Try a closer shot.");
+        setFailure('empty');
         setPhase('pick');
         return;
       }
@@ -172,8 +181,8 @@ export default function ScanScreen() {
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setPhase('reveal'), 600);
-    } catch {
-      setError(FRIENDLY_ERROR);
+    } catch (err) {
+      setFailure(apiErrorKind(err));
       setPhase('pick');
     }
   }
@@ -223,6 +232,16 @@ export default function ScanScreen() {
               Snap your groceries or your fridge shelf. Every item gets a face, a name and feelings.
             </AppText>
           </View>
+          {failure && (
+            <RecoveryCard
+              kind={failure}
+              retryLabel={failure === 'empty' ? 'Try another photo' : 'Try again'}
+              onRetry={() => {
+                setFailure(null);
+                if (Device.isDevice) setPhase('camera');
+              }}
+            />
+          )}
           {error && (
             <View style={styles.errorBox}>
               <AppText variant="caption" color={moods.dramatic.text} align="center">

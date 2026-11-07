@@ -2,7 +2,7 @@ import type { FoodItem, ScanItem } from '@/api/types';
 import { mockFridgeItems } from '@/api/mocks/fridge';
 import type { Mood } from '@/theme/moods';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { addDays, todayISO } from './dates';
 import { daysLeftFor, moodFor, scanItemToFoodItem } from './mood';
 
@@ -147,6 +147,8 @@ interface FridgeContextValue {
   gone: Character[];
   scoreboard: Scoreboard;
   dayOffset: number;
+  /** False until the saved fridge has been read from storage (cold start). */
+  hydrated: boolean;
   todayISO: string;
   recentlyAddedIds: string[];
   recentRescue: { ids: string[]; count: number } | null;
@@ -177,6 +179,7 @@ const STORAGE_KEY = 'fridgemates.fridge.v1';
 export function FridgeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const hydrated = useRef(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydrate once, then persist items + dayOffset (debounced). Storage errors are ignored.
   useEffect(() => {
@@ -194,6 +197,7 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {})
       .finally(() => {
         hydrated.current = true;
+        if (alive) setIsHydrated(true);
       });
     return () => {
       alive = false;
@@ -234,6 +238,7 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
         lost: all.filter((c) => c.status === 'lost').length,
       },
       dayOffset: state.dayOffset,
+      hydrated: isHydrated,
       todayISO: todayISO(state.dayOffset),
       recentlyAddedIds: state.recentlyAddedIds,
       recentRescue: state.recentRescue,
@@ -256,7 +261,7 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       clearAll: () => dispatch({ type: 'reset' }),
       reset: () => dispatch({ type: 'reset' }),
     };
-  }, [state]);
+  }, [state, isHydrated]);
 
   return <FridgeContext.Provider value={value}>{children}</FridgeContext.Provider>;
 }

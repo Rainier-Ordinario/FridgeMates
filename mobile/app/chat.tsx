@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { Chip } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
@@ -210,7 +211,11 @@ export default function ChatScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            loading ? (
+            !loading && msgs[msgs.length - 1]?.from === 'fridge' ? (
+              <View style={styles.retryRow}>
+                <Chip emoji="🔁" label="Try again" onPress={() => ask()} />
+              </View>
+            ) : loading ? (
               <View style={styles.typingRow}>
                 <View style={styles.faceCol}>
                   <AppText style={{ fontSize: 24 }}>🧊</AppText>
@@ -396,6 +401,7 @@ const styles = StyleSheet.create({
   playIcon: { fontSize: 13, lineHeight: 16 },
   list: { paddingHorizontal: space.xl, paddingVertical: space.md, gap: 10 },
   typing: { paddingVertical: space.sm, paddingLeft: 52 },
+  retryRow: { paddingLeft: 52, paddingVertical: space.xs },
   typingRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: 302 },
   rowMe: { alignSelf: 'flex-end', maxWidth: 262 },

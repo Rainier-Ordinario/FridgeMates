@@ -1,4 +1,5 @@
 import { api } from '@/api/client';
+import { mockScanResponse } from '@/api/mocks/scan';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
@@ -35,6 +36,8 @@ export default function FridgeScreen() {
     toss,
     loadDemo,
     rescueMany,
+    hydrated,
+    addScanned,
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
   const insets = useSafeAreaInsets();
@@ -47,11 +50,13 @@ export default function FridgeScreen() {
     demo,
     menu,
     hint: hintParam,
+    big,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
     menu?: string;
     hint?: string;
+    big?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
@@ -67,10 +72,16 @@ export default function FridgeScreen() {
 
   useEffect(() => {
     if (demo) loadDemo();
+    if (big) {
+      // Perf check: demo cast + two scans = 12 characters.
+      loadDemo();
+      setTimeout(() => addScanned(mockScanResponse.items), 50);
+      setTimeout(() => addScanned(mockScanResponse.items), 100);
+    }
     if (menu) setTimeout(() => setMenuOpen('settings'), 300);
     if (hintParam) hint.set(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, menu, hintParam]);
+  }, [demo, menu, hintParam, big]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -118,7 +129,8 @@ export default function FridgeScreen() {
     [toss],
   );
 
-  if (!ready || !welcomed) return <Screen />;
+  // Cold start: wait for storage so the empty state never flashes over a saved fridge.
+  if (!ready || !welcomed || !hydrated) return <Screen />;
 
   return (
     <Screen>
@@ -168,6 +180,9 @@ export default function FridgeScreen() {
           data={characters}
           onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
           keyExtractor={(c) => c.id}
+          initialNumToRender={8}
+          windowSize={7}
+          removeClippedSubviews
           renderItem={({ item }) => (
             <CharacterCard
               character={item}

@@ -19,19 +19,46 @@ import type {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function post<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
-  const res = await fetch(`${API_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: controller.signal,
-  }).finally(() => clearTimeout(timer));
-  if (!res.ok) {
-    throw new Error(`${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
+export type ApiErrorKind = 'timeout' | 'offline' | 'http' | 'bad-response';
+
+/** Every failure the screens see is one of these, so they can pick an in-character message. */
+export class ApiError extends Error {
+  constructor(
+    public kind: ApiErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
   }
-  return (await res.json()) as TRes;
+}
+
+export function apiErrorKind(err: unknown): ApiErrorKind {
+  return err instanceof ApiError ? err.kind : 'bad-response';
+}
+
+async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 10_000): Promise<TRes> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    const aborted = err instanceof Error && err.name === 'AbortError';
+    throw new ApiError(aborted ? 'timeout' : 'offline', `${path}: ${aborted ? 'timed out' : 'unreachable'}`);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new ApiError('http', `${path} failed: ${res.status}`);
+  try {
+    return (await res.json()) as TRes;
+  } catch {
+    throw new ApiError('bad-response', `${path}: not JSON`);
+  }
 }
 
 const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -90,7 +117,7 @@ export const api = {
       await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
-    return normalize.scan(await post('/scan', req));
+    return normalize.scan(await post('/scan', req, 15_000));
   },
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {

@@ -1,4 +1,4 @@
-import { api } from '@/api/client';
+import { api, apiErrorKind } from '@/api/client';
 import type { MatchResponse } from '@/api/types';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
 import { DockedFooter } from '@/components/DockedFooter';
+import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { useFridge, type Character } from '@/logic/store';
@@ -27,7 +28,7 @@ const loaderPhrases = [
 export default function MatchScreen() {
   const { characters, getById, rescueMany } = useFridge();
   const [match, setMatch] = useState<MatchResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RecoveryKind | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   const findMatch = useCallback(async () => {
@@ -39,8 +40,8 @@ export default function MatchScreen() {
       const known = res.rescues.filter((id) => characters.some((c) => c.id === id));
       setMatch({ ...res, rescues: known.length >= 1 ? known : characters.slice(0, 2).map((c) => c.id) });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      setError('The matchmaker is offline. Try again in a moment.');
+    } catch (err) {
+      setError(apiErrorKind(err));
     }
   }, [characters]);
 
@@ -79,23 +80,12 @@ export default function MatchScreen() {
 
       {characters.length < 2 ? (
         <View style={styles.center}>
-          <AppText style={styles.bigEmoji}>💔</AppText>
-          <AppText variant="heading" align="center">
-            It takes two to date.
-          </AppText>
-          <AppText variant="body" color={colors.inkMuted} align="center">
-            Scan a couple more things and come back.
-          </AppText>
+          <RecoveryCard kind="few" closeAfterDemo={false} />
         </View>
       ) : !match ? (
         <View style={styles.center}>
           {error ? (
-            <>
-              <AppText variant="heading" align="center">
-                {error}
-              </AppText>
-              <PrimaryButton label="Try again" onPress={() => setAttempt((n) => n + 1)} />
-            </>
+            <RecoveryCard kind={error} onRetry={() => setAttempt((n) => n + 1)} closeAfterDemo={false} />
           ) : (
             <MoodLoader phrases={loaderPhrases} sub="finding the best pairing in your fridge" />
           )}
@@ -196,7 +186,6 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
-  bigEmoji: { fontSize: 64, lineHeight: 76 },
   scroll: { paddingHorizontal: space.xl, paddingVertical: space.lg, gap: space.lg },
   card: {
     backgroundColor: colors.surface,
