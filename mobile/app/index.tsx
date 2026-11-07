@@ -6,11 +6,13 @@ import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
+import { EmptyFridge } from '@/components/EmptyFridge';
+import { useFirstRun } from '@/logic/firstRun';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +31,7 @@ export default function FridgeScreen() {
     clearRecentRescue,
     setEpitaph,
     toss,
+    loadDemo,
   } = useFridge();
   const requestedEpitaphs = useRef(new Set<string>());
 
@@ -53,6 +56,24 @@ export default function FridgeScreen() {
   }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
+  const { ready, welcomed, markWelcomed } = useFirstRun();
+  // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the demo cast.
+  const { skipWelcome, demo } = useLocalSearchParams<{ skipWelcome?: string; demo?: string }>();
+
+  // First run: show the welcome screen instead of the fridge.
+  useEffect(() => {
+    if (!ready) return;
+    if (skipWelcome && !welcomed) {
+      markWelcomed();
+      return;
+    }
+    if (!welcomed) router.replace('/welcome');
+  }, [ready, welcomed, skipWelcome, markWelcomed]);
+
+  useEffect(() => {
+    if (demo) loadDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
 
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
@@ -75,6 +96,8 @@ export default function FridgeScreen() {
   const openCharacter = useCallback((c: Character) => {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
   }, []);
+
+  if (!ready || !welcomed) return <Screen />;
 
   return (
     <Screen>
@@ -118,10 +141,13 @@ export default function FridgeScreen() {
             { paddingBottom: (ghosts.length ? 210 : 140) + insets.bottom },
           ]}
           ListHeaderComponent={
-            <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
-              {characters.length === 0 ? 'Your fridge is quiet. Suspiciously quiet.' : 'MOST URGENT FIRST'}
-            </AppText>
+            characters.length > 0 ? (
+              <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
+                MOST URGENT FIRST
+              </AppText>
+            ) : undefined
           }
+          ListEmptyComponent={<EmptyFridge />}
           showsVerticalScrollIndicator={false}
         />
         <GhostLayer ghosts={ghosts} onPress={openCharacter} />
