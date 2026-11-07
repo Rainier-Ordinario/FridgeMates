@@ -14,21 +14,23 @@ import { TopBar } from '@/components/TopBar';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
 import { playPop, playTada } from '@/logic/sounds';
+import { useSettings } from '@/logic/settings';
 import { useFridge } from '@/logic/store';
+import { voiceFor } from '@/logic/voices';
 import { colors, moodOrder, moods, motion, radius, shadow, space } from '@/theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as Speech from 'expo-speech';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
-  FadeInUp,
   ZoomIn,
   cancelAnimation,
   interpolate,
@@ -43,6 +45,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Phase = 'camera' | 'pick' | 'loading' | 'reveal';
 
+/** One quote of 32 characters or fewer: live intros can run long. */
+function shortQuote(intro: string): string {
+  const t = intro.trim();
+  if (t.length <= 32) return t;
+  const cut = t.slice(0, 31);
+  const at = cut.lastIndexOf(' ');
+  return `${(at > 12 ? cut.slice(0, at) : cut).replace(/[,.;:!?]+$/, '')}…`;
+}
+
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   quality: 0.5,
@@ -53,6 +64,8 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
 /** Scan: viewfinder (or photo picker) → "bringing your food to life…" → characters pop in → add to fridge. */
 export default function ScanScreen() {
   const { addScanned } = useFridge();
+  const { voices } = useSettings();
+  const reduceMotion = useReducedMotion();
   // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
   const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
@@ -86,10 +99,16 @@ export default function ScanScreen() {
     if (phase !== 'camera' || !permission || permission.granted) return;
     if (permission.canAskAgain) {
       requestPermission().then((res) => {
-        if (!res.granted) setPhase('pick');
+        if (!res.granted) {
+          setPhase('pick');
+          setFailure('camera');
+        }
       });
     } else {
-      const id = setTimeout(() => setPhase('pick'), 0);
+      const id = setTimeout(() => {
+        setPhase('pick');
+        setFailure('camera');
+      }, 0);
       return () => clearTimeout(id);
     }
   }, [phase, permission, requestPermission]);
@@ -97,16 +116,26 @@ export default function ScanScreen() {
   // Reveal characters one by one: haptic tick + soft pop as each one lands.
   useEffect(() => {
     if (phase !== 'reveal' || shown >= found.length) return;
+    // Reduce Motion: everyone at once, no stagger.
+    if (reduceMotion) {
+      const id = setTimeout(() => setShown(found.length), 0);
+      return () => clearTimeout(id);
+    }
     const t = setTimeout(
       () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         playPop();
+        const item = found[shown];
+        if (voices && item) {
+          const v = voiceFor(item);
+          Speech.speak(shortQuote(item.intro), { pitch: v.pitch, rate: v.rate, language: v.language });
+        }
         setShown((n) => n + 1);
       },
-      shown === 0 ? 150 : 380,
+      shown === 0 ? 150 : 350,
     );
     return () => clearTimeout(t);
-  }, [phase, shown, found.length]);
+  }, [phase, shown, found, reduceMotion, voices]);
 
   // Everyone has arrived: a short celebration before the button appears.
   const allArrived = phase === 'reveal' && found.length > 0 && shown >= found.length;
@@ -139,9 +168,8 @@ export default function ScanScreen() {
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setError(
-        source === 'camera' ? 'Camera permission is off. Try "Choose a photo".' : 'Photo access is off.',
-      );
+      if (source === 'camera') setFailure('camera');
+      else setError('Photo access is off. Allow Photos in Settings, or take a photo instead.');
       return;
     }
     let result: ImagePicker.ImagePickerResult;
@@ -177,7 +205,8 @@ export default function ScanScreen() {
       setFoundNote(
         `Found ${items.length} item${items.length === 1 ? '' : 's'} · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
       );
-      setFound(items);
+      // Most urgent first, like the fridge.
+      setFound([...items].sort((a, b) => a.daysLeft - b.daysLeft));
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setPhase('reveal'), 600);
@@ -211,7 +240,15 @@ export default function ScanScreen() {
     <Screen>
       <TopBar
         left="close"
-        title={phase === 'reveal' ? 'Meet your food' : 'Scan food'}
+        title={
+          phase === 'reveal' ? (
+            <AppText variant="kicker" numberOfLines={1} accessibilityRole="header">
+              Meet your fridge
+            </AppText>
+          ) : (
+            'Scan food'
+          )
+        }
         right={
           phase === 'reveal' ? (
             <View style={styles.newTag} accessible accessibilityLabel={`${found.length} new`}>
@@ -237,8 +274,15 @@ export default function ScanScreen() {
           {failure && (
             <RecoveryCard
               kind={failure}
-              retryLabel={failure === 'empty' ? 'Try another photo' : 'Try again'}
+              retryLabel={
+                failure === 'camera' ? 'Allow camera' : failure === 'empty' ? 'Try again' : 'Try again'
+              }
               onRetry={() => {
+                if (failure === 'camera') {
+                  Linking.openSettings().catch(() => {});
+                  setFailure(null);
+                  return;
+                }
                 setFailure(null);
                 if (Device.isDevice) setPhase('camera');
               }}
@@ -309,8 +353,8 @@ export default function ScanScreen() {
 
       {phase === 'reveal' && (
         <>
-          <AppText variant="body" color={colors.inkMuted} style={styles.sub}>
-            They just woke up. Be nice.
+          <AppText style={styles.sub} color={colors.inkMuted}>
+            {found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.
           </AppText>
           <ScrollView
             style={{ flex: 1 }}
@@ -322,13 +366,14 @@ export default function ScanScreen() {
               return (
                 <Animated.View
                   key={`${item.characterName}-${i}`}
-                  entering={ZoomIn.springify().damping(12)}
-                  style={styles.row}
+                  entering={reduceMotion ? undefined : ZoomIn.springify().damping(12)}
+                  style={[styles.row, { backgroundColor: moods[mood].tint, borderColor: moods[mood].color }]}
                 >
                   <Face
                     emoji={item.emoji}
                     mood={mood}
                     size={56}
+                    fill={colors.surface}
                     label={`${item.characterName}, ${moods[mood].label}`}
                   />
                   <View style={styles.rowBody}>
@@ -338,7 +383,7 @@ export default function ScanScreen() {
                       </AppText>
                       <MoodPill mood={mood} variant="time" daysLeft={item.daysLeft} compact />
                     </View>
-                    <SpeechBubble text={item.intro} tail="left" compact style={styles.bubble} />
+                    <SpeechBubble text={shortQuote(item.intro)} tail="left" compact style={styles.bubble} />
                   </View>
                 </Animated.View>
               );
@@ -352,7 +397,7 @@ export default function ScanScreen() {
                   🎉 Everyone’s here. Be nice to them.
                 </AppText>
               </Animated.View>
-              <Animated.View entering={FadeInUp.delay(250).duration(motion.base)}>
+              <Animated.View entering={FadeIn.delay(100).duration(200)}>
                 <DockedFooter>
                   <View style={styles.resultRow}>
                     <SecondaryButton
@@ -469,7 +514,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  sub: { paddingHorizontal: space.xl, paddingBottom: space.md },
+  sub: {
+    paddingHorizontal: space.xl,
+    paddingBottom: space.md,
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 16,
+    lineHeight: 22,
+  },
   pick: {
     flex: 1,
     paddingHorizontal: space.xl,
@@ -509,8 +560,15 @@ const styles = StyleSheet.create({
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
   resultRow: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
-  reveal: { paddingHorizontal: space.xl, paddingBottom: space.md, gap: 18 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  reveal: { paddingHorizontal: space.xl, paddingBottom: space.md, gap: 12 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderWidth: 2,
+    borderRadius: radius.md,
+    padding: 12,
+  },
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
