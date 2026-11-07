@@ -116,7 +116,7 @@ export default function CharacterScreen() {
                 <StepButton label="+" onPress={() => nudge(1)} accessibilityLabel="One day more" />
               </View>
             ) : (
-              <MoodPill mood={c.mood} daysLeft={c.daysLeft} compact />
+              <MoodPill mood={c.mood} compact />
             )}
           </View>
         </View>

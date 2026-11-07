@@ -5,7 +5,7 @@ import { AppText } from '@/components/AppText';
 import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { EmptyFridge } from '@/components/EmptyFridge';
-import { GHOST_LANE_HEIGHT, GhostLayer } from '@/components/GhostLayer';
+import { useNudge } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
 import { GearIcon } from '@/components/Icons';
 import { Screen } from '@/components/Screen';
@@ -45,6 +45,9 @@ export default function FridgeScreen() {
   } = useFridge();
   const hint = useFlag('fridgemates.hint.moods.v1');
   const { demoMode } = useSettings();
+  const { showToast } = useNudge();
+  // Ghosts need action first, then the living, most urgent first.
+  const rows = [...ghosts, ...characters];
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
   const requestedEpitaphs = useRef(new Set<string>());
@@ -125,15 +128,20 @@ export default function FridgeScreen() {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
   }, []);
 
-  const ateIt = useCallback((c: Character) => rescueMany([c.id]), [rescueMany]);
+  const ateIt = useCallback(
+    (c: Character) => {
+      rescueMany([c.id]);
+      showToast(`${c.characterName} says thanks! +1 rescued`);
+    },
+    [rescueMany, showToast],
+  );
 
   const tossGhost = useCallback(
     (g: Character) => {
       toss(g.id);
-      // Let the ghost drift up and fade (500 ms) before showing the wall.
-      setTimeout(() => router.push('/memorial'), 550);
+      showToast(`${g.characterName} has left the fridge. Rest easy.`);
     },
-    [toss],
+    [toss, showToast],
   );
 
   // Cold start: wait for storage so the empty state never flashes over a saved fridge.
@@ -181,7 +189,7 @@ export default function FridgeScreen() {
             />
           </View>
         )}
-        {characters.length > 0 && hint.ready && !hint.value && (
+        {rows.length > 0 && hint.ready && !hint.value && (
           <View
             style={styles.hint}
             accessible
@@ -199,7 +207,7 @@ export default function FridgeScreen() {
       <View style={styles.listArea}>
         <FlatList
           ref={listRef}
-          data={characters}
+          data={rows}
           onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
           keyExtractor={(c) => c.id}
           initialNumToRender={8}
@@ -210,18 +218,19 @@ export default function FridgeScreen() {
               character={item}
               onPress={openCharacter}
               onAte={ateIt}
+              onToss={tossGhost}
               isNew={recentlyAddedIds.includes(item.id)}
             />
           )}
           contentContainerStyle={[
             styles.list,
             {
-              paddingTop: ghosts.length ? GHOST_LANE_HEIGHT : space.lg,
+              paddingTop: space.lg,
               paddingBottom: FOOTER_HEIGHT + insets.bottom,
             },
           ]}
           ListHeaderComponent={
-            characters.length > 0 ? (
+            rows.length > 0 ? (
               <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
                 MOST URGENT FIRST
               </AppText>
@@ -230,7 +239,6 @@ export default function FridgeScreen() {
           ListEmptyComponent={<EmptyFridge />}
           showsVerticalScrollIndicator={false}
         />
-        <GhostLayer ghosts={ghosts} onPress={openCharacter} onToss={tossGhost} />
       </View>
 
       <SettingsSheet

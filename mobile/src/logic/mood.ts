@@ -34,7 +34,8 @@ export function daysLeftLabel(daysLeft: number): string {
 
 /** Plain-language time for cards and pills: what to do, not a number. */
 export function plainTimeLabel(daysLeft: number): string {
-  if (daysLeft < 0) return 'Expired';
+  if (daysLeft === -1) return 'Expired yesterday';
+  if (daysLeft < -1) return `Expired ${-daysLeft} days ago`;
   if (daysLeft === 0) return 'Eat today!';
   if (daysLeft === 1) return 'Eat by tomorrow';
   if (daysLeft <= 5) return `Eat within ${daysLeft} days`;

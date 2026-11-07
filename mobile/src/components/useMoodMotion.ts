@@ -69,8 +69,8 @@ export function useMoodMotion(mood: Mood, highlight = false) {
 
   /** Pulsing red border for dramatic, brand border for freshly scanned items, transparent otherwise. */
   const borderStyle = useAnimatedStyle(() => {
-    if (motion !== 'shake') return { borderColor: highlight ? colors.brand : 'transparent' };
-    return { borderColor: interpolateColor(pulse.value, [0, 1], ['rgba(229,72,58,0.25)', colors.danger]) };
+    if (motion !== 'shake') return { borderColor: highlight ? colors.brand : moods[mood].color };
+    return { borderColor: interpolateColor(pulse.value, [0, 1], ['rgba(229,72,58,0.35)', colors.danger]) };
   });
 
   return { faceStyle, borderStyle, reduceMotion };

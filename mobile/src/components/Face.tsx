@@ -18,6 +18,8 @@ interface Props {
   expression?: boolean;
   /** Accessibility label, e.g. "Avo, dramatic". Omit when a parent control already describes it. */
   label?: string;
+  /** Circle fill; defaults to the mood tint. Use white on tinted cards. */
+  fill?: string;
 }
 
 /** The character's face: food emoji in a mood-tinted circle with a mood badge. */
@@ -29,6 +31,7 @@ export function Face({
   showBadge = true,
   expression = true,
   label,
+  fill,
 }: Props) {
   const overlay = expression && size >= 36;
   const m = moods[mood];
@@ -49,7 +52,7 @@ export function Face({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: m.tint,
+            backgroundColor: fill ?? m.tint,
             borderColor: m.color,
           },
         ]}

@@ -334,7 +334,7 @@ export default function ScanScreen() {
                       <AppText variant="bodyBold" numberOfLines={1} style={{ flexShrink: 1 }}>
                         {item.characterName}
                       </AppText>
-                      <MoodPill mood={mood} daysLeft={item.daysLeft} compact />
+                      <MoodPill mood={mood} variant="time" daysLeft={item.daysLeft} compact />
                     </View>
                     <SpeechBubble text={item.intro} tail="left" compact style={styles.bubble} />
                   </View>

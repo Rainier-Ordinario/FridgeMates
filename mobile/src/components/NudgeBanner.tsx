@@ -6,7 +6,14 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, SlideInUp, SlideOutUp, useReducedMotion } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  FadeOut,
+  SlideInUp,
+  SlideOutUp,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
 import { Face } from './Face';
@@ -22,6 +29,8 @@ export interface Nudge {
 interface NudgeContextValue {
   showNudge: (n: Nudge) => void;
   dismiss: () => void;
+  /** Small bottom toast, auto-dismisses. */
+  showToast: (text: string) => void;
 }
 
 const NudgeContext = createContext<NudgeContextValue | null>(null);
@@ -29,6 +38,8 @@ const NudgeContext = createContext<NudgeContextValue | null>(null);
 /** Shows "your food texted you" banners over every screen. Mount once in the root layout. */
 export function NudgeProvider({ children }: { children: React.ReactNode }) {
   const [nudge, setNudge] = useState<Nudge | null>(null);
+  const [toast, setToast] = useState<{ key: number; text: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dismiss = useCallback(() => {
@@ -47,14 +58,27 @@ export function NudgeProvider({ children }: { children: React.ReactNode }) {
     [dismiss],
   );
 
-  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+  const showToast = useCallback((text: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ key: Date.now(), text });
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
 
-  const value = useMemo(() => ({ showNudge, dismiss }), [showNudge, dismiss]);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
+
+  const value = useMemo(() => ({ showNudge, dismiss, showToast }), [showNudge, dismiss, showToast]);
 
   return (
     <NudgeContext.Provider value={value}>
       {children}
       {nudge && <Banner nudge={nudge} onDismiss={dismiss} />}
+      {toast && <Toast key={toast.key} text={toast.text} />}
     </NudgeContext.Provider>
   );
 }
@@ -87,6 +111,25 @@ export function useTextMe() {
     if (!text) text = who.daysLeft <= 0 ? "it's today. it's literally today." : "u up? it's about tomorrow";
     showNudge({ id: who.id, emoji: who.emoji, mood: who.mood, name: who.name, text });
   }, [characters, showNudge]);
+}
+
+function Toast({ text }: { text: string }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Animated.View
+      entering={FadeInUp.duration(200)}
+      exiting={FadeOut.duration(150)}
+      style={[styles.toastWrap, { bottom: Math.max(insets.bottom, 24) + 120 }]}
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+    >
+      <View style={styles.toast}>
+        <AppText variant="caption" color={colors.surface} align="center">
+          {text}
+        </AppText>
+      </View>
+    </Animated.View>
+  );
 }
 
 function Banner({ nudge, onDismiss }: { nudge: Nudge; onDismiss: () => void }) {
@@ -147,6 +190,14 @@ const styles = StyleSheet.create({
     paddingLeft: space.md,
     paddingRight: space.sm,
     ...shadow.card,
+  },
+  toastWrap: { position: 'absolute', left: space.xl, right: space.xl, alignItems: 'center', zIndex: 100 },
+  toast: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    maxWidth: 320,
   },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.92 },
