@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { dateSourceLabel, plainTimeLabel } from '@/logic/mood';
 import { useNudge } from '@/components/NudgeBanner';
+import { deleteCrop } from '@/logic/crops';
 import { useFridge } from '@/logic/store';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -70,6 +71,7 @@ export default function CharacterScreen() {
     showToast(`Removed ${c.characterName}`, {
       label: 'Undo',
       onPress: () => restore(removed.item, removed.index),
+      onExpire: () => deleteCrop(removed.item.photo),
     });
     router.back();
   }
@@ -100,7 +102,7 @@ export default function CharacterScreen() {
         >
           <Face
             food={c.name}
-            emoji={c.emoji}
+            photo={c.photo}
             mood={c.mood}
             size={160}
             label={`${c.characterName}, ${m.label}`}

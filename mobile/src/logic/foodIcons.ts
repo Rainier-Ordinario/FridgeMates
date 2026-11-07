@@ -30,6 +30,7 @@ const rules: [RegExp, FluentIconName][] = [
   [/fortune cookie/i, 'fortune-cookie'],
   [/rice cracker|cracker/i, 'rice-cracker'],
   [/birthday cake/i, 'birthday-cake'],
+  [/cheesecake|tiramisu|cake slice|shortcake|strawberry cake/i, 'shortcake'],
   // dairy & eggs
   [/yogurt|yoghurt|kefir|skyr|sour cream|cottage|cream cheese|creme fraiche|crème fraîche/i, 'jar'],
   [/pudding|custard|flan|creme brulee|crème brûlée|panna cotta/i, 'custard'],
@@ -94,7 +95,6 @@ const rules: [RegExp, FluentIconName][] = [
   [/waffle/i, 'waffle'],
   [/\bpie\b|quiche|tart/i, 'pie'],
   [/donut|doughnut/i, 'doughnut'],
-  [/cheesecake|tiramisu|cake slice|shortcake|strawberry cake/i, 'shortcake'],
   [/lollipop/i, 'lollipop'],
   [/candy|gummy|gummies|sweets|toffee|caramel/i, 'candy'],
   [/popcorn/i, 'popcorn'],

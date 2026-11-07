@@ -12,6 +12,7 @@ import { DockedFooter } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
+import { cropItemPhoto, deleteCrop, type SourcePhoto } from '@/logic/crops';
 import { moodFor } from '@/logic/mood';
 import { playPop, playTada } from '@/logic/sounds';
 import { requestNotificationPermission } from '@/logic/notifications';
@@ -46,7 +47,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Phase = 'camera' | 'pick' | 'loading' | 'reveal';
 /** A scan result with a stable list key (names can repeat). */
-type Found = ScanItem & { key: string };
+type Found = ScanItem & { key: string; photo?: string };
 
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -61,7 +62,14 @@ export default function ScanScreen() {
   const settings = useSettings();
   const reduceMotion = useReducedMotion();
   // Dev params: ?demo=1 runs a mock scan; ?camera=1 forces the viewfinder (to preview its layout on a simulator).
-  const { demo, camera, fail } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string }>();
+  // ?photo=<file uri> crops the mock boxes out of that file; ?add=1 adds the results by itself (both mock-only).
+  const {
+    demo,
+    camera,
+    fail,
+    photo: photoParam,
+    add: addParam,
+  } = useLocalSearchParams<{ demo?: string; camera?: string; fail?: string; photo?: string; add?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const nonce = useRef(0);
@@ -71,6 +79,18 @@ export default function ScanScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [found, setFound] = useState<Found[]>([]);
   const { toast, showToast, dismissToast } = useToastState();
+  // Crops of results that never reach the fridge are deleted when the screen goes away.
+  const committed = useRef(false);
+  const foundRef = useRef<Found[]>([]);
+  useEffect(() => {
+    foundRef.current = found;
+  }, [found]);
+  useEffect(
+    () => () => {
+      if (!committed.current) for (const f of foundRef.current) deleteCrop(f.photo);
+    },
+    [],
+  );
   const [shown, setShown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [failure, setFailure] = useState<RecoveryKind | null>(null);
@@ -78,7 +98,7 @@ export default function ScanScreen() {
 
   // Dev/demo deep link: fridgemates://scan?demo=1 starts a mock scan immediately.
   useEffect(() => {
-    if (demo && USE_MOCK && found.length === 0) runScan('', null);
+    if (demo && USE_MOCK && found.length === 0) runScan('', photoParam ? { uri: photoParam } : null);
     // ?fail=timeout|offline|empty previews the recovery cards.
     if (fail && USE_MOCK) {
       const id = setTimeout(() => {
@@ -130,6 +150,14 @@ export default function ScanScreen() {
 
   // Everyone has arrived: a short celebration before the button appears.
   const allArrived = phase === 'reveal' && found.length > 0 && shown >= found.length;
+  // Dev link ?add=1: add the results without a tap (mock only).
+  useEffect(() => {
+    if (!allArrived || !addParam || !USE_MOCK) return;
+    const id = setTimeout(() => finish(undefined, true), 2500);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allArrived, addParam]);
+
   useEffect(() => {
     if (!allArrived) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -145,7 +173,7 @@ export default function ScanScreen() {
         skipProcessing: true,
       });
       if (!pic) throw new Error('no picture');
-      await runScan(pic.base64 ?? '', pic.uri);
+      await runScan(pic.base64 ?? '', { uri: pic.uri, width: pic.width, height: pic.height });
     } catch {
       setError('The camera blinked. Try again or choose a photo.');
       setPhase('pick');
@@ -175,11 +203,11 @@ export default function ScanScreen() {
     }
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    await runScan(asset.base64 ?? '', asset.uri);
+    await runScan(asset.base64 ?? '', { uri: asset.uri, width: asset.width, height: asset.height });
   }
 
-  async function runScan(base64: string, uri: string | null) {
-    setPhotoUri(uri);
+  async function runScan(base64: string, photo: SourcePhoto | null) {
+    setPhotoUri(photo?.uri ?? null);
     setError(null);
     setFailure(null);
     setFoundNote(null);
@@ -198,11 +226,18 @@ export default function ScanScreen() {
       );
       // Most urgent first, like the fridge.
       nonce.current += 1;
-      setFound(
-        [...items]
-          .sort((a, b) => a.daysLeft - b.daysLeft)
-          .map((it, i) => ({ ...it, key: `${nonce.current}-${i}` })),
-      );
+      const sorted: Found[] = [...items]
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .map((it, i) => ({ ...it, key: `${nonce.current}-${i}` }));
+      // Thumbnails: a padded square around each item's box, cut from the photo on the device.
+      const withCrops = photo
+        ? await Promise.all(
+            sorted.map(async (it) =>
+              it.box ? { ...it, photo: (await cropItemPhoto(photo, it.box, it.key)) ?? undefined } : it,
+            ),
+          )
+        : sorted;
+      setFound(withCrops);
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setPhase('reveal'), 600);
@@ -220,6 +255,7 @@ export default function ScanScreen() {
     setFound((list) => list.filter((f) => f.key !== key));
     showToast(`Removed ${item.characterName}`, {
       label: 'Undo',
+      onExpire: () => deleteCrop(item.photo),
       onPress: () =>
         setFound((list) => {
           if (list.some((f) => f.key === key)) return list;
@@ -232,7 +268,8 @@ export default function ScanScreen() {
 
   /** Everyone was removed: back to the start. */
   function scanAgain() {
-    dismissToast('action');
+    dismissToast('expire');
+    for (const f of found) deleteCrop(f.photo);
     setFound([]);
     setShown(0);
     setPhotoUri(null);
@@ -241,7 +278,8 @@ export default function ScanScreen() {
   }
 
   /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
-  function finish(next?: 'cook') {
+  function finish(next?: 'cook', skipAsk = false) {
+    committed.current = true;
     addScanned(found);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const go = () => {
@@ -257,7 +295,7 @@ export default function ScanScreen() {
         );
     };
     // Sensible moment to ask: right after the first scan, with a one-line explanation.
-    if (!settings.notificationsAsked) {
+    if (!settings.notificationsAsked && !skipAsk) {
       settings.set('notificationsAsked', true);
       Alert.alert(
         'Let your food text you?',
@@ -421,6 +459,7 @@ export default function ScanScreen() {
                     name={item.characterName}
                     mood={mood}
                     daysLeft={item.daysLeft}
+                    photo={item.photo}
                     onRemove={() => removeFound(item.key)}
                     removeButton
                   />

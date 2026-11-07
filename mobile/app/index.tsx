@@ -16,6 +16,7 @@ import { ProfilePicture } from '@/components/ProfilePicture';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { deleteCrop } from '@/logic/crops';
 import { useFirstRun } from '@/logic/firstRun';
 import type { ManagerQuestion } from '@/logic/manager';
 import { urgencyLabel, urgencyOf, type Urgency } from '@/logic/overview';
@@ -81,6 +82,7 @@ function sectionTitle(sortMode: SortMode): string {
 /** Fridge (home): header, characters sorted by urgency, and one big Scan button. */
 export default function FridgeScreen() {
   const {
+    all,
     characters,
     ghosts,
     scoreboard,
@@ -135,6 +137,11 @@ export default function FridgeScreen() {
   const { width } = useWindowDimensions();
   const pagerRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [page, setPage] = useState(0);
+  // Latest items for the ?open=newest dev link, without re-running the dev-param effect on every change.
+  const allRef = useRef(all);
+  useEffect(() => {
+    allRef.current = all;
+  }, [all]);
   // While a row is being swiped, the pager must not change pages.
   const [pagerEnabled, setPagerEnabled] = useState(true);
   const goToPage = useCallback(
@@ -164,6 +171,7 @@ export default function FridgeScreen() {
     page: pageParam,
     picture: pictureParam,
     cook,
+    open: openParam,
   } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
@@ -177,6 +185,7 @@ export default function FridgeScreen() {
     page?: string;
     picture?: string;
     cook?: string;
+    open?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo' | 'picture'>(false);
 
@@ -208,12 +217,32 @@ export default function FridgeScreen() {
         setManagerOpen(true);
       }, 300);
     }
+    if (openParam === 'newest') {
+      setTimeout(() => {
+        const newest = allRef.current[allRef.current.length - 1];
+        if (newest) router.push({ pathname: '/item/[id]', params: { id: newest.id } });
+      }, 300);
+    }
     if (urgency) setTimeout(() => setUrgencyFilter(urgency as Urgency), 0);
     if (hintParam) hint.set(false);
     if (pageParam === 'overview') setTimeout(() => goToPage(1), 400);
     if (pictureParam) setTimeout(() => setMenuOpen('picture'), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, demo, menu, hintParam, big, manager, urgency, t, ask, pageParam, pictureParam, cook]);
+  }, [
+    hydrated,
+    demo,
+    menu,
+    hintParam,
+    big,
+    manager,
+    urgency,
+    t,
+    ask,
+    pageParam,
+    pictureParam,
+    cook,
+    openParam,
+  ]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -276,6 +305,7 @@ export default function FridgeScreen() {
       showToast(`Removed ${c.characterName}`, {
         label: 'Undo',
         onPress: () => restore(removed.item, removed.index),
+        onExpire: () => deleteCrop(removed.item.photo),
       });
     },
     [remove, restore, showToast],

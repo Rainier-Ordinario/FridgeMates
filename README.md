@@ -94,10 +94,13 @@ The app uses mock data until the backend is deployed. Base URL lives in one conf
   "name": "Greek yogurt", "emoji": "🥛",
   "characterName": "Sir Yogurtsworth", "personality": "dramatic, needy",
   "daysLeft": 4, "dateSource": "printed",
-  "intro": "Finally, someone opened the door."
+  "intro": "Finally, someone opened the door.",
+  "box": [120, 60, 720, 360]
 } ] }
 ```
 `dateSource` is `"printed"` or `"estimated"`. The app assigns each item a local `id`.
+`box?: [ymin, xmin, ymax, xmax]` normalized 0–1000 (optional): where the item sits in the photo. The app crops a thumbnail from it on the
+device; the photo and the crops never leave the phone.
 **Live `/scan` today:** Gemini only returns `name`, `emoji`, `daysLeft` and `dateSource`. The backend fills `characterName` with the
 food name and sends empty `personality` and `intro`, so the UI must not rely on those. A new photo takes about 2s (the first call after
 the server idles can take ~10s+). The app's timeout is 30s for `/scan` and 15s for other calls.

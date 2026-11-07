@@ -62,7 +62,7 @@ export function newLocalId(prefix = 'item'): string {
 }
 
 /** The app assigns each scanned item a local id and converts daysLeft into a calendar date. */
-export function scanItemToFoodItem(scan: ScanItem, dayOffset = 0): FoodItem {
+export function scanItemToFoodItem(scan: ScanItem & { photo?: string }, dayOffset = 0): FoodItem {
   const today = todayISO(dayOffset);
   return {
     id: newLocalId(),
@@ -71,6 +71,7 @@ export function scanItemToFoodItem(scan: ScanItem, dayOffset = 0): FoodItem {
     characterName: scan.characterName,
     personality: scan.personality,
     intro: scan.intro,
+    photo: scan.photo,
     dateSource: scan.dateSource,
     addedAt: today,
     expiresAt: addDays(today, scan.daysLeft),

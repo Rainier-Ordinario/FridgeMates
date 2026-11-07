@@ -47,6 +47,7 @@ function CharacterCardBase({
       mood={character.mood}
       daysLeft={character.daysLeft}
       isNew={isNew}
+      photo={character.photo}
       action={action || undefined}
       onPress={onPress ? () => onPress(character) : undefined}
       onRemove={onRemove ? () => onRemove(character) : undefined}

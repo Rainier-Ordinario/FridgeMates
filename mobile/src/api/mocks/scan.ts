@@ -11,6 +11,7 @@ export const mockScanResponse: ScanResponse = {
       daysLeft: 5,
       dateSource: 'printed',
       intro: 'Took you long enough.',
+      box: [120, 60, 720, 360],
     },
     {
       name: 'Strawberries',
@@ -20,6 +21,7 @@ export const mockScanResponse: ScanResponse = {
       daysLeft: 2,
       dateSource: 'estimated',
       intro: 'We go everywhere. Even the bin?',
+      box: [420, 380, 820, 700],
     },
     {
       name: 'Eggs',
@@ -29,6 +31,7 @@ export const mockScanResponse: ScanResponse = {
       daysLeft: 12,
       dateSource: 'printed',
       intro: 'Twelve of us. Not worried.',
+      box: [160, 640, 520, 960],
     },
   ],
 };

@@ -1,5 +1,6 @@
 import { colors, moods, type Mood } from '@/theme';
 import { faceOverlays } from '@/theme/faceOverlays';
+import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -23,6 +24,8 @@ interface Props {
   label?: string;
   /** Circle fill; defaults to the mood tint. Use white on tinted cards. */
   fill?: string;
+  /** Local crop of the scanned photo; shown instead of the icon, inside the mood ring. */
+  photo?: string;
 }
 
 /** Mood badge icons (Fluent Emoji) instead of system emoji. */
@@ -44,8 +47,9 @@ export function Face({
   expression = true,
   label,
   fill,
+  photo,
 }: Props) {
-  const overlay = expression && size >= 36;
+  const overlay = expression && size >= 36 && !photo;
   const m = moods[mood];
   const { faceStyle } = useMoodMotion(mood);
   const badgeSize = Math.max(20, Math.round(size * 0.34));
@@ -70,9 +74,13 @@ export function Face({
           },
         ]}
       >
-        <View style={{ opacity: getIconOpacity(overlay) }}>
-          <FoodIcon name={food ?? ''} size={iconSize} />
-        </View>
+        {photo ? (
+          <Image source={{ uri: photo }} style={{ width: size, height: size }} contentFit="cover" />
+        ) : (
+          <View style={{ opacity: getIconOpacity(overlay) }}>
+            <FoodIcon name={food ?? ''} size={iconSize} />
+          </View>
+        )}
         {overlay && (
           <View pointerEvents="none" style={styles.overlay}>
             <SvgXml xml={faceOverlays[mood]} width={size} height={size} />

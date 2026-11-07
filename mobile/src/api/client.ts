@@ -75,6 +75,15 @@ const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : 
 const num = (v: unknown, fallback = 0): number =>
   typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 
+/** Optional item box: four finite numbers, clamped to 0–1000, with a positive area; anything else is dropped. */
+const parseBox = (v: unknown): [number, number, number, number] | undefined => {
+  if (!Array.isArray(v) || v.length !== 4 || !v.every((n) => typeof n === 'number' && Number.isFinite(n))) {
+    return undefined;
+  }
+  const [ymin, xmin, ymax, xmax] = (v as number[]).map((n) => Math.max(0, Math.min(1000, n)));
+  return ymin < ymax && xmin < xmax ? [ymin, xmin, ymax, xmax] : undefined;
+};
+
 /** Live responses are normalized so a partial or odd backend reply never crashes a screen. */
 const normalize = {
   scan(r: Partial<ScanResponse> | null | undefined): ScanResponse {
@@ -91,6 +100,7 @@ const normalize = {
           dateSource: i.dateSource === 'printed' ? 'printed' : 'estimated',
           // No stand-in intro: an empty intro simply shows nothing.
           intro: safeText(str(i.intro), ''),
+          box: parseBox(i.box),
         })),
     };
   },

@@ -14,6 +14,8 @@ export interface ScanItem {
   daysLeft: number;
   dateSource: ApiDateSource;
   intro: string;
+  /** Optional: where the item sits in the photo, [ymin, xmin, ymax, xmax] normalized 0–1000. */
+  box?: [number, number, number, number];
 }
 export interface ScanRequest {
   /** base64 jpeg, no data: prefix */
@@ -95,6 +97,8 @@ export interface FoodItem {
   epitaph?: string;
   /** ISO date when it was eaten/tossed. */
   resolvedAt?: string;
+  /** Thumbnail cropped from the scanned photo: a file in the app's documents. Never uploaded. */
+  photo?: string;
 }
 
 export function toChatItem(item: FoodItem, daysLeft: number): ChatItem {

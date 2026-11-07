@@ -39,6 +39,8 @@ export interface FoodRowProps {
   onSwipeState?: (dragging: boolean) => void;
   /** Also show a 44pt ✕ on the right that removes (scan results). */
   removeButton?: boolean;
+  /** Crop of the scanned photo (falls back to the icon). */
+  photo?: string;
 }
 
 /** Only one row stays open at a time. */
@@ -69,6 +71,7 @@ function FoodRowBase({
   onRemove,
   onSwipeState,
   removeButton = false,
+  photo,
 }: FoodRowProps) {
   const m = moods[mood];
   const isGhost = mood === 'ghost';
@@ -101,7 +104,7 @@ function FoodRowBase({
           </AppText>
         </View>
       )}
-      <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} />
+      <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} photo={photo} />
       <View style={styles.text}>
         <AppText style={styles.name} numberOfLines={1}>
           {name}

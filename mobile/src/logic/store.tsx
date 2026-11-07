@@ -3,6 +3,7 @@ import { mockFridgeItems } from '@/api/mocks/fridge';
 import type { Mood } from '@/theme/moods';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { deleteAllCrops, deleteCrop } from './crops';
 import { addDays, todayISO } from './dates';
 import { daysLeftFor, moodFor, scanItemToFoodItem } from './mood';
 import { estimatePrice } from './prices';
@@ -77,6 +78,7 @@ function reducer(state: State, action: Action): State {
           ...i,
           status: 'rescued',
           resolvedAt: todayISO(state.dayOffset),
+          photo: undefined,
         })),
       };
     case 'rescueMany': {
@@ -85,7 +87,9 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         items: state.items.map((i) =>
-          ids.has(i.id) && i.status === 'inFridge' ? { ...i, status: 'rescued', resolvedAt: today } : i,
+          ids.has(i.id) && i.status === 'inFridge'
+            ? { ...i, status: 'rescued', resolvedAt: today, photo: undefined }
+            : i,
         ),
         recentRescue: { ids: action.ids, count: action.ids.length },
       };
@@ -108,6 +112,7 @@ function reducer(state: State, action: Action): State {
           ...i,
           status: 'lost',
           resolvedAt: todayISO(state.dayOffset),
+          photo: undefined,
         })),
       };
     case 'openedToday': {
@@ -168,7 +173,7 @@ interface FridgeContextValue {
   recentRescue: { ids: string[]; count: number } | null;
   getById: (id: string) => Character | undefined;
   /** Assigns local ids, adds to the fridge, returns the new ids. */
-  addScanned: (scanned: ScanItem[]) => string[];
+  addScanned: (scanned: (ScanItem & { photo?: string })[]) => string[];
   clearRecentlyAdded: () => void;
   eat: (id: string) => void;
   /** Marks every id as rescued in one go (matchmaking "I cooked it"). */
@@ -270,10 +275,20 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
         return items.map((i) => i.id);
       },
       clearRecentlyAdded: () => dispatch({ type: 'clearRecentlyAdded' }),
-      eat: (id) => dispatch({ type: 'eat', id }),
-      rescueMany: (ids) => dispatch({ type: 'rescueMany', ids }),
+      eat: (id) => {
+        // Rescued for good: the thumbnail crop is not needed any more.
+        deleteCrop(state.items.find((i) => i.id === id)?.photo);
+        dispatch({ type: 'eat', id });
+      },
+      rescueMany: (ids) => {
+        for (const i of state.items) if (ids.includes(i.id)) deleteCrop(i.photo);
+        dispatch({ type: 'rescueMany', ids });
+      },
       clearRecentRescue: () => dispatch({ type: 'clearRecentRescue' }),
-      toss: (id) => dispatch({ type: 'toss', id }),
+      toss: (id) => {
+        deleteCrop(state.items.find((i) => i.id === id)?.photo);
+        dispatch({ type: 'toss', id });
+      },
       remove: (id) => {
         const index = state.items.findIndex((i) => i.id === id);
         if (index < 0) return null;
@@ -286,9 +301,18 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
       setEpitaph: (id, epitaph) => dispatch({ type: 'setEpitaph', id, epitaph }),
       skipDay: () => dispatch({ type: 'skipDay' }),
-      loadDemo: () => dispatch({ type: 'loadDemo' }),
-      clearAll: () => dispatch({ type: 'reset' }),
-      reset: () => dispatch({ type: 'reset' }),
+      loadDemo: () => {
+        deleteAllCrops();
+        dispatch({ type: 'loadDemo' });
+      },
+      clearAll: () => {
+        deleteAllCrops();
+        dispatch({ type: 'reset' });
+      },
+      reset: () => {
+        deleteAllCrops();
+        dispatch({ type: 'reset' });
+      },
     };
   }, [state, isHydrated]);
 
