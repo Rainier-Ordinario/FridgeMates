@@ -145,7 +145,7 @@ export default function ScanScreen() {
               }}
               style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
             >
-              <AppText variant="heading" color={colors.brandDark}>
+              <AppText variant="heading" color={colors.brandText}>
                 🖼️ Choose a photo
               </AppText>
             </Pressable>
