@@ -21,7 +21,8 @@ interface RawItem {
 
 let model = process.env.GEMINI_MODEL;
 if (!model) {
-  model = 'gemini-3.5-flash-lite';
+  // gemini-3.5-flash-lite took 20-40s on new images and tripped the app's 12s timeout. 3.1 answers in ~1-3s.
+  model = 'gemini-3.1-flash-lite';
 }
 const MODEL = model;
 const MAX_ITEMS = 25;

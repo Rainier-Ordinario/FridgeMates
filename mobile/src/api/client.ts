@@ -19,9 +19,10 @@ import type {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function post<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
+/** Most calls are quick text. Scan sends a photo to Gemini, so it gets longer (cold starts can take ~10s+). */
+async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 15_000): Promise<TRes> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -112,7 +113,7 @@ export const api = {
       await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
-    return normalize.scan(await post('/scan', req));
+    return normalize.scan(await post('/scan', req, 30_000));
   },
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {
