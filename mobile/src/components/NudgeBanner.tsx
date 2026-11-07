@@ -31,6 +31,56 @@ export interface ToastAction {
   onPress: () => void;
   /** Default 2600 ms, or 5000 ms when an action is present. */
   durationMs?: number;
+  /** Runs when the toast goes away without the action being used (timer ran out, or another toast replaced it). */
+  onExpire?: () => void;
+}
+
+export interface ToastState {
+  key: number;
+  text: string;
+  action?: ToastAction;
+}
+
+/**
+ * Toast state + timer. The provider uses it for every screen; a modal screen (Scan) keeps its own copy,
+ * because the provider's toast would render underneath the native modal.
+ */
+export function useToastState() {
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expire = useRef<(() => void) | null>(null);
+  const seq = useRef(0);
+
+  const dismissToast = useCallback((reason: 'action' | 'expire') => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const onExpire = expire.current;
+    expire.current = null;
+    setToast(null);
+    if (reason === 'expire') onExpire?.();
+  }, []);
+
+  const showToast = useCallback(
+    (text: string, action?: ToastAction) => {
+      if (timer.current) clearTimeout(timer.current);
+      // A toast that gets replaced counts as expired: its Undo is gone.
+      expire.current?.();
+      expire.current = action?.onExpire ?? null;
+      seq.current += 1;
+      setToast({ key: seq.current, text, action });
+      timer.current = setTimeout(() => dismissToast('expire'), action?.durationMs ?? (action ? 5000 : 2600));
+    },
+    [dismissToast],
+  );
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  return { toast, showToast, dismissToast };
 }
 
 interface NudgeContextValue {
@@ -45,8 +95,7 @@ const NudgeContext = createContext<NudgeContextValue | null>(null);
 /** Shows "your food texted you" banners over every screen. Mount once in the root layout. */
 export function NudgeProvider({ children }: { children: React.ReactNode }) {
   const [nudge, setNudge] = useState<Nudge | null>(null);
-  const [toast, setToast] = useState<{ key: number; text: string; action?: ToastAction } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { toast, showToast, dismissToast } = useToastState();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dismiss = useCallback(() => {
@@ -65,16 +114,9 @@ export function NudgeProvider({ children }: { children: React.ReactNode }) {
     [dismiss],
   );
 
-  const showToast = useCallback((text: string, action?: ToastAction) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ key: Date.now(), text, action });
-    toastTimer.current = setTimeout(() => setToast(null), action?.durationMs ?? (action ? 5000 : 2600));
-  }, []);
-
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
     },
     [],
   );
@@ -86,7 +128,12 @@ export function NudgeProvider({ children }: { children: React.ReactNode }) {
       {children}
       {nudge && <Banner nudge={nudge} onDismiss={dismiss} />}
       {toast && (
-        <Toast key={toast.key} text={toast.text} action={toast.action} onDone={() => setToast(null)} />
+        <Toast
+          key={toast.key}
+          text={toast.text}
+          action={toast.action}
+          onDone={() => dismissToast('action')}
+        />
       )}
     </NudgeContext.Provider>
   );
@@ -122,13 +169,24 @@ export function useTextMe() {
   }, [characters, showNudge]);
 }
 
-function Toast({ text, action, onDone }: { text: string; action?: ToastAction; onDone: () => void }) {
+/** Small bottom pill; `offset` is the space kept clear above the safe area (the docked footer). */
+export function Toast({
+  text,
+  action,
+  onDone,
+  offset = 120,
+}: {
+  text: string;
+  action?: ToastAction;
+  onDone: () => void;
+  offset?: number;
+}) {
   const insets = useSafeAreaInsets();
   return (
     <Animated.View
       entering={FadeInUp.duration(200)}
       exiting={FadeOut.duration(150)}
-      style={[styles.toastWrap, { bottom: Math.max(insets.bottom, 24) + 120 }]}
+      style={[styles.toastWrap, { bottom: Math.max(insets.bottom, 24) + offset }]}
       pointerEvents={action ? 'box-none' : 'none'}
       accessibilityLiveRegion="polite"
     >

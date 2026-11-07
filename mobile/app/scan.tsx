@@ -6,6 +6,7 @@ import { UiIcon } from '@/components/FoodIcon';
 import { Confetti } from '@/components/Confetti';
 import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { FoodRow } from '@/components/FoodRow';
+import { Toast, useToastState } from '@/components/NudgeBanner';
 import { ScanLoader } from '@/components/ScanLoader';
 import { DockedFooter } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
@@ -29,6 +30,8 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, View, useWindowDimen
 import Animated, {
   Easing,
   FadeIn,
+  FadeOut,
+  LinearTransition,
   ZoomIn,
   cancelAnimation,
   interpolate,
@@ -42,6 +45,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Phase = 'camera' | 'pick' | 'loading' | 'reveal';
+/** A scan result with a stable list key (names can repeat). */
+type Found = ScanItem & { key: string };
 
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -64,7 +69,8 @@ export default function ScanScreen() {
   // Simulators have no camera: start on the picker so the flow still works.
   const [phase, setPhase] = useState<Phase>(Device.isDevice || camera ? 'camera' : 'pick');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [found, setFound] = useState<ScanItem[]>([]);
+  const [found, setFound] = useState<Found[]>([]);
+  const { toast, showToast, dismissToast } = useToastState();
   const [shown, setShown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [failure, setFailure] = useState<RecoveryKind | null>(null);
@@ -191,7 +197,12 @@ export default function ScanScreen() {
         `Found ${items.length} item${items.length === 1 ? '' : 's'} · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
       );
       // Most urgent first, like the fridge.
-      setFound([...items].sort((a, b) => a.daysLeft - b.daysLeft));
+      nonce.current += 1;
+      setFound(
+        [...items]
+          .sort((a, b) => a.daysLeft - b.daysLeft)
+          .map((it, i) => ({ ...it, key: `${nonce.current}-${i}` })),
+      );
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setPhase('reveal'), 600);
@@ -199,6 +210,34 @@ export default function ScanScreen() {
       setFailure(apiErrorKind(err));
       setPhase('pick');
     }
+  }
+
+  /** Drops a result before it reaches the fridge. Undo (5 s) puts it back in the same spot. */
+  function removeFound(key: string) {
+    const index = found.findIndex((f) => f.key === key);
+    if (index < 0) return;
+    const item = found[index];
+    setFound((list) => list.filter((f) => f.key !== key));
+    showToast(`Removed ${item.characterName}`, {
+      label: 'Undo',
+      onPress: () =>
+        setFound((list) => {
+          if (list.some((f) => f.key === key)) return list;
+          const next = [...list];
+          next.splice(Math.min(index, next.length), 0, item);
+          return next;
+        }),
+    });
+  }
+
+  /** Everyone was removed: back to the start. */
+  function scanAgain() {
+    dismissToast('action');
+    setFound([]);
+    setShown(0);
+    setPhotoUri(null);
+    setFoundNote(null);
+    setPhase(Device.isDevice ? 'camera' : 'pick');
   }
 
   /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
@@ -359,21 +398,32 @@ export default function ScanScreen() {
             Meet your fridge
           </AppText>
           <AppText style={styles.sub} color={colors.inkMuted}>
-            {found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.
+            {found.length === 0
+              ? 'Everyone was sent back.'
+              : `${found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.`}
           </AppText>
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={styles.reveal}
             showsVerticalScrollIndicator={false}
           >
-            {found.slice(0, shown).map((item, i) => {
+            {found.slice(0, shown).map((item) => {
               const mood = moodFor(item.daysLeft);
               return (
                 <Animated.View
-                  key={`${item.name}-${i}`}
+                  key={item.key}
                   entering={reduceMotion ? undefined : ZoomIn.springify().damping(12)}
+                  exiting={reduceMotion ? undefined : FadeOut.duration(motion.fast)}
+                  layout={reduceMotion ? undefined : LinearTransition.duration(motion.base)}
                 >
-                  <FoodRow food={item.name} name={item.characterName} mood={mood} daysLeft={item.daysLeft} />
+                  <FoodRow
+                    food={item.name}
+                    name={item.characterName}
+                    mood={mood}
+                    daysLeft={item.daysLeft}
+                    onRemove={() => removeFound(item.key)}
+                    removeButton
+                  />
                 </Animated.View>
               );
             })}
@@ -388,22 +438,44 @@ export default function ScanScreen() {
               </Animated.View>
               <Animated.View entering={FadeIn.delay(100).duration(200)}>
                 <DockedFooter>
-                  <View style={styles.resultRow}>
-                    <SecondaryButton
-                      label="What should I cook?"
-                      outlined
-                      onPress={() => finish('cook')}
-                      style={styles.half}
-                    />
-                  </View>
+                  {found.length >= 2 && (
+                    <View style={styles.resultRow}>
+                      <SecondaryButton
+                        label="What should I cook?"
+                        outlined
+                        onPress={() => finish('cook')}
+                        style={styles.half}
+                      />
+                    </View>
+                  )}
                   <PrimaryButton
                     icon={<UiIcon icon="ice" size={22} />}
-                    label="Go to my fridge"
+                    label={`Add ${found.length} to fridge`}
                     onPress={() => finish()}
                   />
                 </DockedFooter>
               </Animated.View>
             </>
+          )}
+          {found.length === 0 && (
+            <Animated.View entering={FadeIn.duration(motion.base)}>
+              <DockedFooter>
+                <PrimaryButton
+                  icon={<UiIcon icon="camera" size={22} />}
+                  label="Scan again"
+                  onPress={scanAgain}
+                />
+              </DockedFooter>
+            </Animated.View>
+          )}
+          {toast && (
+            <Toast
+              key={toast.key}
+              text={toast.text}
+              action={toast.action}
+              offset={found.length >= 2 ? 180 : 110}
+              onDone={() => dismissToast('action')}
+            />
           )}
         </>
       )}

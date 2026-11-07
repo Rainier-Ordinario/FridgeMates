@@ -30,3 +30,12 @@ export function SendIcon({ size = 20, color = colors.ink }: IconProps) {
     </Svg>
   );
 }
+
+/** Plain ✕ (two strokes), for remove / close controls. */
+export function CloseIcon({ size = 18, color = colors.ink }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 6l12 12M18 6L6 18" stroke={color} strokeWidth={2.6} strokeLinecap="round" />
+    </Svg>
+  );
+}

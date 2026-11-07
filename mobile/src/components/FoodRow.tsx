@@ -12,6 +12,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { AppText } from './AppText';
+import { CloseIcon } from './Icons';
 import { Face } from './Face';
 import { UiIcon } from './FoodIcon';
 import { MoodPill } from './MoodPill';
@@ -36,6 +37,8 @@ export interface FoodRowProps {
   onRemove?: () => void;
   /** Called while a row is being dragged / closed, so a parent pager can lock horizontal paging. */
   onSwipeState?: (dragging: boolean) => void;
+  /** Also show a 44pt ✕ on the right that removes (scan results). */
+  removeButton?: boolean;
 }
 
 /** Only one row stays open at a time. */
@@ -65,6 +68,7 @@ function FoodRowBase({
   animated = true,
   onRemove,
   onSwipeState,
+  removeButton = false,
 }: FoodRowProps) {
   const m = moods[mood];
   const isGhost = mood === 'ghost';
@@ -73,6 +77,12 @@ function FoodRowBase({
   const rowWidth = useSharedValue(300);
   const farthest = useSharedValue(0);
   const fullSwipe = useRef(false);
+
+  function remove() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (openRow === swipeRef.current) openRow = null;
+    onRemove?.();
+  }
 
   const body = (
     <Animated.View
@@ -123,6 +133,17 @@ function FoodRowBase({
           </AppText>
         </Pressable>
       )}
+      {removeButton && onRemove && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${name}`}
+          onPress={remove}
+          hitSlop={4}
+          style={({ pressed }) => [styles.removeButton, pressed && styles.actionPressed]}
+        >
+          <CloseIcon size={18} color={colors.inkMuted} />
+        </Pressable>
+      )}
     </Animated.View>
   );
 
@@ -152,17 +173,22 @@ function FoodRowBase({
     >
       {body}
     </Pressable>
+  ) : onRemove ? (
+    <View
+      accessible
+      accessibilityLabel={accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`}
+      accessibilityActions={[{ name: 'remove', label: 'Remove' }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'remove') remove();
+      }}
+    >
+      {body}
+    </View>
   ) : (
     body
   );
 
   if (!onRemove) return <View style={styles.wrap}>{pressable}</View>;
-
-  function remove() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    openRow = null;
-    onRemove?.();
-  }
 
   return (
     <View style={styles.wrap} onLayout={(e: LayoutChangeEvent) => rowWidth.set(e.nativeEvent.layout.width)}>
@@ -279,6 +305,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  removeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: -6,
   },
   actionPressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
   actionText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
