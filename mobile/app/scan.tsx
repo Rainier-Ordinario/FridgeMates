@@ -281,6 +281,7 @@ export default function ScanScreen() {
               </Pressable>
             )}
           </View>
+          )}
         </Animated.View>
       )}
 

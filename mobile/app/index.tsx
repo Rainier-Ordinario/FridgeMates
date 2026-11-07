@@ -5,7 +5,7 @@ import { AppText } from '@/components/AppText';
 import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { EmptyFridge } from '@/components/EmptyFridge';
-import { GhostLayer } from '@/components/GhostLayer';
+import { GHOST_LANE_HEIGHT, GhostLayer } from '@/components/GhostLayer';
 import { StatsLine } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
@@ -191,7 +191,13 @@ export default function FridgeScreen() {
               isNew={recentlyAddedIds.includes(item.id)}
             />
           )}
-          contentContainerStyle={[styles.list, { paddingBottom: FOOTER_HEIGHT + insets.bottom }]}
+          contentContainerStyle={[
+            styles.list,
+            {
+              paddingTop: ghosts.length ? GHOST_LANE_HEIGHT : space.lg,
+              paddingBottom: FOOTER_HEIGHT + insets.bottom,
+            },
+          ]}
           ListHeaderComponent={
             characters.length > 0 ? (
               <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
@@ -253,7 +259,7 @@ const styles = StyleSheet.create({
   },
   hintEmoji: { fontSize: 22, lineHeight: 28 },
   listArea: { flex: 1 },
-  list: { paddingHorizontal: space.xl, paddingTop: space.lg },
+  list: { paddingHorizontal: space.xl },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },
   actionBar: {
     position: 'absolute',

@@ -15,6 +15,9 @@ interface Props {
   onToss?: (ghost: Character) => void;
 }
 
+/** Height of the band the Fridge reserves above its list while ghosts are present. */
+export const GHOST_LANE_HEIGHT = 150;
+
 const lines = [
   'Still here. Take out the trash.',
   'I can wait. I have forever.',
@@ -34,14 +37,7 @@ export function GhostLayer({ ghosts, onPress, onToss }: Props) {
           key={g.id}
           entering={FadeIn.duration(motion.slow)}
           exiting={FadeOutUp.duration(motion.slow)}
-          style={[
-            styles.ghost,
-            {
-              top: space.lg + i * 150,
-              right: i % 2 === 0 ? 12 : undefined,
-              left: i % 2 === 1 ? 12 : undefined,
-            },
-          ]}
+          style={[styles.ghost, { top: 0, right: 12 + i * 172 }]}
         >
           <Pressable
             accessibilityRole="button"
