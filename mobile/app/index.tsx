@@ -6,6 +6,7 @@ import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
+import { DemoMenu } from '@/components/DemoMenu';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge, type Character } from '@/logic/store';
@@ -13,8 +14,8 @@ import { colors, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useRef } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
@@ -58,7 +59,12 @@ export default function FridgeScreen() {
   const listRef = useRef<FlatList<Character>>(null);
   const { ready, welcomed, markWelcomed } = useFirstRun();
   // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the demo cast.
-  const { skipWelcome, demo } = useLocalSearchParams<{ skipWelcome?: string; demo?: string }>();
+  const { skipWelcome, demo, menu } = useLocalSearchParams<{
+    skipWelcome?: string;
+    demo?: string;
+    menu?: string;
+  }>();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // First run: show the welcome screen instead of the fridge.
   useEffect(() => {
@@ -72,8 +78,9 @@ export default function FridgeScreen() {
 
   useEffect(() => {
     if (demo) loadDemo();
+    if (menu) setTimeout(() => setMenuOpen(true), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
+  }, [demo, menu]);
 
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
@@ -103,12 +110,22 @@ export default function FridgeScreen() {
     <Screen>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <View style={{ flex: 1 }}>
+          <Pressable
+            accessibilityRole="header"
+            accessibilityLabel="FridgeMates"
+            accessibilityHint="Long press for demo tools"
+            delayLongPress={500}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setMenuOpen(true);
+            }}
+            style={{ flex: 1 }}
+          >
             <AppText variant="display">FridgeMates</AppText>
             <AppText variant="body" color={colors.inkMuted}>
               Spoil alert: your food has feelings.
             </AppText>
-          </View>
+          </Pressable>
           <Chip
             emoji="⏭"
             label={dayOffset === 0 ? 'Skip a day' : `Day +${dayOffset}`}
@@ -152,6 +169,8 @@ export default function FridgeScreen() {
         />
         <GhostLayer ghosts={ghosts} onPress={openCharacter} />
       </View>
+
+      <DemoMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <LinearGradient
         pointerEvents="none"

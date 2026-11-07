@@ -1,18 +1,18 @@
 import type { FoodItem, ScanItem } from '@/api/types';
 import { mockFridgeItems } from '@/api/mocks/fridge';
 import type { Mood } from '@/theme/moods';
-import React, { createContext, useContext, useMemo, useReducer } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { addDays, todayISO } from './dates';
 import { daysLeftFor, moodFor, scanItemToFoodItem } from './mood';
 
 /**
  * Fridge data store.
  *
- * TODO(ios-logic): owned by the data-model teammate. Currently in-memory and
- * seeded from mocks. Next steps for the owner:
- *   - persist `state` with @react-native-async-storage/async-storage
- *   - call api.ghost() when an item crosses into expired to fill `epitaph`
- * Keep the `useFridge()` return shape stable; every screen uses it.
+ * TODO(ios-logic): owned by the data-model teammate. Items and the day offset are
+ * persisted in AsyncStorage (key STORAGE_KEY, debounced); swap the storage layer
+ * freely but keep the `useFridge()` return shape stable; every screen uses it.
+ * Epitaphs are fetched by the Fridge screen when an item expires.
  */
 
 export interface Character extends FoodItem {
@@ -48,6 +48,7 @@ type Action =
   | { type: 'setEpitaph'; id: string; epitaph: string }
   | { type: 'skipDay' }
   | { type: 'loadDemo' }
+  | { type: 'hydrate'; items: FoodItem[]; dayOffset: number }
   | { type: 'reset' };
 
 function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem) {
@@ -123,6 +124,8 @@ function reducer(state: State, action: Action): State {
       const items = mockFridgeItems();
       return { ...initialState(), items, recentlyAddedIds: items.map((i) => i.id) };
     }
+    case 'hydrate':
+      return { ...initialState(), items: action.items, dayOffset: action.dayOffset };
     case 'reset':
       return initialState();
   }
@@ -169,8 +172,44 @@ interface FridgeContextValue {
 
 const FridgeContext = createContext<FridgeContextValue | null>(null);
 
+const STORAGE_KEY = 'fridgemates.fridge.v1';
+
 export function FridgeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const hydrated = useRef(false);
+
+  // Hydrate once, then persist items + dayOffset (debounced). Storage errors are ignored.
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (!alive) return;
+        if (raw) {
+          const parsed = JSON.parse(raw) as { items?: FoodItem[]; dayOffset?: number };
+          if (Array.isArray(parsed.items)) {
+            dispatch({ type: 'hydrate', items: parsed.items, dayOffset: Number(parsed.dayOffset) || 0 });
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        hydrated.current = true;
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    const t = setTimeout(() => {
+      AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ items: state.items, dayOffset: state.dayOffset }),
+      ).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [state.items, state.dayOffset]);
 
   const value = useMemo<FridgeContextValue>(() => {
     const all: Character[] = state.items.map((item) => {
