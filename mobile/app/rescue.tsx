@@ -3,6 +3,7 @@ import { PrimaryButton } from '@/components/Buttons';
 import { Confetti } from '@/components/Confetti';
 import { DockedFooter } from '@/components/DockedFooter';
 import { Face } from '@/components/Face';
+import { Mascot } from '@/components/Mascot';
 import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { SpeechBubble } from '@/components/SpeechBubble';
@@ -51,7 +52,12 @@ export default function RescueScreen() {
       <Confetti />
       <View style={styles.body}>
         <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
-          <AppText style={styles.party}>🎉</AppText>
+          <Mascot
+            size={110}
+            state="celebrate"
+            hideBubble
+            accessibilityLabel="The fridge manager, celebrating"
+          />
           <AppText variant="display" align="center">
             Rescued!
           </AppText>
@@ -130,7 +136,6 @@ export default function RescueScreen() {
 const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: space.xl, gap: space.xl, paddingTop: 28 },
   hero: { alignItems: 'center', gap: space.xs },
-  party: { fontSize: 44, lineHeight: 52 },
   thanks: { gap: 14 },
   thankRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   bubble: { flex: 1 },
