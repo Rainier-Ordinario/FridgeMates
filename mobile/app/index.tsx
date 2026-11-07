@@ -8,6 +8,7 @@ import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { DemoMenu } from '@/components/DemoMenu';
 import { EmptyFridge } from '@/components/EmptyFridge';
+import { useTextMe } from '@/components/NudgeBanner';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
@@ -59,12 +60,14 @@ export default function FridgeScreen() {
   const listRef = useRef<FlatList<Character>>(null);
   const { ready, welcomed, markWelcomed } = useFirstRun();
   // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the demo cast.
-  const { skipWelcome, demo, menu } = useLocalSearchParams<{
+  const { skipWelcome, demo, menu, nudge } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
     menu?: string;
+    nudge?: string;
   }>();
   const [menuOpen, setMenuOpen] = useState(false);
+  const textMe = useTextMe();
 
   // First run: show the welcome screen instead of the fridge.
   useEffect(() => {
@@ -79,8 +82,9 @@ export default function FridgeScreen() {
   useEffect(() => {
     if (demo) loadDemo();
     if (menu) setTimeout(() => setMenuOpen(true), 300);
+    if (nudge) setTimeout(() => textMe(), 600);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, menu]);
+  }, [demo, menu, nudge]);
 
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
@@ -170,7 +174,21 @@ export default function FridgeScreen() {
         <GhostLayer ghosts={ghosts} onPress={openCharacter} />
       </View>
 
-      <DemoMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
+      <DemoMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        extraRows={[
+          {
+            emoji: '💬',
+            label: 'Text me',
+            caption: 'The most urgent character sends a message',
+            onPress: () => {
+              setMenuOpen(false);
+              setTimeout(textMe, 150);
+            },
+          },
+        ]}
+      />
 
       <LinearGradient
         pointerEvents="none"

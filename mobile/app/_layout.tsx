@@ -1,3 +1,4 @@
+import { NudgeProvider } from '@/components/NudgeBanner';
 import { FridgeProvider } from '@/logic/store';
 import { colors } from '@/theme';
 import {
@@ -32,22 +33,24 @@ export default function RootLayout() {
 
   return (
     <FridgeProvider>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
-        <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="item/[id]" />
-        <Stack.Screen name="chat" />
-        <Stack.Screen name="memorial" />
-        <Stack.Screen name="match" />
-        <Stack.Screen name="rescue" options={{ gestureEnabled: false }} />
-      </Stack>
+      <NudgeProvider>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
+          <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="item/[id]" />
+          <Stack.Screen name="chat" />
+          <Stack.Screen name="memorial" />
+          <Stack.Screen name="match" />
+          <Stack.Screen name="rescue" options={{ gestureEnabled: false }} />
+        </Stack>
+      </NudgeProvider>
     </FridgeProvider>
   );
 }
