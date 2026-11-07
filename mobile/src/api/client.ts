@@ -36,7 +36,8 @@ export function apiErrorKind(err: unknown): ApiErrorKind {
   return err instanceof ApiError ? err.kind : 'bad-response';
 }
 
-async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 10_000): Promise<TRes> {
+/** Most calls are quick text. Scan sends a photo to Gemini, so it gets longer (cold starts can take ~10s+). */
+async function post<TReq, TRes>(path: string, body: TReq, timeoutMs = 15_000): Promise<TRes> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
@@ -75,12 +76,12 @@ const normalize = {
         .map((i) => ({
           name: str(i.name),
           emoji: str(i.emoji, '🍽️'),
-          characterName: str(i.characterName, str(i.name)),
-          personality: str(i.personality, 'mysterious'),
+          characterName: str(i.characterName) || str(i.name),
+          personality: str(i.personality) || 'mysterious',
           // The backend sends negatives for visibly spoiled food; keep them so it arrives as a ghost.
           daysLeft: Math.max(-30, Math.min(365, Math.round(num(i.daysLeft, 3)))),
           dateSource: i.dateSource === 'printed' ? 'printed' : 'estimated',
-          intro: str(i.intro, 'Hi. I live here now.'),
+          intro: str(i.intro) || 'Hi. I live here now.',
         })),
     };
   },
@@ -117,7 +118,7 @@ export const api = {
       await sleep(MOCK_SCAN_DELAY_MS);
       return mockScanResponse;
     }
-    return normalize.scan(await post('/scan', req, 15_000));
+    return normalize.scan(await post('/scan', req, 30_000));
   },
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {

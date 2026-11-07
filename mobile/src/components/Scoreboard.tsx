@@ -15,7 +15,11 @@ interface Props {
 
 /** In fridge / rescued / lost. "Lost" opens the memorial. */
 export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false }: Props) {
-  const rescued = useCountUp(data.rescued, countUp ? data.rescued - rescuedBump : data.rescued);
+  let rescuedStart = data.rescued;
+  if (countUp) {
+    rescuedStart = data.rescued - rescuedBump;
+  }
+  const rescued = useCountUp(data.rescued, rescuedStart);
   return (
     <View style={styles.row}>
       <Tile label="in fridge" value={data.inFridge} color={colors.ink} />
@@ -111,7 +115,7 @@ function Tile({
 }) {
   return (
     <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityRole={getAccessibilityRole(onPress)}
       accessibilityLabel={`${value} ${label}`}
       onPress={onPress}
       disabled={!onPress}
@@ -132,6 +136,13 @@ function Tile({
       </AppText>
     </Pressable>
   );
+}
+
+function getAccessibilityRole(onPress: (() => void) | undefined): 'button' | undefined {
+  if (onPress) {
+    return 'button';
+  }
+  return undefined;
 }
 
 const styles = StyleSheet.create({

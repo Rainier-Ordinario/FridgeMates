@@ -20,11 +20,47 @@ import { colors, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FOOTER_HEIGHT = 150;
+
+type SortMode = 'expiry' | 'alphabetical' | 'newest';
+
+const sortOptions: { label: string; value: SortMode }[] = [
+  { label: 'Expiry', value: 'expiry' },
+  { label: 'A–Z', value: 'alphabetical' },
+  { label: 'Newest', value: 'newest' },
+];
+
+function matchesSearch(character: Character, query: string): boolean {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q) return true;
+  return (
+    character.name.toLocaleLowerCase().includes(q) || character.characterName.toLocaleLowerCase().includes(q)
+  );
+}
+
+function sortCharacters(characters: Character[], sortMode: SortMode): Character[] {
+  return [...characters].sort((a, b) => {
+    if (sortMode === 'alphabetical') return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    if (sortMode === 'newest') {
+      const newestFirst = b.addedAt.localeCompare(a.addedAt);
+      if (newestFirst !== 0) return newestFirst;
+    } else {
+      const soonestFirst = a.daysLeft - b.daysLeft;
+      if (soonestFirst !== 0) return soonestFirst;
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+function sectionTitle(sortMode: SortMode): string {
+  if (sortMode === 'alphabetical') return 'A to Z';
+  if (sortMode === 'newest') return 'Newest first';
+  return 'Eat these first';
+}
 
 /** Fridge (home): header, characters sorted by urgency, and one big Scan button. */
 export default function FridgeScreen() {
@@ -52,6 +88,24 @@ export default function FridgeScreen() {
   const [managerOpen, setManagerOpen] = useState(false);
   // Ghosts need action first, then the living, most urgent first.
   const rows = [...ghosts, ...characters];
+  // Search and sort (Kerwin): filter by food or character name; sort by expiry, A–Z, or newest.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('expiry');
+  const visibleRows = useMemo(
+    () =>
+      sortCharacters(
+        rows.filter((c) => matchesSearch(c, searchQuery)),
+        sortMode,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ghosts, characters, searchQuery, sortMode],
+  );
+  function toggleSearch() {
+    Haptics.selectionAsync();
+    if (searchOpen) setSearchQuery('');
+    setSearchOpen((open) => !open);
+  }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
   const requestedEpitaphs = useRef(new Set<string>());
@@ -116,13 +170,13 @@ export default function FridgeScreen() {
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
     if (recentlyAddedIds.length === 0) return;
-    const index = characters.findIndex((c) => recentlyAddedIds.includes(c.id));
+    const index = visibleRows.findIndex((c) => recentlyAddedIds.includes(c.id));
     if (index >= 0) {
       setTimeout(() => listRef.current?.scrollToIndex({ index, viewPosition: 0.2, animated: true }), 350);
     }
     const t = setTimeout(clearRecentlyAdded, 6000);
     return () => clearTimeout(t);
-  }, [recentlyAddedIds, characters, clearRecentlyAdded]);
+  }, [recentlyAddedIds, visibleRows, clearRecentlyAdded]);
 
   // After a rescue: show +N on the stats line for a few seconds.
   useEffect(() => {
@@ -225,7 +279,7 @@ export default function FridgeScreen() {
       <View style={styles.listArea}>
         <FlatList
           ref={listRef}
-          data={rows}
+          data={visibleRows}
           onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
           keyExtractor={(c) => c.id}
           initialNumToRender={8}
@@ -249,9 +303,58 @@ export default function FridgeScreen() {
           ]}
           ListHeaderComponent={
             rows.length > 0 ? (
-              <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
-                Eat these first
-              </AppText>
+              <View style={styles.listHeader}>
+                <View style={styles.listControls}>
+                  <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
+                    {sectionTitle(sortMode)}
+                  </AppText>
+                  <Chip emoji="🔍" label={searchOpen ? 'Close' : 'Search'} onPress={toggleSearch} />
+                </View>
+                {searchOpen && (
+                  <>
+                    <TextInput
+                      accessibilityLabel="Search food in your fridge"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoFocus
+                      onChangeText={setSearchQuery}
+                      placeholder="Search food..."
+                      placeholderTextColor={colors.inkMuted}
+                      returnKeyType="search"
+                      style={styles.searchInput}
+                      value={searchQuery}
+                    />
+                    <View style={styles.sortRow} accessibilityLabel="Sort">
+                      {sortOptions.map((option) => {
+                        const selected = sortMode === option.value;
+                        return (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Sort by ${option.label}`}
+                            accessibilityState={{ selected }}
+                            key={option.value}
+                            onPress={() => setSortMode(option.value)}
+                            style={({ pressed }) => [
+                              styles.sortOption,
+                              selected && styles.sortOptionActive,
+                              pressed && { opacity: 0.8 },
+                            ]}
+                          >
+                            <AppText variant="caption" color={colors.ink}>
+                              {option.label}
+                            </AppText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
+                )}
+                {searchQuery.trim() && visibleRows.length === 0 ? (
+                  <AppText variant="body" color={colors.inkMuted} align="center" style={styles.emptySearch}>
+                    No food matches that search.
+                  </AppText>
+                ) : null}
+              </View>
             ) : undefined
           }
           ListEmptyComponent={<EmptyFridge />}
@@ -324,7 +427,37 @@ export default function FridgeScreen() {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  sectionLabel: { marginBottom: space.sm, fontFamily: 'Nunito_800ExtraBold' },
+  sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
+  listHeader: { gap: space.sm, paddingBottom: space.sm },
+  listControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  searchInput: {
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    paddingHorizontal: space.md,
+    fontFamily: 'Nunito_500Medium',
+    fontSize: 16,
+  },
+  sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  sortOption: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+  },
+  sortOptionActive: { backgroundColor: colors.surfaceAlt, borderColor: colors.brand },
+  emptySearch: { paddingTop: space.lg },
   demoRow: { flexDirection: 'row' },
   hint: {
     flexDirection: 'row',

@@ -14,11 +14,48 @@ and expired food comes back as a ghost until you throw it out.
 ## Team and ownership
 | Who | Owns | Branch |
 |---|---|---|
-| Rainier | UI/UX, iOS screens, running the app on device | `rainier/ui` |
-| Teammate 2 | Backend + Gemini prompts + FoodKeeper data + deploy | `name/backend` |
-| Teammate 3 | iOS data model, expiry engine, voices, notifications; pitch + Devpost from 4pm | `name/ios-logic` |
+| Rainier | UI/UX, screens, running the app on device | `rainier/ui` |
+| Kenneth | Backend: Gemini prompts, `/scan` and the other endpoints, FoodKeeper data, deploy | `kenneth/scan-backend` |
+| Kerwin | App logic (data model, expiry engine, voices, notifications); pitch + Devpost from 4pm | `kerwin` |
 
-Folders: `ios/` (app) and `backend/` (server). Stay in your folder to avoid merge conflicts.
+Folders: `mobile/` (Expo app) and `backend/` (Node server). Stay in your folder to avoid merge conflicts.
+`backend/` is owned by Kenneth: please ask before changing it (style-only rewrites included).
+
+## Running it
+**App only (no key needed).** Mock data works offline:
+```bash
+cd mobile && npm install && npx expo start
+```
+
+**App + real backend (live Gemini scans):**
+```bash
+# 1. Backend (needs a free Gemini key from https://aistudio.google.com)
+cd backend && npm install
+cp .env.example .env        # then put your key in GEMINI_API_KEY
+npm run dev                 # http://localhost:8000, check /health shows geminiKeySet: true
+
+# 2. App: create mobile/.env (gitignored), then restart Expo (it only reads .env at startup)
+EXPO_PUBLIC_USE_MOCK=false
+EXPO_PUBLIC_API_URL=http://localhost:8000        # simulator
+# EXPO_PUBLIC_API_URL=http://<your-computer-LAN-IP>:8000   # real phone, same Wi-Fi
+```
+Once the backend is deployed, teammates only set `EXPO_PUBLIC_API_URL` to the deployed URL and need no key.
+Never commit `.env`, and send keys privately.
+
+Before pushing: `cd mobile && npm run typecheck && npx expo lint` and `cd backend && npm run typecheck && npm test`.
+If typecheck complains about routes that exist, start `npx expo start` once to regenerate the typed-route files.
+
+## Status
+| Piece | State |
+|---|---|
+| Fridge, scan, item detail, chat, match, rescue, memorial screens | Built (UI) |
+| `POST /scan` | **Live** (Gemini `gemini-3.1-flash-lite`, structured JSON output) |
+| `/chat`, `/match`, `/ghost`, `/messages` | **Mock only**: not on the backend yet, so live mode shows errors on those screens |
+| Saving the fridge on the phone | Not done: items are in memory and reset on restart |
+| Notifications | Stub (`mobile/src/logic/notifications.ts`), not wired up |
+| Backend deployed | Not yet |
+| USDA FoodKeeper shelf-life data | Not yet: `daysLeft` is currently Gemini's own estimate |
+| Re-scan updates existing items instead of duplicating | Planned |
 
 ## Git workflow
 - `main` = demo-ready only. `dev` = shared working branch. Everyone works on their own branch.
@@ -45,6 +82,9 @@ The app uses mock data until the backend is deployed. Base URL lives in one conf
 } ] }
 ```
 `dateSource` is `"printed"` or `"estimated"`. The app assigns each item a local `id`.
+**Live `/scan` today:** Gemini only returns `name`, `emoji`, `daysLeft` and `dateSource`. The backend fills `characterName` with the
+food name and sends empty `personality` and `intro`, so the UI must not rely on those. A new photo takes about 2s (the first call after
+the server idles can take ~10s+). The app's timeout is 30s for `/scan` and 15s for other calls.
 
 `POST /chat` body `{ "items": [{ "id", "name", "characterName", "personality", "daysLeft" }], "userMessage": "optional" }`
 ```json

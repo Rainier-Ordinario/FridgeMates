@@ -89,14 +89,28 @@ function Piece({ spec, height }: { spec: PieceSpec; height: number }) {
         {
           left: spec.x,
           width: spec.w,
-          height: spec.round ? spec.w : spec.h,
-          borderRadius: spec.round ? spec.w / 2 : 2,
+          height: getPieceHeight(spec),
+          borderRadius: getPieceRadius(spec),
           backgroundColor: spec.color,
         },
         style,
       ]}
     />
   );
+}
+
+function getPieceHeight(spec: PieceSpec): number {
+  if (spec.round) {
+    return spec.w;
+  }
+  return spec.h;
+}
+
+function getPieceRadius(spec: PieceSpec): number {
+  if (spec.round) {
+    return spec.w / 2;
+  }
+  return 2;
 }
 
 const styles = StyleSheet.create({

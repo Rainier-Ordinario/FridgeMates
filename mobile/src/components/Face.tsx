@@ -57,7 +57,7 @@ export function Face({
           },
         ]}
       >
-        <AppText style={{ fontSize: size * 0.52, lineHeight: size * 0.62, opacity: overlay ? 0.4 : 1 }}>
+        <AppText style={{ fontSize: size * 0.52, lineHeight: size * 0.62, opacity: getEmojiOpacity(overlay) }}>
           {emoji}
         </AppText>
         {overlay && (
@@ -84,6 +84,13 @@ export function Face({
       )}
     </Animated.View>
   );
+}
+
+function getEmojiOpacity(overlay: boolean): number {
+  if (overlay) {
+    return 0.4;
+  }
+  return 1;
 }
 
 const styles = StyleSheet.create({

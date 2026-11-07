@@ -20,7 +20,10 @@ app.get('/health', (_req, res) => {
 
 /** POST /scan  { image: "<base64 jpeg, no data: prefix>" }  ->  { items: ScanItem[] } */
 app.post('/scan', async (req, res) => {
-  const image = req.body?.image;
+  let image: unknown;
+  if (req.body && typeof req.body === 'object') {
+    image = (req.body as { image?: unknown }).image;
+  }
   if (typeof image !== 'string' || image.length < 100) {
     res.status(400).json({ error: 'Body must be { "image": "<base64 jpeg>" }' });
     return;
@@ -31,9 +34,17 @@ app.post('/scan', async (req, res) => {
     res.json({ items });
   } catch (err) {
     console.error('scan failed:', err);
-    res.status(502).json({ error: err instanceof Error ? err.message : 'scan failed' });
+    let message = 'scan failed';
+    if (err instanceof Error) {
+      message = err.message;
+    }
+    res.status(502).json({ error: message });
   }
 });
 
-const port = Number(process.env.PORT ?? 8000);
+let portValue = process.env.PORT;
+if (!portValue) {
+  portValue = '8000';
+}
+const port = Number(portValue);
 app.listen(port, '0.0.0.0', () => console.log(`FridgeMates backend on http://localhost:${port}`));

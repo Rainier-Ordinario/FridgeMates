@@ -19,7 +19,12 @@ interface RawItem {
   dateSource: 'printed' | 'estimated';
 }
 
-const MODEL = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite';
+let model = process.env.GEMINI_MODEL;
+if (!model) {
+  // gemini-3.5-flash-lite took 20-40s on new images and tripped the app's 12s timeout. 3.1 answers in ~1-3s.
+  model = 'gemini-3.1-flash-lite';
+}
+const MODEL = model;
 const MAX_ITEMS = 25;
 const MIN_DAYS = -3;
 const MAX_DAYS = 365;
@@ -60,21 +65,27 @@ Only include real food or drink. Ignore shelves, containers that are empty, and 
 
 /** Defensive cleanup of model output so a bad response can't crash the app. */
 export function sanitizeItems(raw: unknown): ScanItem[] {
-  const list = (raw as { items?: unknown })?.items;
+  let list: unknown;
+  if (raw && typeof raw === 'object') {
+    list = (raw as { items?: unknown }).items;
+  }
   if (!Array.isArray(list)) return [];
   const out: ScanItem[] = [];
   for (const r of list as Partial<RawItem>[]) {
-    const name = typeof r?.name === 'string' ? r.name.trim() : '';
+    let name = '';
+    if (typeof r?.name === 'string') {
+      name = r.name.trim();
+    }
     if (!name || typeof r.daysLeft !== 'number' || !Number.isFinite(r.daysLeft)) continue;
     const daysLeft = Math.min(MAX_DAYS, Math.max(MIN_DAYS, Math.round(r.daysLeft)));
     out.push({
       name,
-      emoji: typeof r.emoji === 'string' && r.emoji.trim() ? r.emoji.trim() : '🍽️',
+      emoji: getEmoji(r),
       // Character fields are kept only to satisfy the shared contract. Characters are paused for now.
       characterName: name,
       personality: '',
       daysLeft,
-      dateSource: r.dateSource === 'printed' ? 'printed' : 'estimated',
+      dateSource: getDateSource(r),
       intro: '',
     });
     if (out.length >= MAX_ITEMS) break;
@@ -82,11 +93,27 @@ export function sanitizeItems(raw: unknown): ScanItem[] {
   return out;
 }
 
+function getEmoji(item: Partial<RawItem>): string {
+  if (typeof item.emoji === 'string' && item.emoji.trim()) {
+    return item.emoji.trim();
+  }
+  return '🍽️';
+}
+
+function getDateSource(item: Partial<RawItem>): RawItem['dateSource'] {
+  if (item.dateSource === 'printed') {
+    return 'printed';
+  }
+  return 'estimated';
+}
+
 let client: GoogleGenAI | null = null;
 
 export async function scanImage(imageBase64: string, today: string): Promise<ScanItem[]> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set (see backend/.env.example)');
-  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!client) {
+    client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
 
   const interaction = await client.interactions.create({
     model: MODEL,
@@ -101,7 +128,11 @@ export async function scanImage(imageBase64: string, today: string): Promise<Sca
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(interaction.output_text ?? '');
+    let outputText = interaction.output_text;
+    if (!outputText) {
+      outputText = '';
+    }
+    parsed = JSON.parse(outputText);
   } catch {
     throw new Error('Gemini returned something that was not valid JSON');
   }

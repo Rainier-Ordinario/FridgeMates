@@ -360,7 +360,7 @@ export default function ScanScreen() {
               const mood = moodFor(item.daysLeft);
               return (
                 <Animated.View
-                  key={`${item.characterName}-${i}`}
+                  key={`${item.name}-${i}`}
                   entering={reduceMotion ? undefined : ZoomIn.springify().damping(12)}
                   style={[styles.row, { backgroundColor: moods[mood].tint, borderColor: moods[mood].color }]}
                 >
@@ -378,7 +378,9 @@ export default function ScanScreen() {
                       </AppText>
                       <MoodPill mood={mood} variant="time" daysLeft={item.daysLeft} compact />
                     </View>
-                    <SpeechBubble text={shortQuote(item.intro)} tail="left" compact style={styles.bubble} />
+                    {item.intro.trim() ? (
+                      <SpeechBubble text={shortQuote(item.intro)} tail="left" compact style={styles.bubble} />
+                    ) : null}
                   </View>
                 </Animated.View>
               );
