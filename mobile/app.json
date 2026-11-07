@@ -39,14 +39,7 @@
           "backgroundColor": "#FFF7EC"
         }
       ],
-      "expo-font",
-      [
-        "expo-image-picker",
-        {
-          "cameraPermission": "FridgeMates uses the camera to photograph your fridge and estimate expiry dates.",
-          "photosPermission": "FridgeMates reads a photo you choose so it can estimate expiry dates."
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
