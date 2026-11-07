@@ -102,6 +102,31 @@ static void handle_request(socket_t client, const char *request) {
         return send_text(client, 200, "{\"status\":\"ok\"}");
     }
 
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/scan") == 0) {
+        return send_text(client, 200,
+            "{\"items\":[{\"name\":\"Greek yogurt\",\"emoji\":\"🥛\",\"characterName\":\"Sir Yogurtsworth\",\"personality\":\"dramatic, needy\",\"daysLeft\":4,\"dateSource\":\"printed\",\"intro\":\"Finally, someone opened the door.\"},{\"name\":\"Spinach\",\"emoji\":\"🥬\",\"characterName\":\"Leafy Lou\",\"personality\":\"anxious overachiever\",\"daysLeft\":3,\"dateSource\":\"estimated\",\"intro\":\"Quick question: when were you planning to eat me?\"}]}" );
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/chat") == 0) {
+        return send_text(client, 200,
+            "{\"lines\":[{\"id\":\"fridge-1\",\"text\":\"Please use the spinach before it gets dramatic.\"}]}" );
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/match") == 0) {
+        return send_text(client, 200,
+            "{\"title\":\"yogurt spinach bowl\",\"minutes\":10,\"rescues\":[],\"steps\":[\"Add spinach to a bowl\",\"Top with yogurt\",\"Season and serve\"],\"thankYou\":\"You saved two fridge mates.\"}" );
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/ghost") == 0) {
+        return send_text(client, 200,
+            "{\"epitaph\":\"Here lies a fridge mate with good intentions.\"}" );
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/messages") == 0) {
+        return send_text(client, 200,
+            "{\"messages\":[{\"id\":\"message-1\",\"text\":\"u up? it is about tomorrow\"}]}" );
+    }
+
     if (strcmp(method, "POST") == 0 && strstr(path, "/snapshots") != NULL) {
         add_items_from_snapshot(body);
         return send_text(client, 201, "{\"status\":\"snapshot stored\"}");
