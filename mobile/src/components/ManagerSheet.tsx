@@ -26,6 +26,8 @@ import { Mascot, type MascotExpression, type MascotState } from './Mascot';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  /** Asked automatically when the sheet opens (demo: Test safety filter). */
+  initialQuestion?: string | null;
 }
 
 const INTRO = 'I keep an eye on everyone in here. Ask me anything.';
@@ -52,7 +54,7 @@ function useTypewriter(text: string): string {
 }
 
 /** "Ask the fridge manager": chips answer locally from the store; free text asks the backend. */
-export function ManagerSheet({ visible, onClose }: Props) {
+export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props) {
   const { characters, ghosts, scoreboard } = useFridge();
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'answer'>('idle');
   const [answer, setAnswer] = useState<ManagerAnswer | null>(null);
@@ -63,6 +65,13 @@ export function ManagerSheet({ visible, onClose }: Props) {
   const session = useRef(0);
 
   useEffect(() => () => void (pending.current && clearTimeout(pending.current)), []);
+
+  useEffect(() => {
+    if (!visible || !initialQuestion) return;
+    const id = setTimeout(() => askFree(initialQuestion), 450);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialQuestion]);
 
   const typed = useTypewriter(phase === 'answer' && answer ? answer.text : INTRO);
 
