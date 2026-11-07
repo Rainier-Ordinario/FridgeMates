@@ -31,8 +31,7 @@ export default function FridgeScreen() {
   }, [recentlyAddedIds, characters, clearRecentlyAdded]);
 
   const openCharacter = useCallback((c: Character) => {
-    // TODO(step 3): navigate to /item/[id] once the detail screen exists.
-    console.log('open', c.characterName);
+    router.push({ pathname: '/item/[id]', params: { id: c.id } });
   }, []);
 
   return (
@@ -76,7 +75,7 @@ export default function FridgeScreen() {
           }
           showsVerticalScrollIndicator={false}
         />
-        <GhostLayer ghosts={ghosts} onPress={(g) => console.log('TODO ghost', g.characterName)} />
+        <GhostLayer ghosts={ghosts} onPress={openCharacter} />
       </View>
 
       <LinearGradient

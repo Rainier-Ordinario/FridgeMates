@@ -41,6 +41,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="item/[id]" />
       </Stack>
     </FridgeProvider>
   );
