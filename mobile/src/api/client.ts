@@ -4,7 +4,7 @@ import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
 import { mockMessagesResponse } from './mocks/messages';
 import { mockScanResponse } from './mocks/scan';
-import { safeText } from '@/logic/safety';
+import { safeText, stripSafetyRule } from '@/logic/safety';
 import type {
   ChatRequest,
   ChatResponse,
@@ -136,7 +136,7 @@ export const api = {
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {
       await sleep(MOCK_DELAY_MS);
-      return mockChatResponse(req);
+      return mockChatResponse({ ...req, userMessage: stripSafetyRule(req.userMessage) });
     }
     return normalize.chat(await post('/chat', req));
   },

@@ -8,6 +8,14 @@ export const FAMILY_FRIENDLY_RULE =
 /** Teasing is part of the fun, but only ever aimed at the food. */
 export const TEASE_FOOD_ONLY = 'Tease the food, never the person.';
 
+/** Removes the rule again (mocks never talk to Gemini and must see only the user's words). */
+export function stripSafetyRule(prompt: string | undefined): string | undefined {
+  if (!prompt) return prompt;
+  const rule = `${FAMILY_FRIENDLY_RULE} ${TEASE_FOOD_ONLY}`;
+  const rest = prompt.startsWith(rule) ? prompt.slice(rule.length).trim() : prompt;
+  return rest || undefined;
+}
+
 /** Prepends the rule to a prompt (or returns the rule alone for an empty prompt). */
 export function withSafetyRule(prompt: string): string {
   const p = prompt.trim();
