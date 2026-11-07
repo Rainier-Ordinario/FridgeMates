@@ -13,18 +13,24 @@ export function mockChatResponse(req: ChatRequest): ChatResponse {
   const items = req.items.slice(0, 4);
   const lines = items.map((item, i) => ({
     id: item.id,
-    text: req.userMessage
-      ? replyTo(req.userMessage, item.characterName, item.daysLeft)
-      : openers[i % openers.length],
+    text: getOpening(item, i, req.userMessage),
   }));
   return { lines };
 }
 
+function getOpening(item: ChatRequest['items'][number], index: number, userMessage?: string): string {
+  if (userMessage) {
+    return replyTo(userMessage, item.characterName, item.daysLeft);
+  }
+  return openers[index % openers.length];
+}
+
 function replyTo(message: string, who: string, daysLeft: number): string {
   if (/eat|cook|dinner|lunch/i.test(message)) {
-    return daysLeft <= 1
-      ? `PICK ME. I'm literally begging. — ${who}`
-      : `Oh, no rush for me. Take the tomato first, he's unwell.`;
+    if (daysLeft <= 1) {
+      return `PICK ME. I'm literally begging. — ${who}`;
+    }
+    return `Oh, no rush for me. Take the tomato first, he's unwell.`;
   }
   if (/hi|hello|hey/i.test(message)) {
     return `Oh, hello. Nice of you to visit. We've been talking about you.`;

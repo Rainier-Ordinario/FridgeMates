@@ -20,6 +20,10 @@ interface Props {
 export function CharacterCard({ character, onPress, isNew = false }: Props) {
   const m = moods[character.mood];
   const { borderStyle } = useMoodMotion(character.mood, isNew);
+  let entering;
+  if (isNew) {
+    entering = ZoomIn.springify().damping(12);
+  }
 
   return (
     <Pressable
@@ -32,7 +36,7 @@ export function CharacterCard({ character, onPress, isNew = false }: Props) {
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
       <Animated.View
-        entering={isNew ? ZoomIn.springify().damping(12) : undefined}
+        entering={entering}
         style={[styles.card, { opacity: m.opacity }, borderStyle]}
       >
         <View style={[styles.tintStripe, { backgroundColor: m.color }]} />

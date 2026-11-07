@@ -62,7 +62,7 @@ export default function FridgeScreen() {
           </View>
           <Chip
             emoji="⏭"
-            label={dayOffset === 0 ? 'Skip a day' : `Day +${dayOffset}`}
+            label={getDayLabel(dayOffset)}
             tone="debug"
             onPress={skipDay}
           />
@@ -90,7 +90,7 @@ export default function FridgeScreen() {
           contentContainerStyle={[styles.list, { paddingBottom: 140 + insets.bottom }]}
           ListHeaderComponent={
             <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
-              {characters.length === 0 ? 'Your fridge is quiet. Suspiciously quiet.' : 'MOST URGENT FIRST'}
+              {getSectionLabel(characters.length)}
             </AppText>
           }
           showsVerticalScrollIndicator={false}
@@ -116,6 +116,20 @@ export default function FridgeScreen() {
       </View>
     </Screen>
   );
+}
+
+function getDayLabel(dayOffset: number): string {
+  if (dayOffset === 0) {
+    return 'Skip a day';
+  }
+  return `Day +${dayOffset}`;
+}
+
+function getSectionLabel(characterCount: number): string {
+  if (characterCount === 0) {
+    return 'Your fridge is quiet. Suspiciously quiet.';
+  }
+  return 'MOST URGENT FIRST';
 }
 
 const styles = StyleSheet.create({

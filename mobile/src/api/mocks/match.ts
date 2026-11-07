@@ -4,7 +4,11 @@ export function mockMatchResponse(req: MatchRequest): MatchResponse {
   const tomato = req.items.find((i) => /tomato/i.test(i.name));
   const mozz = req.items.find((i) => /mozzarella|cheese/i.test(i.name));
   const pair = [tomato, mozz].filter(Boolean) as MatchRequest['items'];
-  const rescues = (pair.length === 2 ? pair : req.items.slice(0, 2)).map((i) => i.id);
+  let selected = pair;
+  if (pair.length !== 2) {
+    selected = req.items.slice(0, 2);
+  }
+  const rescues = selected.map((i) => i.id);
   return {
     title: 'Caprese date night',
     minutes: 15,

@@ -51,7 +51,19 @@ type Action =
   | { type: 'reset' };
 
 function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem) {
-  return items.map((i) => (i.id === id ? patch(i) : i));
+  return items.map((i) => {
+    if (i.id === id) {
+      return patch(i);
+    }
+    return i;
+  });
+}
+
+function rescueItem(item: FoodItem, ids: Set<string>, today: string): FoodItem {
+  if (ids.has(item.id) && item.status === 'inFridge') {
+    return { ...item, status: 'rescued', resolvedAt: today };
+  }
+  return item;
 }
 
 function reducer(state: State, action: Action): State {
@@ -63,7 +75,10 @@ function reducer(state: State, action: Action): State {
         recentlyAddedIds: action.items.map((i) => i.id),
       };
     case 'clearRecentlyAdded':
-      return state.recentlyAddedIds.length === 0 ? state : { ...state, recentlyAddedIds: [] };
+      if (state.recentlyAddedIds.length === 0) {
+        return state;
+      }
+      return { ...state, recentlyAddedIds: [] };
     case 'eat':
       return {
         ...state,
@@ -78,14 +93,15 @@ function reducer(state: State, action: Action): State {
       const ids = new Set(action.ids);
       return {
         ...state,
-        items: state.items.map((i) =>
-          ids.has(i.id) && i.status === 'inFridge' ? { ...i, status: 'rescued', resolvedAt: today } : i,
-        ),
+        items: state.items.map((i) => rescueItem(i, ids, today)),
         recentRescue: { ids: action.ids, count: action.ids.length },
       };
     }
     case 'clearRecentRescue':
-      return state.recentRescue ? { ...state, recentRescue: null } : state;
+      if (state.recentRescue) {
+        return { ...state, recentRescue: null };
+      }
+      return state;
     case 'toss':
       return {
         ...state,
@@ -102,7 +118,11 @@ function reducer(state: State, action: Action): State {
         ...state,
         items: update(state.items, action.id, (i) => {
           const opened = addDays(todayISO(state.dayOffset), shelf);
-          return { ...i, expiresAt: opened < i.expiresAt ? opened : i.expiresAt, dateSource: 'adjusted' };
+          let expiresAt = i.expiresAt;
+          if (opened < i.expiresAt) {
+            expiresAt = opened;
+          }
+          return { ...i, expiresAt, dateSource: 'adjusted' };
         }),
       };
     }
@@ -125,7 +145,11 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(): State {
-  return { items: USE_MOCK ? mockFridgeItems() : [], recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
+  let items: FoodItem[] = [];
+  if (USE_MOCK) {
+    items = mockFridgeItems();
+  }
+  return { items, recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
 }
 
 interface FridgeContextValue {
@@ -173,7 +197,17 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
     const ghosts = inFridge.filter((c) => c.mood === 'ghost');
     const gone = all
       .filter((c) => c.status !== 'inFridge')
-      .sort((a, b) => (b.resolvedAt ?? '').localeCompare(a.resolvedAt ?? ''));
+      .sort((a, b) => {
+        let aResolvedAt = a.resolvedAt;
+        if (!aResolvedAt) {
+          aResolvedAt = '';
+        }
+        let bResolvedAt = b.resolvedAt;
+        if (!bResolvedAt) {
+          bResolvedAt = '';
+        }
+        return bResolvedAt.localeCompare(aResolvedAt);
+      });
 
     return {
       all,

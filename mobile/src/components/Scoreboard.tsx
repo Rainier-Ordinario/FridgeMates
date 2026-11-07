@@ -15,7 +15,11 @@ interface Props {
 
 /** In fridge / rescued / lost. "Lost" opens the memorial. */
 export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false }: Props) {
-  const rescued = useCountUp(data.rescued, countUp ? data.rescued - rescuedBump : data.rescued);
+  let rescuedStart = data.rescued;
+  if (countUp) {
+    rescuedStart = data.rescued - rescuedBump;
+  }
+  const rescued = useCountUp(data.rescued, rescuedStart);
   return (
     <View style={styles.row}>
       <Tile emoji="🧊" label="in fridge" value={data.inFridge} color={colors.ink} />

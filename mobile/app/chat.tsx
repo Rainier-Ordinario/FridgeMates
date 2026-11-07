@@ -130,7 +130,7 @@ export default function ChatScreen() {
           <View style={styles.memberRow}>
             <View style={styles.avatars}>
               {members.slice(0, 6).map((m, i) => (
-                <View key={m.id} style={[styles.avatar, { marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i }]}>
+                <View key={m.id} style={[styles.avatar, { marginLeft: avatarMargin(i), zIndex: 10 - i }]}>
                   <Face emoji={m.emoji} mood={m.mood} size={22} animated={false} showBadge={false} />
                 </View>
               ))}
@@ -139,49 +139,37 @@ export default function ChatScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={speaking ? 'Stop voices' : 'Play voices'}
+          accessibilityLabel={getVoiceLabel(speaking)}
           onPress={playVoices}
           style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
         >
           <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
-            <AppText style={styles.playIcon} color={speaking ? colors.surface : colors.ink}>
-              {speaking ? '■' : '▶'}
+            <AppText style={styles.playIcon} color={getVoiceColor(speaking)}>
+              {getVoiceIcon(speaking)}
             </AppText>
           </View>
-          <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
+          <AppText variant="caption">{getVoiceLabel(speaking, true)}</AppText>
         </Pressable>
       </View>
 
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.dayCaption}>
         Today · {members.length} members
-        {ghosts.length ? `, ${ghosts.length} ghost${ghosts.length > 1 ? 's' : ''}` : ''}
+        {getGhostCaption(ghosts.length)}
       </AppText>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={getKeyboardBehavior()}>
         <FlatList
           data={data}
           inverted
           keyExtractor={(m) => m.key}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            loading ? (
-              <AppText variant="caption" color={colors.inkMuted} style={styles.typing}>
-                the fridge is typing…
-              </AppText>
-            ) : undefined
-          }
-          ListEmptyComponent={
-            !loading && members.length === 0 ? (
-              <AppText variant="body" color={colors.inkMuted} align="center" style={styles.typing}>
-                Nobody’s home. Scan some food first.
-              </AppText>
-            ) : undefined
-          }
+          ListHeaderComponent={renderTyping(loading)}
+          ListEmptyComponent={renderEmpty(loading, members.length)}
           renderItem={({ item }) => (
             <Bubble
               msg={item}
-              who={item.from === 'me' ? undefined : byId(item.from)}
+              who={getMessageCharacter(item.from, byId)}
               active={item.key === speakingKey}
             />
           )}
@@ -238,11 +226,7 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
       style={[styles.row, isGhost && { opacity: m.opacity }]}
     >
       <View style={styles.faceCol}>
-        {who ? (
-          <Face emoji={who.emoji} mood={mood} size={40} showBadge={false} animated={active} />
-        ) : (
-          <AppText style={{ fontSize: 28 }}>🧊</AppText>
-        )}
+        {renderBubbleFace(who, mood, active)}
       </View>
       <View style={styles.bubbleCol}>
         <AppText variant="caption" color={colors.inkMuted}>
@@ -260,6 +244,91 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
       </View>
     </Animated.View>
   );
+}
+
+function avatarMargin(index: number): number {
+  if (index === 0) {
+    return 0;
+  }
+  return -6;
+}
+
+function getVoiceLabel(speaking: boolean, short = false): string {
+  if (speaking) {
+    return 'Stop voices';
+  }
+  if (short) {
+    return 'Play voices';
+  }
+  return 'Play voices';
+}
+
+function getVoiceColor(speaking: boolean): string {
+  if (speaking) {
+    return colors.surface;
+  }
+  return colors.ink;
+}
+
+function getVoiceIcon(speaking: boolean): string {
+  if (speaking) {
+    return '■';
+  }
+  return '▶';
+}
+
+function getGhostCaption(count: number): string {
+  if (count === 0) {
+    return '';
+  }
+  let suffix = 's';
+  if (count === 1) {
+    suffix = '';
+  }
+  return `, ${count} ghost${suffix}`;
+}
+
+function getKeyboardBehavior(): 'padding' | undefined {
+  if (Platform.OS === 'ios') {
+    return 'padding';
+  }
+  return undefined;
+}
+
+function renderTyping(loading: boolean): React.ReactElement | undefined {
+  if (!loading) {
+    return undefined;
+  }
+  return (
+    <AppText variant="caption" color={colors.inkMuted} style={styles.typing}>
+      the fridge is typing…
+    </AppText>
+  );
+}
+
+function renderEmpty(loading: boolean, memberCount: number): React.ReactElement | undefined {
+  if (loading || memberCount !== 0) {
+    return undefined;
+  }
+  return (
+    <AppText variant="body" color={colors.inkMuted} align="center" style={styles.typing}>
+      Nobody’s home. Scan some food first.
+    </AppText>
+  );
+}
+
+function getMessageCharacter(id: string, byId: (value: string) => Character | undefined): Character | undefined {
+  if (id === 'me') {
+    return undefined;
+  }
+  return byId(id);
+}
+
+function renderBubbleFace(who: Character | undefined, mood: Character['mood'], active: boolean) {
+  if (who) {
+    return <Face emoji={who.emoji} mood={mood} size={40} showBadge={false} animated={active} />;
+  }
+  return <AppText style={{ fontSize: 28 }}>🧊</AppText>;
 }
 
 const styles = StyleSheet.create({

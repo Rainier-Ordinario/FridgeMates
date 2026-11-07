@@ -7,7 +7,10 @@
 const DAY_MS = 86_400_000;
 
 function pad(n: number) {
-  return n < 10 ? `0${n}` : String(n);
+  if (n < 10) {
+    return `0${n}`;
+  }
+  return String(n);
 }
 
 export function toISODate(d: Date): string {

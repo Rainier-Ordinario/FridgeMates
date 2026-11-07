@@ -14,6 +14,13 @@ interface PrimaryProps {
 
 const tones = { brand: colors.brand, danger: colors.dangerStrong, success: colors.success } as const;
 
+function textColorForTone(tone: PrimaryProps['tone']): string {
+  if (tone === 'danger') {
+    return colors.surface;
+  }
+  return colors.brandInk;
+}
+
 /** Big thumb-reachable pill. Used for Scan, "Ate it", "I cooked it". */
 export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand' }: PrimaryProps) {
   return (
@@ -33,7 +40,7 @@ export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand' }: 
       ]}
     >
       {emoji ? <AppText style={styles.primaryEmoji}>{emoji}</AppText> : null}
-      <AppText variant="heading" color={tone === 'danger' ? colors.surface : colors.brandInk}>
+      <AppText variant="heading" color={textColorForTone(tone)}>
         {label}
       </AppText>
     </Pressable>

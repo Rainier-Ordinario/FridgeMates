@@ -24,7 +24,10 @@ export function GhostLayer({ ghosts, onPress }: Props) {
       {ghosts.map((g, i) => {
         // Zigzag down the screen, alternating sides, so several ghosts don't stack.
         const top = space.lg + i * 130;
-        const left = i % 2 === 0 ? width - 96 : space.sm;
+        let left = space.sm;
+        if (i % 2 === 0) {
+          left = width - 96;
+        }
         return (
           <Pressable
             key={g.id}

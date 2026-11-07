@@ -5,7 +5,7 @@ import { MoodPill } from '@/components/MoodPill';
 import { Screen } from '@/components/Screen';
 import { SpeechBubble } from '@/components/SpeechBubble';
 import { dateSourceLabel, daysLeftLabel } from '@/logic/mood';
-import { useFridge } from '@/logic/store';
+import { useFridge, type Character } from '@/logic/store';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -19,7 +19,10 @@ const sourceEmoji = { printed: '🏷️', estimated: '🔮', adjusted: '✍️' 
 export default function CharacterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, eat, toss, openedToday, adjustDays } = useFridge();
-  const c = id ? getById(id) : undefined;
+  let c: Character | undefined;
+  if (id) {
+    c = getById(id);
+  }
 
   if (!c) {
     return (
@@ -81,7 +84,7 @@ export default function CharacterScreen() {
             {c.name} · {c.personality}
           </AppText>
           <SpeechBubble
-            text={`“${isGhost && c.epitaph ? c.epitaph : c.intro}”`}
+            text={`“${getSpeech(c, isGhost)}”`}
             tail="top"
             style={styles.bubble}
           />
@@ -90,14 +93,12 @@ export default function CharacterScreen() {
         <View style={styles.countdownCard}>
           <View style={styles.countdownRow}>
             <AppText variant="countdown" color={m.color}>
-              {isGhost ? '👻' : c.daysLeft}
+              {getCountdownValue(c.daysLeft, isGhost)}
             </AppText>
             <View style={{ flex: 1, gap: space.xs }}>
-              <AppText variant="heading">{isGhost ? 'Expired' : daysLeftLabel(c.daysLeft)}</AppText>
+              <AppText variant="heading">{getCountdownLabel(c.daysLeft, isGhost)}</AppText>
               <AppText variant="caption" color={colors.inkMuted}>
-                {isGhost
-                  ? 'Haunting the fridge until tossed.'
-                  : `Use by ${c.expiresAt}. A "use soon" nudge, not a safety verdict.`}
+                {getCountdownDescription(c.expiresAt, c.daysLeft, isGhost)}
               </AppText>
             </View>
           </View>
@@ -107,17 +108,7 @@ export default function CharacterScreen() {
                 {sourceEmoji[c.dateSource]} {dateSourceLabel(c.dateSource)}
               </AppText>
             </View>
-            {!gone && !isGhost ? (
-              <View style={styles.stepper}>
-                <StepButton label="−" onPress={() => nudge(-1)} accessibilityLabel="One day less" />
-                <AppText variant="caption" color={colors.inkMuted} style={styles.stepValue}>
-                  fix date
-                </AppText>
-                <StepButton label="+" onPress={() => nudge(1)} accessibilityLabel="One day more" />
-              </View>
-            ) : (
-              <MoodPill mood={c.mood} daysLeft={c.daysLeft} compact />
-            )}
+            {renderDateControl(c, gone, isGhost, nudge)}
           </View>
         </View>
       </ScrollView>
@@ -164,6 +155,54 @@ export default function CharacterScreen() {
       )}
     </Screen>
   );
+}
+
+function getSpeech(character: Character, isGhost: boolean): string {
+  if (isGhost && character.epitaph) {
+    return character.epitaph;
+  }
+  return character.intro;
+}
+
+function getCountdownValue(daysLeft: number, isGhost: boolean): string | number {
+  if (isGhost) {
+    return '👻';
+  }
+  return daysLeft;
+}
+
+function getCountdownLabel(daysLeft: number, isGhost: boolean): string {
+  if (isGhost) {
+    return 'Expired';
+  }
+  return daysLeftLabel(daysLeft);
+}
+
+function getCountdownDescription(expiresAt: string, daysLeft: number, isGhost: boolean): string {
+  if (isGhost) {
+    return 'Haunting the fridge until tossed.';
+  }
+  return `Use by ${expiresAt}. A "use soon" nudge, not a safety verdict.`;
+}
+
+function renderDateControl(
+  character: Character,
+  gone: boolean,
+  isGhost: boolean,
+  nudge: (delta: number) => void,
+) {
+  if (!gone && !isGhost) {
+    return (
+      <View style={styles.stepper}>
+        <StepButton label="−" onPress={() => nudge(-1)} accessibilityLabel="One day less" />
+        <AppText variant="caption" color={colors.inkMuted} style={styles.stepValue}>
+          fix date
+        </AppText>
+        <StepButton label="+" onPress={() => nudge(1)} accessibilityLabel="One day more" />
+      </View>
+    );
+  }
+  return <MoodPill mood={character.mood} daysLeft={character.daysLeft} compact />;
 }
 
 function StepButton({
