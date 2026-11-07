@@ -66,13 +66,14 @@ export function ScanLoader() {
 
   if (failed) return <MoodLoader phrases={phrases} />;
 
-  // Arc geometry: fits a 375pt phone with 24pt gutters (circle 84, radius 120 → 324pt wide).
+  // Arc geometry: fits a 375pt phone with 24pt gutters (circle 76, radius ~123 → 322pt wide).
   const stageW = Math.min(width - 2 * space.xl, 340);
-  const circle = stageW < 320 ? 76 : 84;
+  const circle = stageW < 320 ? 70 : 76;
   const r = Math.round(stageW / 2 - circle / 2 - 2);
   const cx = stageW / 2;
   const cy = r + circle / 2 + 8; // mascot center sits below the arc
-  const angles = [200, 235, 270, 305, 340];
+  // 40° apart: neighbouring circles never touch (chord ≥ circle) at this radius.
+  const angles = [190, 230, 270, 310, 350];
   const stageH = cy + 70;
 
   return (
