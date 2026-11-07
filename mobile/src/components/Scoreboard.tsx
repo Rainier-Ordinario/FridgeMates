@@ -23,11 +23,11 @@ export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false
         emoji="🎉"
         label="rescued"
         value={rescued}
-        color={colors.success}
+        color={colors.successText}
         highlight={rescuedBump > 0}
         bump={rescuedBump}
       />
-      <Tile emoji="🪦" label="lost" value={data.lost} color={colors.danger} onPress={onPressLost} />
+      <Tile emoji="🪦" label="lost" value={data.lost} color={colors.dangerStrong} onPress={onPressLost} />
     </View>
   );
 }
@@ -54,7 +54,7 @@ export function StatsLine({
       <AppText variant="caption" color={colors.inkFaint}>
         ·
       </AppText>
-      <AppText variant="caption" color={rescuedBump > 0 ? colors.success : colors.inkMuted}>
+      <AppText variant="caption" color={rescuedBump > 0 ? colors.successText : colors.inkMuted}>
         {data.rescued} rescued{rescuedBump > 0 ? ` (+${rescuedBump})` : ''}
       </AppText>
       <AppText variant="caption" color={colors.inkFaint}>
@@ -66,7 +66,7 @@ export function StatsLine({
         onPress={onPressLost}
         hitSlop={8}
       >
-        <AppText variant="caption" color={data.lost > 0 ? colors.danger : colors.inkMuted}>
+        <AppText variant="caption" color={data.lost > 0 ? colors.dangerStrong : colors.inkMuted}>
           {data.lost} lost{data.lost > 0 ? ' ›' : ''}
         </AppText>
       </Pressable>

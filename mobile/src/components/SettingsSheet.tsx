@@ -64,8 +64,8 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
           accessible
           accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, about ${formatDollars(scoreboard.savedDollars)} saved`}
         >
-          <Stat emoji="🎉" value={String(scoreboard.rescued)} label="rescued" color={colors.success} />
-          <Stat emoji="🪦" value={String(scoreboard.lost)} label="lost" color={colors.danger} />
+          <Stat emoji="🎉" value={String(scoreboard.rescued)} label="rescued" color={colors.successText} />
+          <Stat emoji="🪦" value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
           <Stat emoji="💸" value={formatDollars(scoreboard.savedDollars)} label="saved" color={colors.ink} />
         </View>
       </Section>

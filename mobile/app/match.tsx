@@ -96,7 +96,7 @@ export default function MatchScreen() {
         <>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.card}>
-              <AppText variant="kicker" color={colors.brandDark} align="center">
+              <AppText variant="kicker" color={colors.ink} align="center">
                 It’s a match!
               </AppText>
               <View style={styles.faces}>

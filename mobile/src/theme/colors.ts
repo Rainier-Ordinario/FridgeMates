@@ -14,6 +14,8 @@ export const colors = {
   /** Brand-colored text on cream/white surfaces (5.3:1). */
   brandText: '#A8471A',
   success: '#3DBE7A',
+  /** Green for numbers and text on cream/white (5.3:1). */
+  successText: '#1E7A4B',
   danger: '#E5483A',
   /** Danger button fill; white label passes 5.4:1. */
   dangerStrong: '#C0392B',

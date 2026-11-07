@@ -246,7 +246,7 @@ export default function ChatScreen() {
             onChangeText={setDraft}
             onSubmitEditing={send}
             placeholder="Talk to the fridge…"
-            placeholderTextColor={colors.inkFaint}
+            placeholderTextColor={colors.inkMuted}
             returnKeyType="send"
             style={styles.input}
             accessibilityLabel="Message the fridge"

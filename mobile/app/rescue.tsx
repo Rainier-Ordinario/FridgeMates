@@ -108,11 +108,11 @@ export default function RescueScreen() {
           <AppText variant="caption" color={colors.inkMuted} style={styles.label}>
             RESCUED
           </AppText>
-          <AppText variant="countdown" color={colors.success}>
+          <AppText variant="countdown" color={colors.successText}>
             +{rescued.length}
           </AppText>
           {saved > 0 && (
-            <AppText variant="bodyBold" color={colors.success}>
+            <AppText variant="bodyBold" color={colors.successText}>
               You saved about {formatDollars(saved)}
             </AppText>
           )}
