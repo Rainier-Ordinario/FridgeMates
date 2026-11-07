@@ -4,6 +4,7 @@ import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
 import { mockMessagesResponse } from './mocks/messages';
 import { mockScanResponse } from './mocks/scan';
+import { safeText } from '@/logic/safety';
 import type {
   ChatRequest,
   ChatResponse,
@@ -76,12 +77,12 @@ const normalize = {
         .map((i) => ({
           name: str(i.name),
           emoji: str(i.emoji, '🍽️'),
-          characterName: str(i.characterName) || str(i.name),
-          personality: str(i.personality) || 'mysterious',
+          characterName: safeText(str(i.characterName) || str(i.name), str(i.name)),
+          personality: safeText(str(i.personality) || 'mysterious', 'mysterious'),
           // The backend sends negatives for visibly spoiled food; keep them so it arrives as a ghost.
           daysLeft: Math.max(-30, Math.min(365, Math.round(num(i.daysLeft, 3)))),
           dateSource: i.dateSource === 'printed' ? 'printed' : 'estimated',
-          intro: str(i.intro) || 'Hi. I live here now.',
+          intro: safeText(str(i.intro) || 'Hi. I live here now.', 'Hi. I live here now.'),
         })),
     };
   },
@@ -92,21 +93,26 @@ const normalize = {
   },
   match(r: Partial<MatchResponse> | null | undefined): MatchResponse {
     return {
-      title: str(r?.title, 'A surprise date'),
+      title: safeText(str(r?.title, 'A surprise date'), 'A surprise date'),
       minutes: num(r?.minutes, 15),
       rescues: arr<string>(r?.rescues),
-      steps: arr<string>(r?.steps),
-      thankYou: str(r?.thankYou, 'You saved me. I will never forget this.'),
+      steps: arr<string>(r?.steps).map((step) => safeText(String(step), 'Cook it with love.')),
+      thankYou: safeText(str(r?.thankYou, 'You saved me. I will never forget this.'), 'You saved me.'),
     };
   },
   ghost(r: Partial<GhostResponse> | null | undefined): GhostResponse {
-    return { epitaph: str(r?.epitaph, 'Gone too soon. Bought with good intentions.') };
+    return {
+      epitaph: safeText(
+        str(r?.epitaph, 'Gone too soon. Bought with good intentions.'),
+        'Gone too soon. Bought with good intentions.',
+      ),
+    };
   },
   messages(r: Partial<MessagesResponse> | null | undefined): MessagesResponse {
     return {
-      messages: arr<MessagesResponse['messages'][number]>(r?.messages).filter(
-        (m) => m && typeof m.text === 'string',
-      ),
+      messages: arr<MessagesResponse['messages'][number]>(r?.messages)
+        .filter((m) => m && typeof m.text === 'string')
+        .map((m) => ({ ...m, text: safeText(m.text, "u up? it's about tomorrow") })),
     };
   },
 };

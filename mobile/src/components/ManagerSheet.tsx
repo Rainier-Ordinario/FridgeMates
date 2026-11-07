@@ -8,7 +8,7 @@ import {
   type ManagerAnswer,
   type ManagerQuestion,
 } from '@/logic/manager';
-import { FRIDGE_FRIENDLY_LINE, isBlocked, withSafetyRule } from '@/logic/safety';
+import { FRIDGE_FRIENDLY_LINE, isBlocked, safeText, withSafetyRule } from '@/logic/safety';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, hit, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -116,7 +116,9 @@ export function ManagerSheet({ visible, onClose }: Props) {
       });
       const first = res.lines[0]?.text;
       if (session.current !== id) return;
-      deliver(first ? { text: first, tone: 'answering', faces: [] } : fallback());
+      deliver(
+        first ? { text: safeText(first, managerFallback(q)), tone: 'answering', faces: [] } : fallback(),
+      );
     } catch {
       if (session.current === id) deliver(fallback());
     }
