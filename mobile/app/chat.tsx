@@ -4,6 +4,7 @@ import { AppText } from '@/components/AppText';
 import { RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { Screen } from '@/components/Screen';
+import { TypingDots } from '@/components/TypingDots';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
@@ -166,9 +167,12 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             loading ? (
-              <AppText variant="caption" color={colors.inkMuted} style={styles.typing}>
-                the fridge is typing…
-              </AppText>
+              <View style={styles.typingRow}>
+                <View style={styles.faceCol}>
+                  <AppText style={{ fontSize: 24 }}>🧊</AppText>
+                </View>
+                <TypingDots />
+              </View>
             ) : undefined
           }
           ListEmptyComponent={
@@ -302,6 +306,7 @@ const styles = StyleSheet.create({
   playIcon: { fontSize: 13, lineHeight: 16 },
   list: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 10 },
   typing: { paddingVertical: space.sm, paddingLeft: 52 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: 302 },
   rowMe: { alignSelf: 'flex-end', maxWidth: 262 },
   faceCol: { width: 40, alignItems: 'center' },
