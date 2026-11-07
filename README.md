@@ -67,6 +67,7 @@ If typecheck complains about routes that exist, start `npx expo start` once to r
 | `/chat`, `/match`, `/ghost`, `/messages` | **Mock only**: not on the backend yet, so live mode shows errors on those screens |
 | Saving the fridge on the phone | Done: AsyncStorage persistence in `mobile/src/logic/store.tsx` (items, day offset, settings) |
 | Notifications | Stub (`mobile/src/logic/notifications.ts`), not wired up |
+| Scan quantities | Detected duplicates are grouped with a count users can adjust before and after adding |
 | Backend deployed | **Live** on Render (manual deploys from `dev`) |
 | USDA FoodKeeper shelf-life data | Not yet: `daysLeft` is currently Gemini's own estimate |
 | Re-scan updates existing items instead of duplicating | Planned |
@@ -92,13 +93,14 @@ The app uses mock data until the backend is deployed. Base URL lives in one conf
 ```json
 { "items": [ {
   "name": "Greek yogurt", "emoji": "🥛",
+  "quantity": 1,
   "characterName": "Sir Yogurtsworth", "personality": "dramatic, needy",
   "daysLeft": 4, "dateSource": "printed",
   "intro": "Finally, someone opened the door."
 } ] }
 ```
-`dateSource` is `"printed"` or `"estimated"`. The app assigns each item a local `id`.
-**Live `/scan` today:** Gemini only returns `name`, `emoji`, `daysLeft` and `dateSource`. The backend fills `characterName` with the
+`dateSource` is `"printed"` or `"estimated"`. `quantity` is the count of identical visible units/packages (1–99); identical names are combined by the backend. Before adding scan results, the app lets users adjust or skip each quantity; quantities remain editable in the fridge. The app assigns each item a local `id`.
+**Live `/scan` today:** Gemini returns `name`, `emoji`, `quantity`, `daysLeft` and `dateSource`. The backend fills `characterName` with the
 food name and sends empty `personality` and `intro`, so the UI must not rely on those. A new photo takes about 2s (the first call after
 the server idles can take ~10s+). The app's timeout is 30s for `/scan` and 15s for other calls.
 

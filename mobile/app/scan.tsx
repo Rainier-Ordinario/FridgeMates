@@ -186,8 +186,9 @@ export default function ScanScreen() {
         return;
       }
       const printed = items.filter((i) => i.dateSource === 'printed').length;
+      const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
       setFoundNote(
-        `Found ${items.length} item${items.length === 1 ? '' : 's'} · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
+        `Found ${items.length} food type${items.length === 1 ? '' : 's'} · ${totalQuantity} total · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
       );
       // Most urgent first, like the fridge.
       setFound([...items].sort((a, b) => a.daysLeft - b.daysLeft));
@@ -202,7 +203,7 @@ export default function ScanScreen() {
 
   /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
   function finish(next?: '/match') {
-    addScanned(found);
+    addScanned(found.filter((item) => item.quantity > 0));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const go = () => {
       router.back();
@@ -350,7 +351,7 @@ export default function ScanScreen() {
             Meet your fridge
           </AppText>
           <AppText style={styles.sub} color={colors.inkMuted}>
-            {found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.
+            {found.length === 1 ? '1 food type' : `${found.length} food types`} just woke up. Adjust quantities or skip anything you do not want to add.
           </AppText>
           <ScrollView
             style={{ flex: 1 }}
@@ -364,7 +365,17 @@ export default function ScanScreen() {
                   key={`${item.name}-${i}`}
                   entering={reduceMotion ? undefined : ZoomIn.springify().damping(12)}
                 >
-                  <FoodRow food={item.name} name={item.characterName} mood={mood} daysLeft={item.daysLeft} />
+                  <FoodRow
+                    food={item.name}
+                    name={item.characterName}
+                    mood={mood}
+                    daysLeft={item.daysLeft}
+                    quantity={item.quantity}
+                    quantityMin={0}
+                    onQuantityChange={(quantity) =>
+                      setFound((current) => current.map((entry, index) => (index === i ? { ...entry, quantity } : entry)))
+                    }
+                  />
                 </Animated.View>
               );
             })}
@@ -379,19 +390,29 @@ export default function ScanScreen() {
               </Animated.View>
               <Animated.View entering={FadeIn.delay(100).duration(200)}>
                 <DockedFooter>
-                  <View style={styles.resultRow}>
-                    <SecondaryButton
-                      label="Find a match"
-                      outlined
-                      onPress={() => finish('/match')}
-                      style={styles.half}
-                    />
-                  </View>
-                  <PrimaryButton
-                    icon={<UiIcon icon="ice" size={22} />}
-                    label="Go to my fridge"
-                    onPress={() => finish()}
-                  />
+                  {found.some((item) => item.quantity > 0) ? (
+                    <>
+                      {found.filter((item) => item.quantity > 0).length > 1 && (
+                        <View style={styles.resultRow}>
+                          <SecondaryButton
+                            label="Find a match"
+                            outlined
+                            onPress={() => finish('/match')}
+                            style={styles.half}
+                          />
+                        </View>
+                      )}
+                      <PrimaryButton
+                        icon={<UiIcon icon="ice" size={22} />}
+                        label={`Add ${found.reduce((sum, item) => sum + item.quantity, 0)} to my fridge`}
+                        onPress={() => finish()}
+                      />
+                    </>
+                  ) : (
+                    <AppText variant="caption" color={colors.inkMuted} align="center">
+                      Increase at least one quantity to add food to your fridge.
+                    </AppText>
+                  )}
                 </DockedFooter>
               </Animated.View>
             </>

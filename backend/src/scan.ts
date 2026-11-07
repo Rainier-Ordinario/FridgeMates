@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 export interface ScanItem {
   name: string;
   emoji: string;
+  quantity: number;
   characterName: string;
   personality: string;
   daysLeft: number;
@@ -15,6 +16,7 @@ export interface ScanItem {
 interface RawItem {
   name: string;
   emoji: string;
+  quantity: number;
   daysLeft: number;
   dateSource: 'printed' | 'estimated';
 }
@@ -26,6 +28,7 @@ const MODELS = (process.env.GEMINI_MODELS ?? process.env.GEMINI_MODEL ?? 'gemini
   .map((m) => m.trim())
   .filter(Boolean);
 const MAX_ITEMS = 25;
+const MAX_QUANTITY = 99;
 const MIN_DAYS = -3;
 const MAX_DAYS = 365;
 
@@ -39,10 +42,11 @@ const SCHEMA = {
         properties: {
           name: { type: 'string', description: 'Short common name, e.g. "Greek yogurt", "Spinach", "Leftover pasta"' },
           emoji: { type: 'string', description: 'One emoji that best matches the food' },
+          quantity: { type: 'integer', description: 'Number of identical units or packages visible; count separate packages individually' },
           daysLeft: { type: 'integer', description: 'Estimated whole days until it should be used by, from today' },
           dateSource: { type: 'string', enum: ['printed', 'estimated'] },
         },
-        required: ['name', 'emoji', 'daysLeft', 'dateSource'],
+        required: ['name', 'emoji', 'quantity', 'daysLeft', 'dateSource'],
       },
     },
   },
@@ -51,7 +55,7 @@ const SCHEMA = {
 
 function buildPrompt(today: string): string {
   return `You are the food-expiry estimator for a fridge-tracking app. Today is ${today}.
-Look at this photo and list every distinct food or drink item you can identify. Group identical items (e.g. 6 eggs = one "Eggs" item).
+Look at this photo and list every distinct food or drink item you can identify. Group identical items into one entry and set quantity to the number visible (e.g. two milk cartons = "Milk", quantity 2). Count separate packages as units; for loose individual produce, count each piece. A carton or container is one unit unless its contents are individually visible outside it. If unsure, use quantity 1.
 
 For each item, give "daysLeft": the whole number of days from today until it should be used by, assuming it is stored in a fridge.
 - If a use-by / best-before date is clearly legible on the package, compute daysLeft from it and set dateSource to "printed".
@@ -78,9 +82,23 @@ export function sanitizeItems(raw: unknown): ScanItem[] {
     }
     if (!name || typeof r.daysLeft !== 'number' || !Number.isFinite(r.daysLeft)) continue;
     const daysLeft = Math.min(MAX_DAYS, Math.max(MIN_DAYS, Math.round(r.daysLeft)));
+    const quantity = typeof r.quantity === 'number' && Number.isFinite(r.quantity)
+      ? Math.min(MAX_QUANTITY, Math.max(1, Math.round(r.quantity)))
+      : 1;
+    const duplicate = out.find((item) => normalizeName(item.name) === normalizeName(name));
+    if (duplicate) {
+      duplicate.quantity = Math.min(MAX_QUANTITY, duplicate.quantity + quantity);
+      if (daysLeft < duplicate.daysLeft || (daysLeft === duplicate.daysLeft && getDateSource(r) === 'printed')) {
+        duplicate.daysLeft = daysLeft;
+        duplicate.dateSource = getDateSource(r);
+      }
+      continue;
+    }
+    if (out.length >= MAX_ITEMS) continue;
     out.push({
       name,
       emoji: getEmoji(r),
+      quantity,
       // Character fields are kept only to satisfy the shared contract. Characters are paused for now.
       characterName: name,
       personality: '',
@@ -88,9 +106,12 @@ export function sanitizeItems(raw: unknown): ScanItem[] {
       dateSource: getDateSource(r),
       intro: '',
     });
-    if (out.length >= MAX_ITEMS) break;
   }
   return out;
+}
+
+function normalizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
 function getEmoji(item: Partial<RawItem>): string {

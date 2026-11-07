@@ -6,6 +6,7 @@ export const mockScanResponse: ScanResponse = {
     {
       name: 'Milk',
       emoji: '🥛',
+      quantity: 1,
       characterName: 'Moo-dy Judy',
       personality: 'passive-aggressive, lactose-proud',
       daysLeft: 5,
@@ -15,6 +16,7 @@ export const mockScanResponse: ScanResponse = {
     {
       name: 'Strawberries',
       emoji: '🍓',
+      quantity: 2,
       characterName: 'The Berry Twins',
       personality: 'clingy, sweet, zero chill',
       daysLeft: 2,
@@ -24,6 +26,7 @@ export const mockScanResponse: ScanResponse = {
     {
       name: 'Eggs',
       emoji: '🥚',
+      quantity: 1,
       characterName: 'The Dozen',
       personality: 'calm, collective, slightly cult-like',
       daysLeft: 12,

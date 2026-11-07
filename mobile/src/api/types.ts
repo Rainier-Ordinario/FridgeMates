@@ -9,6 +9,7 @@ export type ApiDateSource = 'printed' | 'estimated';
 export interface ScanItem {
   name: string;
   emoji: string;
+  quantity: number;
   characterName: string;
   personality: string;
   daysLeft: number;
@@ -82,6 +83,10 @@ export interface FoodItem {
   id: string;
   name: string;
   emoji: string;
+  /** number of identical units currently in the fridge */
+  quantity: number;
+  /** units already rescued while others from this scan remain in the fridge */
+  rescuedQuantity?: number;
   characterName: string;
   personality: string;
   intro: string;

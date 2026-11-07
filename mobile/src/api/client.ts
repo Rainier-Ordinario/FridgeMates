@@ -84,6 +84,7 @@ const normalize = {
         .map((i) => ({
           name: str(i.name),
           emoji: str(i.emoji, '🍽️'),
+          quantity: Math.max(1, Math.min(99, Math.round(num(i.quantity, 1)))),
           characterName: safeText(str(i.characterName) || str(i.name), str(i.name)),
           personality: safeText(str(i.personality) || 'mysterious', 'mysterious'),
           // The backend sends negatives for visibly spoiled food; keep them so it arrives as a ghost.

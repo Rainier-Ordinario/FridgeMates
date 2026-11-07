@@ -68,6 +68,7 @@ export function scanItemToFoodItem(scan: ScanItem, dayOffset = 0): FoodItem {
     id: newLocalId(),
     name: scan.name,
     emoji: scan.emoji,
+    quantity: scan.quantity,
     characterName: scan.characterName,
     personality: scan.personality,
     intro: scan.intro,

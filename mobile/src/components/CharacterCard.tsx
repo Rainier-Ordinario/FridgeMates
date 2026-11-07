@@ -10,12 +10,13 @@ interface Props {
   onAte?: (character: Character) => void;
   /** One-tap "Toss" (ghosts) from the list. */
   onToss?: (character: Character) => void;
+  onQuantityChange?: (character: Character, quantity: number) => void;
   /** Freshly scanned: NEW tag + pop-in. */
   isNew?: boolean;
 }
 
 /** Fridge list row: the compact FoodRow with Ate it / Toss. */
-function CharacterCardBase({ character, onPress, onAte, onToss, isNew = false }: Props) {
+function CharacterCardBase({ character, onPress, onAte, onToss, onQuantityChange, isNew = false }: Props) {
   const isGhost = character.mood === 'ghost';
   const action = isGhost
     ? onToss && {
@@ -35,6 +36,8 @@ function CharacterCardBase({ character, onPress, onAte, onToss, isNew = false }:
       name={character.characterName}
       mood={character.mood}
       daysLeft={character.daysLeft}
+      quantity={character.quantity}
+      onQuantityChange={onQuantityChange ? (quantity) => onQuantityChange(character, quantity) : undefined}
       isNew={isNew}
       action={action || undefined}
       onPress={onPress ? () => onPress(character) : undefined}

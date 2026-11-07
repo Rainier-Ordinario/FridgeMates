@@ -92,6 +92,7 @@ export default function FridgeScreen() {
     rescueMany,
     hydrated,
     addScanned,
+    adjustQuantity,
     skipDay,
     dayOffset,
   } = useFridge();
@@ -360,6 +361,7 @@ export default function FridgeScreen() {
                 onPress={openCharacter}
                 onAte={ateIt}
                 onToss={tossGhost}
+                onQuantityChange={(character, quantity) => adjustQuantity(character.id, quantity)}
                 isNew={recentlyAddedIds.includes(item.id)}
               />
             )}

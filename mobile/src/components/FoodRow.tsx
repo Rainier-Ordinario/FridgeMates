@@ -7,6 +7,7 @@ import Animated, { ZoomIn } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { Face } from './Face';
 import { MoodPill } from './MoodPill';
+import { QuantityControl } from './QuantityControl';
 
 export interface FoodRowProps {
   /** Food name for the icon. */
@@ -24,10 +25,13 @@ export interface FoodRowProps {
   isNew?: boolean;
   /** Face motion loop (off for long static lists). */
   animated?: boolean;
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
+  quantityMin?: number;
 }
 
 /**
- * Compact 72pt row: food icon in a mood-tinted circle, name, plain-language time + mood pill, and one action.
+ * Food icon, name, expiry and mood, with optional quantity controls and one action.
  * Row background is the mood tint; dramatic rows get a red border; ghost rows are dashed and faded.
  */
 function FoodRowBase({
@@ -41,6 +45,9 @@ function FoodRowBase({
   accessibilityHint,
   isNew = false,
   animated = true,
+  quantity,
+  onQuantityChange,
+  quantityMin = 1,
 }: FoodRowProps) {
   const m = moods[mood];
   const isGhost = mood === 'ghost';
@@ -62,38 +69,45 @@ function FoodRowBase({
           </AppText>
         </View>
       )}
-      <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} />
-      <View style={styles.text}>
-        <AppText style={styles.name} numberOfLines={1}>
-          {name}
-        </AppText>
-        <View style={styles.meta}>
-          <AppText style={styles.time} color={m.text} numberOfLines={1}>
-            {plainTimeLabel(daysLeft)}
-          </AppText>
-          <MoodPill mood={mood} compact />
+      <View style={styles.details}>
+        <View style={styles.main}>
+          <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} />
+          <View style={styles.text}>
+            <AppText style={styles.name} numberOfLines={1}>
+              {name}
+            </AppText>
+            <View style={styles.meta}>
+              <AppText style={styles.time} color={m.text} numberOfLines={1}>
+                {plainTimeLabel(daysLeft)}
+              </AppText>
+              <MoodPill mood={mood} compact />
+            </View>
+          </View>
+          {action && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.accessibilityLabel}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                action.onPress();
+              }}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.action,
+                { borderColor: action.color ?? colors.ink },
+                pressed && styles.actionPressed,
+              ]}
+            >
+              <AppText style={styles.actionText} color={action.color ?? colors.ink}>
+                {action.label}
+              </AppText>
+            </Pressable>
+          )}
         </View>
+        {quantity !== undefined && onQuantityChange && (
+          <QuantityControl label={name} quantity={quantity} onChange={onQuantityChange} min={quantityMin} />
+        )}
       </View>
-      {action && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action.accessibilityLabel}
-          onPress={() => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            action.onPress();
-          }}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.action,
-            { borderColor: action.color ?? colors.ink },
-            pressed && styles.actionPressed,
-          ]}
-        >
-          <AppText style={styles.actionText} color={action.color ?? colors.ink}>
-            {action.label}
-          </AppText>
-        </Pressable>
-      )}
     </Animated.View>
   );
   if (!onPress) return <View style={styles.wrap}>{body}</View>;
@@ -141,7 +155,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 10, lineHeight: 14 },
-  text: { flex: 1, gap: 2 },
+  details: { flex: 1 },
+  main: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  text: { flex: 1, gap: 2, minWidth: 0 },
   name: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 22 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   time: { fontFamily: 'Nunito_700Bold', fontSize: 14, lineHeight: 18, flexShrink: 1 },
