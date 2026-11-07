@@ -7,7 +7,6 @@ import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
 import { MoodPill } from '@/components/MoodPill';
 import { Screen } from '@/components/Screen';
-import { SpeechBubble } from '@/components/SpeechBubble';
 import { moodFor } from '@/logic/mood';
 import { useFridge } from '@/logic/store';
 import { colors, moodOrder, moods, radius, shadow, space } from '@/theme';
@@ -263,7 +262,7 @@ export default function ScanScreen() {
       {phase === 'reveal' && (
         <>
           <AppText variant="body" color={colors.inkMuted} style={styles.sub}>
-            They just woke up. Be nice.
+            Found these. Dates are rough estimates.
           </AppText>
           <ScrollView
             style={{ flex: 1 }}
@@ -274,7 +273,7 @@ export default function ScanScreen() {
               const mood = moodFor(item.daysLeft);
               return (
                 <Animated.View
-                  key={`${item.characterName}-${i}`}
+                  key={`${item.name}-${i}`}
                   entering={ZoomIn.springify().damping(12)}
                   style={styles.row}
                 >
@@ -282,11 +281,10 @@ export default function ScanScreen() {
                   <View style={styles.rowBody}>
                     <View style={styles.nameRow}>
                       <AppText variant="bodyBold" numberOfLines={1} style={{ flexShrink: 1 }}>
-                        {item.characterName}
+                        {item.name}
                       </AppText>
                       <MoodPill mood={mood} daysLeft={item.daysLeft} compact />
                     </View>
-                    <SpeechBubble text={item.intro} tail="left" compact style={styles.bubble} />
                   </View>
                 </Animated.View>
               );
@@ -501,10 +499,9 @@ const styles = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6 },
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
   reveal: { paddingHorizontal: space.lg, paddingBottom: space.md, gap: 18 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bubble: { alignSelf: 'stretch', alignItems: 'flex-start' },
   footer: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.md },
   // viewfinder
   cameraGround: { flex: 1, backgroundColor: '#1F1812' },
