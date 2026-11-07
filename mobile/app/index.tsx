@@ -3,12 +3,11 @@ import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
-import { DemoMenu } from '@/components/DemoMenu';
 import { EmptyFridge } from '@/components/EmptyFridge';
 import { GhostLayer } from '@/components/GhostLayer';
-import { useTextMe } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
+import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, space } from '@/theme';
@@ -39,15 +38,13 @@ export default function FridgeScreen() {
   const listRef = useRef<FlatList<Character>>(null);
   const requestedEpitaphs = useRef(new Set<string>());
   const { ready, welcomed, markWelcomed } = useFirstRun();
-  // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the cast; /?menu=1 opens settings; /?nudge=1 texts you.
-  const { skipWelcome, demo, menu, nudge } = useLocalSearchParams<{
+  // Dev/demo deep links: /?skipWelcome=1 marks first run done; /?demo=1 loads the cast; /?menu=1 opens settings.
+  const { skipWelcome, demo, menu } = useLocalSearchParams<{
     skipWelcome?: string;
     demo?: string;
     menu?: string;
-    nudge?: string;
   }>();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const textMe = useTextMe();
+  const [menuOpen, setMenuOpen] = useState<false | 'settings' | 'demo'>(false);
 
   // First run: show the welcome screen instead of the fridge.
   useEffect(() => {
@@ -61,10 +58,9 @@ export default function FridgeScreen() {
 
   useEffect(() => {
     if (demo) loadDemo();
-    if (menu) setTimeout(() => setMenuOpen(true), 300);
-    if (nudge) setTimeout(() => textMe(), 600);
+    if (menu) setTimeout(() => setMenuOpen('settings'), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, menu, nudge]);
+  }, [demo, menu]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -123,7 +119,7 @@ export default function FridgeScreen() {
             delayLongPress={500}
             onLongPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setMenuOpen(true);
+              setMenuOpen('demo');
             }}
             style={{ flex: 1 }}
           >
@@ -132,7 +128,7 @@ export default function FridgeScreen() {
               Spoil alert: your food has feelings.
             </AppText>
           </Pressable>
-          <RoundButton emoji="⚙️" label="Settings" size={48} onPress={() => setMenuOpen(true)} />
+          <RoundButton emoji="⚙️" label="Settings" size={48} onPress={() => setMenuOpen('settings')} />
         </View>
         <StatsLine
           data={scoreboard}
@@ -168,20 +164,10 @@ export default function FridgeScreen() {
         <GhostLayer ghosts={ghosts} onPress={openCharacter} onToss={tossGhost} />
       </View>
 
-      <DemoMenu
-        visible={menuOpen}
+      <SettingsSheet
+        visible={menuOpen !== false}
+        demoFirst={menuOpen === 'demo'}
         onClose={() => setMenuOpen(false)}
-        extraRows={[
-          {
-            emoji: '💬',
-            label: 'Text me',
-            caption: 'The most urgent character sends a message',
-            onPress: () => {
-              setMenuOpen(false);
-              setTimeout(textMe, 150);
-            },
-          },
-        ]}
       />
 
       <LinearGradient
@@ -200,7 +186,7 @@ export default function FridgeScreen() {
           />
           <SecondaryButton
             emoji="🍳"
-            label="What should I cook?"
+            label="What to cook?"
             onPress={() => router.push('/match')}
             style={styles.half}
           />

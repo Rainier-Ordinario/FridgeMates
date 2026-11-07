@@ -5,6 +5,12 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
  * and never throw: a missing audio session must not break the scan reveal.
  * TODO(ios-logic): if you add voice clips later, reuse `player()` so there is one audio mode.
  */
+let enabled = true;
+/** Settings → Sounds. */
+export function setSoundsEnabled(on: boolean) {
+  enabled = on;
+}
+
 let players: { pop: AudioPlayer; tada: AudioPlayer } | null = null;
 let initPromise: Promise<void> | null = null;
 
@@ -25,6 +31,7 @@ function init(): Promise<void> {
 }
 
 async function play(name: 'pop' | 'tada') {
+  if (!enabled) return;
   try {
     await init();
     const p = players?.[name];

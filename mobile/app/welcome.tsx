@@ -7,7 +7,7 @@ import { useFridge } from '@/logic/store';
 import { colors, radius, shadow, space, motion } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -32,6 +32,8 @@ const beats = [
 export default function WelcomeScreen() {
   const { markWelcomed } = useFirstRun();
   const { loadDemo } = useFridge();
+  // ?replay=1: opened from Settings → just go back, don't touch the first-run flag.
+  const { replay } = useLocalSearchParams<{ replay?: string }>();
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
 
@@ -46,6 +48,10 @@ export default function WelcomeScreen() {
 
   function start(withDemo: boolean) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (replay) {
+      router.back();
+      return;
+    }
     if (withDemo) loadDemo();
     markWelcomed();
     router.replace('/');
@@ -89,17 +95,23 @@ export default function WelcomeScreen() {
       </View>
 
       <DockedFooter>
-        <PrimaryButton emoji="🧊" label="Get started" onPress={() => start(false)} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Load the demo fridge"
-          onPress={() => start(true)}
-          style={({ pressed }) => [styles.demoLink, pressed && { opacity: 0.7 }]}
-        >
-          <AppText variant="caption" color={colors.inkMuted} align="center">
-            Just here for the demo? Load the demo fridge →
-          </AppText>
-        </Pressable>
+        <PrimaryButton
+          emoji="🧊"
+          label={replay ? 'Back to the fridge' : 'Get started'}
+          onPress={() => start(false)}
+        />
+        {!replay && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Load the demo fridge"
+            onPress={() => start(true)}
+            style={({ pressed }) => [styles.demoLink, pressed && { opacity: 0.7 }]}
+          >
+            <AppText variant="caption" color={colors.inkMuted} align="center">
+              Just here for the demo? Load the demo fridge →
+            </AppText>
+          </Pressable>
+        )}
       </DockedFooter>
     </Screen>
   );

@@ -5,6 +5,7 @@ import { Face } from '@/components/Face';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { TypingDots } from '@/components/TypingDots';
+import { useSettings } from '@/logic/settings';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
@@ -44,6 +45,7 @@ interface Msg {
 /** Fridge group chat: characters gossip in mood-tinted bubbles; "Play voices" reads them aloud on tap. */
 export default function ChatScreen() {
   const { characters, ghosts } = useFridge();
+  const { voices } = useSettings();
   const members = useMemo(() => [...characters, ...ghosts], [characters, ghosts]);
   const byId = useCallback((id: string) => members.find((m) => m.id === id), [members]);
 
@@ -171,23 +173,25 @@ export default function ChatScreen() {
           </View>
         }
         right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={speaking ? 'Stop voices' : 'Play voices'}
-            onPress={playVoices}
-            style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
-          >
-            <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
-              {speaking ? (
-                <Equalizer />
-              ) : (
-                <AppText style={styles.playIcon} color={colors.ink}>
-                  ▶
-                </AppText>
-              )}
-            </View>
-            <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
-          </Pressable>
+          voices ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={speaking ? 'Stop voices' : 'Play voices'}
+              onPress={playVoices}
+              style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
+            >
+              <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
+                {speaking ? (
+                  <Equalizer />
+                ) : (
+                  <AppText style={styles.playIcon} color={colors.ink}>
+                    ▶
+                  </AppText>
+                )}
+              </View>
+              <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
+            </Pressable>
+          ) : undefined
         }
       />
 
