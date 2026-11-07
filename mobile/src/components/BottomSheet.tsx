@@ -32,7 +32,7 @@ export function BottomSheet({ visible, onClose, title, children, scrollToEnd = f
           onPress={onClose}
         />
         <Animated.View
-          entering={SlideInDown.springify().damping(18)}
+          entering={SlideInDown.springify().damping(16).duration(300)}
           exiting={SlideOutDown.duration(motion.fast)}
           style={[
             styles.sheet,
