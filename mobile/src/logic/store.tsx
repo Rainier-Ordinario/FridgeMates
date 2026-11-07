@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { addDays, todayISO } from './dates';
 import { daysLeftFor, moodFor, scanItemToFoodItem } from './mood';
+import { estimatePrice } from './prices';
 
 /**
  * Fridge data store.
@@ -24,6 +25,8 @@ export interface Scoreboard {
   inFridge: number;
   rescued: number;
   lost: number;
+  /** Rough CAD value of everything rescued (see logic/prices.ts). */
+  savedDollars: number;
 }
 
 interface State {
@@ -236,6 +239,9 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
         inFridge: characters.length,
         rescued: all.filter((c) => c.status === 'rescued').length,
         lost: all.filter((c) => c.status === 'lost').length,
+        savedDollars: all
+          .filter((c) => c.status === 'rescued')
+          .reduce((sum, c) => sum + estimatePrice(c.name), 0),
       },
       dayOffset: state.dayOffset,
       hydrated: isHydrated,

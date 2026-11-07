@@ -6,6 +6,7 @@ import { Face } from '@/components/Face';
 import { Scoreboard } from '@/components/Scoreboard';
 import { Screen } from '@/components/Screen';
 import { SpeechBubble } from '@/components/SpeechBubble';
+import { estimatePrice, formatDollars } from '@/logic/prices';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, moods, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -39,6 +40,7 @@ export default function RescueScreen() {
     .map((id) => getById(id))
     .filter((c): c is Character => !!c);
   const cameo = characters[0];
+  const saved = rescued.reduce((sum, c) => sum + estimatePrice(c.name), 0);
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -109,6 +111,11 @@ export default function RescueScreen() {
           <AppText variant="countdown" color={colors.success}>
             +{rescued.length}
           </AppText>
+          {saved > 0 && (
+            <AppText variant="bodyBold" color={colors.success}>
+              You saved about {formatDollars(saved)}
+            </AppText>
+          )}
           <Scoreboard data={scoreboard} rescuedBump={rescued.length} countUp />
         </Animated.View>
       </View>

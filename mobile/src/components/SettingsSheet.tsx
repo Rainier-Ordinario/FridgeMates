@@ -1,6 +1,7 @@
 import { mockScanResponse } from '@/api/mocks/scan';
 import { useFirstRun } from '@/logic/firstRun';
 import { useSettings } from '@/logic/settings';
+import { formatDollars } from '@/logic/prices';
 import { useFridge } from '@/logic/store';
 import { colors, radius, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -61,11 +62,11 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
         <View
           style={styles.stats}
           accessible
-          accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost`}
+          accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, about ${formatDollars(scoreboard.savedDollars)} saved`}
         >
           <Stat emoji="🎉" value={String(scoreboard.rescued)} label="rescued" color={colors.success} />
           <Stat emoji="🪦" value={String(scoreboard.lost)} label="lost" color={colors.danger} />
-          <Stat emoji="🧊" value={String(scoreboard.inFridge)} label="in fridge" color={colors.ink} />
+          <Stat emoji="💸" value={formatDollars(scoreboard.savedDollars)} label="saved" color={colors.ink} />
         </View>
       </Section>
 
