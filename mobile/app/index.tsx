@@ -70,10 +70,12 @@ export default function FridgeScreen() {
     if (!welcomed) router.replace('/welcome');
   }, [ready, welcomed, skipWelcome, markWelcomed]);
 
+  // Dev/demo params run only after the saved fridge is loaded, so hydration can't overwrite them.
   useEffect(() => {
+    if (!hydrated) return;
     if (demo) loadDemo();
     if (big) {
-      // Perf check: demo cast + two scans = 12 characters.
+      // Perf check: demo cast + two scans = 11 characters.
       loadDemo();
       setTimeout(() => addScanned(mockScanResponse.items), 50);
       setTimeout(() => addScanned(mockScanResponse.items), 100);
@@ -81,7 +83,7 @@ export default function FridgeScreen() {
     if (menu) setTimeout(() => setMenuOpen('settings'), 300);
     if (hintParam) hint.set(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, menu, hintParam, big]);
+  }, [hydrated, demo, menu, hintParam, big]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
