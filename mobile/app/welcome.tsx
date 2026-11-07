@@ -1,0 +1,144 @@
+import { AppText } from '@/components/AppText';
+import { PrimaryButton } from '@/components/Buttons';
+import { Screen } from '@/components/Screen';
+import { useFirstRun } from '@/logic/firstRun';
+import { useFridge } from '@/logic/store';
+import { colors, radius, shadow, space } from '@/theme';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeInDown,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const beats = [
+  { emoji: '📷', text: 'Scan your groceries.' },
+  { emoji: '😱', text: 'Each one gets a face, a name and a mood.' },
+  { emoji: '🍳', text: 'Eat them before they haunt you.' },
+];
+
+/** First run: the smiling fridge, the tagline, three beats, Get started. */
+export default function WelcomeScreen() {
+  const { markWelcomed } = useFirstRun();
+  const { loadDemo } = useFridge();
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    t.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => cancelAnimation(t);
+  }, [reduceMotion, t]);
+  const breathe = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.04]) }],
+  }));
+
+  function start(withDemo: boolean) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (withDemo) loadDemo();
+    markWelcomed();
+    router.replace('/');
+  }
+
+  return (
+    <Screen edges={['top', 'left', 'right']}>
+      <View style={styles.body}>
+        <Animated.View entering={FadeInDown.springify().damping(14)} style={styles.hero}>
+          <Animated.View
+            style={[styles.tile, breathe]}
+            accessibilityRole="image"
+            accessibilityLabel="FridgeMates, a smiling fridge"
+          >
+            <Image source={require('@/assets/icon.png')} style={styles.icon} contentFit="cover" />
+          </Animated.View>
+          <AppText variant="display" align="center">
+            FridgeMates
+          </AppText>
+          <AppText variant="heading" color={colors.inkMuted} align="center" style={styles.tagline}>
+            Spoil alert: your food has feelings.
+          </AppText>
+        </Animated.View>
+
+        <View style={styles.beats}>
+          {beats.map((b, i) => (
+            <Animated.View
+              key={b.emoji}
+              entering={FadeInDown.delay(250 + i * 120).duration(320)}
+              style={styles.beat}
+            >
+              <View style={styles.beatEmoji}>
+                <AppText style={styles.beatEmojiText}>{b.emoji}</AppText>
+              </View>
+              <AppText variant="body" style={{ flex: 1 }}>
+                {b.text}
+              </AppText>
+            </Animated.View>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
+        <PrimaryButton emoji="🧊" label="Get started" onPress={() => start(false)} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Load the demo fridge"
+          onPress={() => start(true)}
+          style={({ pressed }) => [styles.demoLink, pressed && { opacity: 0.7 }]}
+        >
+          <AppText variant="caption" color={colors.inkMuted} align="center">
+            Just here for the demo? Load the demo fridge →
+          </AppText>
+        </Pressable>
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  body: { flex: 1, paddingHorizontal: space.xl, justifyContent: 'center', gap: space.xxl },
+  hero: { alignItems: 'center', gap: space.sm },
+  tile: {
+    width: 160,
+    height: 160,
+    borderRadius: 40,
+    overflow: 'hidden',
+    marginBottom: space.md,
+    ...shadow.card,
+  },
+  icon: { width: 160, height: 160 },
+  tagline: { fontFamily: 'Nunito_600SemiBold' },
+  beats: { gap: space.md },
+  beat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    ...shadow.card,
+  },
+  beatEmoji: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  beatEmojiText: { fontSize: 20, lineHeight: 26 },
+  footer: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
+  demoLink: { minHeight: 44, justifyContent: 'center' },
+});

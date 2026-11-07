@@ -1,5 +1,4 @@
 import type { FoodItem, ScanItem } from '@/api/types';
-import { USE_MOCK } from '@/api/config';
 import { mockFridgeItems } from '@/api/mocks/fridge';
 import type { Mood } from '@/theme/moods';
 import React, { createContext, useContext, useMemo, useReducer } from 'react';
@@ -48,6 +47,7 @@ type Action =
   | { type: 'adjustDays'; id: string; delta: number }
   | { type: 'setEpitaph'; id: string; epitaph: string }
   | { type: 'skipDay' }
+  | { type: 'loadDemo' }
   | { type: 'reset' };
 
 function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem) {
@@ -119,13 +119,18 @@ function reducer(state: State, action: Action): State {
       return { ...state, items: update(state.items, action.id, (i) => ({ ...i, epitaph: action.epitaph })) };
     case 'skipDay':
       return { ...state, dayOffset: state.dayOffset + 1 };
+    case 'loadDemo': {
+      const items = mockFridgeItems();
+      return { ...initialState(), items, recentlyAddedIds: items.map((i) => i.id) };
+    }
     case 'reset':
       return initialState();
   }
 }
 
 function initialState(): State {
-  return { items: USE_MOCK ? mockFridgeItems() : [], recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
+  // Starts empty in both modes; the demo cast comes from the welcome link or the demo menu.
+  return { items: [], recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
 }
 
 interface FridgeContextValue {
@@ -155,6 +160,10 @@ interface FridgeContextValue {
   adjustDays: (id: string, delta: number) => void;
   setEpitaph: (id: string, epitaph: string) => void;
   skipDay: () => void;
+  /** Fills the fridge with the demo cast (works without camera or network). */
+  loadDemo: () => void;
+  /** Empties the fridge and resets the day offset. */
+  clearAll: () => void;
   reset: () => void;
 }
 
@@ -204,6 +213,8 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
       setEpitaph: (id, epitaph) => dispatch({ type: 'setEpitaph', id, epitaph }),
       skipDay: () => dispatch({ type: 'skipDay' }),
+      loadDemo: () => dispatch({ type: 'loadDemo' }),
+      clearAll: () => dispatch({ type: 'reset' }),
       reset: () => dispatch({ type: 'reset' }),
     };
   }, [state]);
