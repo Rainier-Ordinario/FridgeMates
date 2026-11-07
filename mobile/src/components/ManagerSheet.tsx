@@ -277,7 +277,9 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null, initial
           placeholderTextColor={colors.inkMuted}
           returnKeyType="send"
           accessibilityLabel="Ask the fridge manager"
-          style={styles.input}
+          multiline={false}
+          textAlignVertical="center"
+          style={[styles.input, draft.length === 0 && styles.inputEmpty]}
         />
         <Pressable
           accessibilityRole="button"
@@ -332,7 +334,12 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm },
   input: {
     flex: 1,
+    // Fixed height, no vertical padding and textAlignVertical keep the text (and placeholder) on the field's center line,
+    // which is also the send button's center line (the row aligns items to center).
     height: hit.primary,
+    minHeight: hit.primary,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
     borderRadius: radius.pill,
     backgroundColor: colors.bg,
     borderWidth: 1.5,
@@ -340,8 +347,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xl,
     fontFamily: 'Nunito_500Medium',
     fontSize: 16,
+    lineHeight: 20,
     color: colors.ink,
   },
+  /** Empty field: the placeholder sits in the middle; typed text goes back to the left. */
+  inputEmpty: { textAlign: 'center' },
   send: {
     width: hit.min,
     height: hit.min,
