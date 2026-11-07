@@ -1,3 +1,5 @@
+import { api } from '@/api/client';
+import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { Chip, PrimaryButton, RoundButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
@@ -9,18 +11,68 @@ import { colors, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
+function dayLabel(dayOffset: number): string {
+  if (dayOffset === 0) return 'Skip a day';
+  return `Day +${dayOffset}`;
+}
+
+function sectionLabel(characterCount: number): string {
+  if (characterCount === 0) return 'Your fridge is quiet. Suspiciously quiet.';
+  return 'MOST URGENT FIRST';
+}
+
 export default function FridgeScreen() {
-  const { characters, ghosts, scoreboard, dayOffset, skipDay } = useFridge();
+  const { characters, ghosts, gone, scoreboard, dayOffset, skipDay, setEpitaph } = useFridge();
   const insets = useSafeAreaInsets();
 
-  const openCharacter = useCallback((c: Character) => {
-    // TODO(step 3): navigate to /item/[id] once the detail screen exists.
-    console.log('open', c.characterName);
+  const openCharacter = useCallback((character: Character) => {
+    Alert.alert(character.characterName, `${character.personality}\n${character.daysLeft} days left`);
   }, []);
+
+  const showMemorial = useCallback(() => {
+    if (gone.length === 0) {
+      Alert.alert('Memorial', 'No fridge mates have left yet.');
+      return;
+    }
+    const names = gone.map((item) => item.characterName).join('\n');
+    Alert.alert('Memorial', names);
+  }, [gone]);
+
+  const openGhost = useCallback(async (ghost: Character) => {
+    try {
+      const response = await api.ghost({ item: toChatItem(ghost, ghost.daysLeft) });
+      setEpitaph(ghost.id, response.epitaph);
+      Alert.alert(ghost.characterName, response.epitaph);
+    } catch {
+      Alert.alert('Ghost offline', 'The ghost could not speak yet.');
+    }
+  }, [setEpitaph]);
+
+  const openChat = useCallback(async () => {
+    try {
+      const response = await api.chat({
+        items: characters.map((item) => toChatItem(item, item.daysLeft)),
+      });
+      const lines = response.lines.map((line) => line.text).join('\n');
+      Alert.alert('Fridge group chat', lines);
+    } catch {
+      Alert.alert('Chat offline', 'The fridge group chat is unavailable.');
+    }
+  }, [characters]);
+
+  const openMatch = useCallback(async () => {
+    try {
+      const response = await api.match({
+        items: characters.map((item) => toChatItem(item, item.daysLeft)),
+      });
+      Alert.alert(response.title, response.steps.join('\n'));
+    } catch {
+      Alert.alert('Matchmaking offline', 'No recipe could be matched yet.');
+    }
+  }, [characters]);
 
   return (
     <Screen>
@@ -32,30 +84,25 @@ export default function FridgeScreen() {
               Spoil alert: your food has feelings.
             </AppText>
           </View>
-          <Chip
-            emoji="⏭"
-            label={dayOffset === 0 ? 'Skip a day' : `Day +${dayOffset}`}
-            tone="debug"
-            onPress={skipDay}
-          />
+          <Chip emoji="⏭" label={dayLabel(dayOffset)} tone="debug" onPress={skipDay} />
         </View>
-        <Scoreboard data={scoreboard} onPressLost={() => console.log('TODO memorial')} />
+        <Scoreboard data={scoreboard} onPressLost={showMemorial} />
       </View>
 
       <View style={styles.listArea}>
         <FlatList
           data={characters}
-          keyExtractor={(c) => c.id}
+          keyExtractor={(character) => character.id}
           renderItem={({ item }) => <CharacterCard character={item} onPress={openCharacter} />}
           contentContainerStyle={[styles.list, { paddingBottom: 140 + insets.bottom }]}
           ListHeaderComponent={
             <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
-              {characters.length === 0 ? 'Your fridge is quiet. Suspiciously quiet.' : 'MOST URGENT FIRST'}
+              {sectionLabel(characters.length)}
             </AppText>
           }
           showsVerticalScrollIndicator={false}
         />
-        <GhostLayer ghosts={ghosts} onPress={(g) => console.log('TODO ghost', g.characterName)} />
+        <GhostLayer ghosts={ghosts} onPress={openGhost} />
       </View>
 
       <LinearGradient
@@ -65,14 +112,9 @@ export default function FridgeScreen() {
         style={[styles.fade, { height: 150 + insets.bottom }]}
       />
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
-        <RoundButton emoji="💬" label="Fridge group chat" onPress={() => console.log('TODO chat')} />
-        <PrimaryButton
-          emoji="📷"
-          label="Scan food"
-          onPress={() => router.push('/scan')}
-          style={styles.scan}
-        />
-        <RoundButton emoji="💘" label="Matchmaking" onPress={() => console.log('TODO match')} />
+        <RoundButton emoji="💬" label="Fridge group chat" onPress={openChat} />
+        <PrimaryButton emoji="📷" label="Scan food" onPress={() => router.push('/scan')} style={styles.scan} />
+        <RoundButton emoji="💘" label="Matchmaking" onPress={openMatch} />
       </View>
     </Screen>
   );
