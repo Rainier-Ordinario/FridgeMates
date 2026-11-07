@@ -7,6 +7,7 @@ import { AppText } from './AppText';
 interface PrimaryProps {
   label: string;
   emoji?: string;
+  icon?: React.ReactNode;
   onPress: () => void;
   style?: ViewStyle;
   tone?: 'brand' | 'danger' | 'success';
@@ -17,7 +18,15 @@ interface PrimaryProps {
 const tones = { brand: colors.brand, danger: colors.dangerStrong, success: colors.success } as const;
 
 /** Big thumb-reachable pill. Used for Scan, "Ate it", "I cooked it". */
-export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand', big = false }: PrimaryProps) {
+export function PrimaryButton({
+  label,
+  emoji,
+  icon,
+  onPress,
+  style,
+  tone = 'brand',
+  big = false,
+}: PrimaryProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -35,7 +44,7 @@ export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand', bi
         style,
       ]}
     >
-      {emoji ? <AppText style={styles.primaryEmoji}>{emoji}</AppText> : null}
+      {icon ?? (emoji ? <AppText style={styles.primaryEmoji}>{emoji}</AppText> : null)}
       <AppText
         variant="heading"
         color={tone === 'danger' ? colors.surface : colors.brandInk}
@@ -49,6 +58,7 @@ export function PrimaryButton({ label, emoji, onPress, style, tone = 'brand', bi
 
 interface SecondaryProps {
   label: string;
+  icon?: React.ReactNode;
   accessibilityLabel?: string;
   /** Outlined (2pt ink border) variant for scan results. */
   outlined?: boolean;
@@ -60,6 +70,7 @@ interface SecondaryProps {
 /** Labeled tonal button, 48pt: the quiet sibling of PrimaryButton. */
 export function SecondaryButton({
   label,
+  icon,
   emoji,
   onPress,
   style,
@@ -81,7 +92,7 @@ export function SecondaryButton({
         style,
       ]}
     >
-      {emoji ? <AppText style={styles.secondaryEmoji}>{emoji}</AppText> : null}
+      {icon ?? (emoji ? <AppText style={styles.secondaryEmoji}>{emoji}</AppText> : null)}
       <AppText variant="bodyBold" color={colors.ink} numberOfLines={1}>
         {label}
       </AppText>
@@ -132,12 +143,13 @@ export function RoundButton({ emoji, icon, label, onPress, size = hit.primary, d
 interface ChipProps {
   label: string;
   emoji?: string;
+  icon?: React.ReactNode;
   onPress: () => void;
   tone?: 'neutral' | 'debug';
 }
 
 /** Small secondary action, e.g. the "Skip ahead a day" demo control. */
-export function Chip({ label, emoji, onPress, tone = 'neutral' }: ChipProps) {
+export function Chip({ label, emoji, icon, onPress, tone = 'neutral' }: ChipProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -149,7 +161,7 @@ export function Chip({ label, emoji, onPress, tone = 'neutral' }: ChipProps) {
       style={({ pressed }) => [styles.chip, tone === 'debug' && styles.chipDebug, pressed && styles.pressed]}
     >
       <View style={styles.chipInner}>
-        {emoji ? <AppText variant="caption">{emoji}</AppText> : null}
+        {icon ?? (emoji ? <AppText variant="caption">{emoji}</AppText> : null)}
         <AppText variant="caption" color={colors.ink}>
           {label}
         </AppText>

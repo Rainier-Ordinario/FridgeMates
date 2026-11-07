@@ -1,4 +1,5 @@
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
@@ -96,7 +97,7 @@ export default function MemorialScreen() {
         ))}
         {lost.length === 0 && (
           <View style={styles.empty}>
-            <AppText style={styles.emptyEmoji}>🕯️</AppText>
+            <UiIcon icon="candle" size={48} />
             <AppText variant="body" color={colors.inkMuted} align="center">
               Expired food you toss rests here, epitaph and all.
             </AppText>
@@ -105,9 +106,12 @@ export default function MemorialScreen() {
       </ScrollView>
 
       <DockedFooter>
-        <AppText variant="caption" color={colors.inkMuted} align="center">
-          🕯️ Rest in pieces
-        </AppText>
+        <View style={styles.footerRow}>
+          <UiIcon icon="candle" size={16} />
+          <AppText variant="caption" color={colors.inkMuted} align="center">
+            Rest in pieces
+          </AppText>
+        </View>
       </DockedFooter>
     </Screen>
   );
@@ -132,4 +136,11 @@ const styles = StyleSheet.create({
   cell: { width: '47%', flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', gap: space.md, paddingTop: space.huge, width: '100%' },
   emptyEmoji: { fontSize: 48, lineHeight: 56 },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: space.md,
+  },
 });

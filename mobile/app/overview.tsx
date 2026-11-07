@@ -1,4 +1,5 @@
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { Face } from '@/components/Face';
 import { Mascot } from '@/components/Mascot';
 import { PrimaryButton } from '@/components/Buttons';
@@ -13,7 +14,7 @@ import {
   type Urgency,
 } from '@/logic/overview';
 import { formatDollars } from '@/logic/prices';
-import { AVATARS, useSettings, type Avatar } from '@/logic/settings';
+import { AVATARS, avatarIcon, useSettings, type Avatar } from '@/logic/settings';
 import { useFridge } from '@/logic/store';
 import { colors, moods, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -67,7 +68,7 @@ export default function OverviewScreen() {
       >
         <View style={styles.profile}>
           <View style={styles.avatarBig}>
-            <AppText style={styles.avatarBigText}>{settings.avatar}</AppText>
+            <UiIcon icon={avatarIcon(settings.avatar)} size={56} />
           </View>
           <TextInput
             value={name}
@@ -97,7 +98,7 @@ export default function OverviewScreen() {
                     pressed && { opacity: 0.8 },
                   ]}
                 >
-                  <AppText style={styles.avatarOptionText}>{a}</AppText>
+                  <UiIcon icon={avatarIcon(a)} size={28} />
                 </Pressable>
               );
             })}
@@ -123,7 +124,11 @@ export default function OverviewScreen() {
               line="Nothing in here yet. Scan your fridge to meet everyone."
               accessibilityLabel="The fridge manager is asleep. Nothing in here yet."
             />
-            <PrimaryButton emoji="📷" label="Scan your fridge" onPress={() => router.push('/scan')} />
+            <PrimaryButton
+              icon={<UiIcon icon="camera" size={24} />}
+              label="Scan your fridge"
+              onPress={() => router.push('/scan')}
+            />
           </View>
         ) : (
           <>

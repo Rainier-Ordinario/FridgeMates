@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from './AppText';
+import { FoodIcon } from './FoodIcon';
 
 const cycle = [moods.cocky, moods.chill, moods.nervous, moods.dramatic, moods.ghost, moods.cocky];
 const cycleColors = cycle.map((m) => m.color);
@@ -26,7 +27,7 @@ const defaultPhrases = [
   'asking the fridge for gossip…',
   'rehearsing dramatic intros…',
 ];
-const emojis = ['🥛', '🍅', '🥑', '🧀', '🥬', '🍓', '🥚'];
+const foods = ['Milk', 'Tomato', 'Avocado', 'Cheese', 'Spinach', 'Strawberries', 'Eggs'];
 
 /** Playful loader: a big face that cycles through the mood colors, plus rotating phrases. */
 interface Props {
@@ -71,7 +72,7 @@ export function MoodLoader({ phrases = defaultPhrases, sub = 'this takes a few s
       <View style={styles.stage}>
         <Animated.View style={[styles.ring, ring]} />
         <Animated.View style={[styles.circle, circle]}>
-          <AppText style={styles.emoji}>{emojis[tick % emojis.length]}</AppText>
+          <FoodIcon name={foods[tick % foods.length]} size={72} />
         </Animated.View>
       </View>
       <AppText variant="heading" align="center">
@@ -98,5 +99,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 72, lineHeight: 84 },
 });

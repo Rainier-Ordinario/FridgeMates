@@ -8,6 +8,18 @@ import { setSoundsEnabled } from './sounds';
 export const AVATARS = ['🧑‍🍳', '🍕', '🥑', '🧊', '🐻'] as const;
 export type Avatar = (typeof AVATARS)[number];
 
+/** Fluent Emoji icon for each avatar (stored values stay as emoji strings). */
+export const AVATAR_ICONS: Record<Avatar, 'cook' | 'pizza' | 'avocado' | 'ice' | 'bear'> = {
+  '🧑‍🍳': 'cook',
+  '🍕': 'pizza',
+  '🥑': 'avocado',
+  '🧊': 'ice',
+  '🐻': 'bear',
+};
+export function avatarIcon(a: Avatar) {
+  return AVATAR_ICONS[a] ?? 'ice';
+}
+
 export interface Settings {
   voices: boolean;
   sounds: boolean;

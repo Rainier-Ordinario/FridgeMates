@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
 import { PrimaryButton, SecondaryButton } from './Buttons';
 import { Face } from './Face';
+import { UiIcon } from './FoodIcon';
 import { Screen } from './Screen';
 
 interface State {
@@ -36,7 +37,7 @@ function CrashScreen({ onRetry }: { onRetry: () => void }) {
   return (
     <Screen padded>
       <View style={styles.center}>
-        <Face emoji="🥑" mood="dramatic" size={120} label="Avo, panicking" />
+        <Face food="Avocado" mood="dramatic" size={120} label="Avo, panicking" />
         <AppText variant="title" align="center">
           Avo panicked and dropped something.
         </AppText>
@@ -44,9 +45,9 @@ function CrashScreen({ onRetry }: { onRetry: () => void }) {
           Nothing is lost. Your fridge is saved on this phone.
         </AppText>
         <View style={styles.buttons}>
-          <PrimaryButton emoji="🔁" label="Try again" onPress={onRetry} />
+          <PrimaryButton label="Try again" onPress={onRetry} />
           <SecondaryButton
-            emoji="🧊"
+            icon={<UiIcon icon="ice" size={20} />}
             label="Use demo fridge"
             onPress={() => {
               loadDemo();

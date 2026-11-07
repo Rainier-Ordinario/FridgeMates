@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { Chip } from '@/components/Buttons';
 import { SendIcon, SpeakerIcon, StopIcon } from '@/components/Icons';
 import { Face } from '@/components/Face';
@@ -235,12 +236,12 @@ export default function ChatScreen() {
           ListHeaderComponent={
             !loading && msgs[msgs.length - 1]?.from === 'fridge' ? (
               <View style={styles.retryRow}>
-                <Chip emoji="🔁" label="Try again" onPress={() => ask()} />
+                <Chip label="Try again" onPress={() => ask()} />
               </View>
             ) : loading ? (
               <View style={styles.typingRow}>
                 <View style={styles.faceCol}>
-                  <AppText style={{ fontSize: 24 }}>🧊</AppText>
+                  <UiIcon icon="ice" size={24} />
                 </View>
                 <TypingDots />
               </View>
@@ -395,7 +396,7 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
             label={`${who.characterName}, ${m.label}`}
           />
         ) : (
-          <AppText style={{ fontSize: 28 }}>🧊</AppText>
+          <UiIcon icon="ice" size={28} />
         )}
       </Animated.View>
       <View style={styles.bubbleCol}>

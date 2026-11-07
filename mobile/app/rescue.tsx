@@ -1,4 +1,5 @@
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
 import { Confetti } from '@/components/Confetti';
 import { DockedFooter } from '@/components/DockedFooter';
@@ -123,7 +124,11 @@ export default function RescueScreen() {
       </View>
 
       <DockedFooter>
-        <PrimaryButton emoji="🧊" label="Back to the fridge" onPress={() => router.dismissAll()} />
+        <PrimaryButton
+          icon={<UiIcon icon="ice" size={22} />}
+          label="Back to the fridge"
+          onPress={() => router.dismissAll()}
+        />
       </DockedFooter>
     </Screen>
   );

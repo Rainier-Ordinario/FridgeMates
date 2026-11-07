@@ -11,7 +11,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { AppText } from './AppText';
+import { UiIcon } from './FoodIcon';
 import { SpeechBubble } from './SpeechBubble';
 
 /** Playful empty state that points at the Scan button. */
@@ -28,7 +28,7 @@ export function EmptyFridge() {
   return (
     <View style={styles.wrap} accessibilityLabel="Your fridge is quiet. Scan it to wake everyone up.">
       <View style={[styles.tile, { backgroundColor: moods.chill.tint, borderColor: moods.chill.color }]}>
-        <AppText style={styles.emoji}>🧊</AppText>
+        <UiIcon icon="ice" size={52} />
       </View>
       <SpeechBubble
         text="Your fridge is quiet. Scan it to wake everyone up."
@@ -36,7 +36,7 @@ export function EmptyFridge() {
         style={styles.bubble}
       />
       <Animated.View style={bob}>
-        <AppText style={styles.pointer}>👇</AppText>
+        <UiIcon icon="backhand-index-pointing-down" size={36} />
       </Animated.View>
     </View>
   );

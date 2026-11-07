@@ -2,6 +2,7 @@ import { api } from '@/api/client';
 import { mockScanResponse } from '@/api/mocks/scan';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { Chip, PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { EmptyFridge } from '@/components/EmptyFridge';
@@ -14,7 +15,7 @@ import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
 import { urgencyLabel, urgencyOf, type Urgency } from '@/logic/overview';
-import { useSettings } from '@/logic/settings';
+import { avatarIcon, useSettings } from '@/logic/settings';
 import { useFlag } from '@/logic/flags';
 import { useFridge, type Character } from '@/logic/store';
 import { colors, radius, space } from '@/theme';
@@ -254,7 +255,7 @@ export default function FridgeScreen() {
             <AppText variant="display">FridgeMates</AppText>
           </Pressable>
           <RoundButton
-            emoji={avatar}
+            icon={<UiIcon icon={avatarIcon(avatar)} size={26} />}
             label="Open fridge overview"
             size={48}
             onPress={() => router.push('/overview')}
@@ -277,7 +278,6 @@ export default function FridgeScreen() {
         {demoMode && (
           <View style={styles.demoRow}>
             <Chip
-              emoji="⏭"
               label={dayOffset ? `Skip ahead a day (+${dayOffset})` : 'Skip ahead a day'}
               tone="debug"
               onPress={skipDay}
@@ -290,7 +290,7 @@ export default function FridgeScreen() {
             accessible
             accessibilityLabel="Tip: the more worried they look, the sooner you should eat them."
           >
-            <AppText style={styles.hintEmoji}>💡</AppText>
+            <UiIcon icon="light-bulb" size={24} />
             <AppText variant="body" style={{ flex: 1 }}>
               The more worried they look, the sooner you should eat them.
             </AppText>
@@ -339,7 +339,11 @@ export default function FridgeScreen() {
                         onPress={() => setUrgencyFilter(null)}
                       />
                     )}
-                    <Chip emoji="🔍" label={searchOpen ? 'Close' : 'Search'} onPress={toggleSearch} />
+                    <Chip
+                      icon={<UiIcon icon="magnifying-glass-tilted-left" size={16} />}
+                      label={searchOpen ? 'Close' : 'Search'}
+                      onPress={toggleSearch}
+                    />
                   </View>
                 </View>
                 {searchOpen && (
@@ -424,14 +428,14 @@ export default function FridgeScreen() {
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
         <View style={styles.secondaryRow}>
           <SecondaryButton
-            emoji="💬"
+            icon={<UiIcon icon="speech-balloon" size={20} />}
             label="Chat"
             accessibilityLabel="Open fridge chat"
             onPress={() => router.push('/chat')}
             style={styles.half}
           />
           <SecondaryButton
-            emoji="🍳"
+            icon={<UiIcon icon="cooking" size={20} />}
             label="Match"
             accessibilityLabel="Find a recipe match"
             onPress={() => router.push('/match')}
@@ -457,7 +461,7 @@ export default function FridgeScreen() {
             />
           </Pressable>
           <PrimaryButton
-            emoji="📷"
+            icon={<UiIcon icon="camera" size={24} />}
             label="Scan your fridge"
             big
             onPress={() => router.push('/scan')}

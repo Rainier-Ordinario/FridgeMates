@@ -17,6 +17,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { AppText } from './AppText';
+import { UiIcon } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
 import { SecondaryButton } from './Buttons';
 import { Face } from './Face';
@@ -188,7 +189,7 @@ export function ManagerSheet({ visible, onClose, initialQuestion = null }: Props
           )}
           {answer.action === 'match' && (
             <SecondaryButton
-              emoji="🍳"
+              icon={<UiIcon icon="cooking" size={20} />}
               label="Find a match"
               outlined
               onPress={() => {

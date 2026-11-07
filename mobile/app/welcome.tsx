@@ -1,4 +1,5 @@
 import { AppText } from '@/components/AppText';
+import { UiIcon, type FluentIconName } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
 import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
@@ -22,10 +23,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const beats = [
-  { emoji: '📷', text: 'Scan your groceries.' },
-  { emoji: '😱', text: 'Each one gets a face, a name and a mood.' },
-  { emoji: '🍳', text: 'Eat them before they haunt you.' },
+const beats: { icon: FluentIconName; text: string }[] = [
+  { icon: 'camera', text: 'Scan your groceries.' },
+  { icon: 'face-screaming-in-fear', text: 'Each one gets a face, a name and a mood.' },
+  { icon: 'cooking', text: 'Eat them before they haunt you.' },
 ];
 
 /** First run: the smiling fridge, the tagline, three beats, Get started. */
@@ -79,12 +80,12 @@ export default function WelcomeScreen() {
         <View style={styles.beats}>
           {beats.map((b, i) => (
             <Animated.View
-              key={b.emoji}
+              key={b.icon}
               entering={FadeInDown.delay(250 + i * 120).duration(motion.base)}
               style={styles.beat}
             >
               <View style={styles.beatEmoji}>
-                <AppText style={styles.beatEmojiText}>{b.emoji}</AppText>
+                <UiIcon icon={b.icon} size={24} />
               </View>
               <AppText variant="body" style={{ flex: 1 }}>
                 {b.text}
@@ -96,7 +97,7 @@ export default function WelcomeScreen() {
 
       <DockedFooter>
         <PrimaryButton
-          emoji="🧊"
+          icon={<UiIcon icon="ice" size={22} />}
           label={replay ? 'Back to the fridge' : 'Get started'}
           onPress={() => start(false)}
         />

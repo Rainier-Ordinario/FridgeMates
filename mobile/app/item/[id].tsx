@@ -1,4 +1,5 @@
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodPill } from '@/components/MoodPill';
@@ -15,7 +16,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-const sourceEmoji = { printed: '🏷️', estimated: '🔮', adjusted: '✍️' } as const;
+const sourceIcon = { printed: 'label', estimated: 'crystal-ball', adjusted: 'writing-hand' } as const;
 
 /** Character detail: big face, countdown, date source, and the actions that change its fate. */
 export default function CharacterScreen() {
@@ -109,8 +110,9 @@ export default function CharacterScreen() {
           </View>
           <View style={styles.sourceRow}>
             <View style={styles.sourceChip}>
+              <UiIcon icon={sourceIcon[c.dateSource]} size={14} />
               <AppText variant="caption" color={colors.inkMuted}>
-                {sourceEmoji[c.dateSource]} {dateSourceLabel(c.dateSource)}
+                {dateSourceLabel(c.dateSource)}
               </AppText>
             </View>
             {!gone && !isGhost ? (
@@ -132,7 +134,12 @@ export default function CharacterScreen() {
         <DockedFooter style={styles.actions}>
           {!isGhost && (
             <>
-              <PrimaryButton emoji="🎉" label="Ate it" tone="success" onPress={() => finish('eat')} />
+              <PrimaryButton
+                icon={<UiIcon icon="party-popper" size={22} />}
+                label="Ate it"
+                tone="success"
+                onPress={() => finish('eat')}
+              />
               <View style={styles.actionRow}>
                 <Pressable
                   accessibilityRole="button"
@@ -144,7 +151,7 @@ export default function CharacterScreen() {
                   style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
                 >
                   <AppText variant="bodyBold" color={colors.brandText}>
-                    📦 Opened today
+                    Opened today
                   </AppText>
                 </Pressable>
                 <Pressable
@@ -154,7 +161,7 @@ export default function CharacterScreen() {
                   style={({ pressed }) => [styles.secondary, styles.tossSecondary, pressed && styles.pressed]}
                 >
                   <AppText variant="bodyBold" color={moods.dramatic.text}>
-                    🗑️ Toss
+                    Toss
                   </AppText>
                 </Pressable>
               </View>
@@ -162,7 +169,7 @@ export default function CharacterScreen() {
           )}
           {isGhost && (
             <PrimaryButton
-              emoji="🪦"
+              icon={<UiIcon icon="headstone" size={22} />}
               label="Toss and say goodbye"
               tone="danger"
               onPress={() => finish('toss')}
@@ -223,6 +230,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   sourceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,

@@ -2,6 +2,7 @@ import { api, apiErrorKind } from '@/api/client';
 import { USE_MOCK } from '@/api/config';
 import type { ScanItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { Confetti } from '@/components/Confetti';
 import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
@@ -255,7 +256,7 @@ export default function ScanScreen() {
       {phase === 'pick' && (
         <Animated.View entering={FadeIn} style={styles.pick}>
           <View style={styles.hero}>
-            <AppText style={styles.heroEmoji}>🧊</AppText>
+            <UiIcon icon="ice" size={80} />
             <AppText variant="title" align="center">
               What did you bring home?
             </AppText>
@@ -290,7 +291,7 @@ export default function ScanScreen() {
           {!failure && (
             <View style={styles.pickButtons}>
               <PrimaryButton
-                emoji="📷"
+                icon={<UiIcon icon="camera" size={24} />}
                 label="Take a photo"
                 onPress={() => (Device.isDevice ? setPhase('camera') : pick('camera'))}
               />
@@ -304,7 +305,7 @@ export default function ScanScreen() {
                 style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
               >
                 <AppText variant="heading" color={colors.brandText}>
-                  🖼️ Choose a photo
+                  Choose a photo
                 </AppText>
               </Pressable>
               {USE_MOCK && (
@@ -315,7 +316,7 @@ export default function ScanScreen() {
                   style={({ pressed }) => [styles.demo, pressed && styles.pressed]}
                 >
                   <AppText variant="caption" color={colors.inkMuted}>
-                    No camera? Try a demo scan ✨
+                    No camera? Try a demo scan
                   </AppText>
                 </Pressable>
               )}
@@ -392,7 +393,7 @@ export default function ScanScreen() {
               <Confetti count={24} />
               <Animated.View entering={FadeIn.duration(motion.base)} style={styles.arrived}>
                 <AppText variant="caption" color={colors.inkMuted} align="center">
-                  🎉 Everyone’s here. Be nice to them.
+                  Everyone’s here. Be nice to them.
                 </AppText>
               </Animated.View>
               <Animated.View entering={FadeIn.delay(100).duration(200)}>
@@ -411,7 +412,11 @@ export default function ScanScreen() {
                       style={styles.half}
                     />
                   </View>
-                  <PrimaryButton emoji="🧊" label="Go to my fridge" onPress={() => finish()} />
+                  <PrimaryButton
+                    icon={<UiIcon icon="ice" size={22} />}
+                    label="Go to my fridge"
+                    onPress={() => finish()}
+                  />
                 </DockedFooter>
               </Animated.View>
             </>
@@ -470,7 +475,12 @@ function Viewfinder({
       </View>
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
         <View style={styles.dockItem}>
-          <RoundButton emoji="🖼️" label="Choose a photo" dark onPress={onGallery} />
+          <RoundButton
+            icon={<UiIcon icon="framed-picture" size={26} />}
+            label="Choose a photo"
+            dark
+            onPress={onGallery}
+          />
           <AppText variant="caption" color={colors.surface}>
             Photos
           </AppText>

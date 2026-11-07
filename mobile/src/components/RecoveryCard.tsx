@@ -8,48 +8,56 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { PrimaryButton, SecondaryButton } from './Buttons';
 import { Face } from './Face';
+import { UiIcon } from './FoodIcon';
 
 export type RecoveryKind = ApiErrorKind | 'empty' | 'few' | 'camera';
 
-const copy: Record<RecoveryKind, { emoji: string; mood: Mood; name: string; text: string }> = {
+const copy: Record<RecoveryKind, { emoji: string; food: string; mood: Mood; name: string; text: string }> = {
   timeout: {
     emoji: '🥛',
+    food: 'Greek yogurt',
     mood: 'chill',
     name: 'Sir Yogurtsworth',
     text: 'The fridge lost signal. Give it another go.',
   },
   offline: {
     emoji: '🧊',
+    food: 'ice',
     mood: 'nervous',
     name: 'The Fridge',
     text: 'The fridge lost signal. Give it another go.',
   },
   http: {
     emoji: '🍅',
+    food: 'Tomato',
     mood: 'nervous',
     name: 'Big Tom',
     text: 'The fridge lost signal. Give it another go.',
   },
   'bad-response': {
     emoji: '🍅',
+    food: 'Tomato',
     mood: 'nervous',
     name: 'Big Tom',
     text: 'The fridge lost signal. Give it another go.',
   },
   empty: {
     emoji: '🔍',
+    food: 'ice',
     mood: 'chill',
     name: 'The Fridge',
     text: "I couldn't spot any food. Try more light or get closer.",
   },
   camera: {
     emoji: '📷',
+    food: 'ice',
     mood: 'nervous',
     name: 'FridgeMates',
     text: 'FridgeMates needs your camera to meet your food.',
   },
   few: {
     emoji: '💔',
+    food: 'ice',
     mood: 'chill',
     name: 'The Fridge',
     text: 'No sparks yet. Scan more food to play matchmaker.',
@@ -71,7 +79,7 @@ export function RecoveryCard({ kind, onRetry, retryLabel = 'Try again', closeAft
   return (
     <Animated.View entering={FadeInDown.springify().damping(14)} style={styles.card}>
       <View style={styles.row}>
-        <Face food={c.name} emoji={c.emoji} mood={c.mood} size={56} label={c.name} />
+        <Face food={c.food} emoji={c.emoji} mood={c.mood} size={56} label={c.name} />
         <View style={{ flex: 1, gap: 2 }}>
           <AppText variant="caption" color={colors.inkMuted}>
             {c.name}
@@ -80,9 +88,9 @@ export function RecoveryCard({ kind, onRetry, retryLabel = 'Try again', closeAft
         </View>
       </View>
       <View style={styles.buttons}>
-        {onRetry && <PrimaryButton emoji="🔁" label={retryLabel} onPress={onRetry} />}
+        {onRetry && <PrimaryButton label={retryLabel} onPress={onRetry} />}
         <SecondaryButton
-          emoji="🧊"
+          icon={<UiIcon icon="ice" size={20} />}
           label="Use demo fridge"
           onPress={() => {
             loadDemo();

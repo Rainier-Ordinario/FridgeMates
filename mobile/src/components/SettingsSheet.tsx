@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText } from './AppText';
+import { UiIcon, type FluentIconName } from './FoodIcon';
 import { BottomSheet } from './BottomSheet';
 import { useTextMe } from './NudgeBanner';
 
@@ -45,14 +46,14 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
     <BottomSheet visible={visible} onClose={onClose} title="Settings" scrollToEnd={demoFirst}>
       <Section title="Sound">
         <ToggleRow
-          emoji="🗣️"
+          icon="speaking-head"
           label="Voices"
           caption="Your food talks out loud"
           value={settings.voices}
           onChange={(v) => settings.set('voices', v)}
         />
         <ToggleRow
-          emoji="🔔"
+          icon="bell"
           label="Sounds"
           caption="Pops, sighs and confetti"
           value={settings.sounds}
@@ -66,21 +67,31 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
           accessible
           accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, about ${formatDollars(scoreboard.savedDollars)} saved`}
         >
-          <Stat emoji="🎉" value={String(scoreboard.rescued)} label="rescued" color={colors.successText} />
-          <Stat emoji="🪦" value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
-          <Stat emoji="💸" value={formatDollars(scoreboard.savedDollars)} label="saved" color={colors.ink} />
+          <Stat
+            icon="party-popper"
+            value={String(scoreboard.rescued)}
+            label="rescued"
+            color={colors.successText}
+          />
+          <Stat icon="headstone" value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
+          <Stat
+            icon="money-with-wings"
+            value={formatDollars(scoreboard.savedDollars)}
+            label="saved"
+            color={colors.ink}
+          />
         </View>
       </Section>
 
       <Section title="Help">
         <LinkRow
-          emoji="👋"
+          icon="waving-hand"
           label="How FridgeMates works"
           caption="See the intro again"
           onPress={after(() => router.push('/welcome?replay=1'))}
         />
         <LinkRow
-          emoji="🧹"
+          icon="broom"
           label="Reset fridge"
           caption="Empty everything"
           onPress={confirmReset}
@@ -91,11 +102,12 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.about}>
         v1.0 · Made at Fall Hacks 2026 by Rainier, Kenneth and Kerwin.
         {'\n'}Mascot courtesy of the Fall Hacks organizers.
+        {'\n'}Food icons: Microsoft Fluent Emoji (MIT).
       </AppText>
 
       <Section title="Demo mode">
         <ToggleRow
-          emoji="🎬"
+          icon="clapper-board"
           label="Demo mode"
           caption="Shows the stage tools and a Skip ahead a day chip"
           value={settings.demoMode}
@@ -104,32 +116,32 @@ export function SettingsSheet({ visible, onClose, demoFirst = false, onTestSafet
         {settings.demoMode && (
           <>
             <LinkRow
-              emoji="🧊"
+              icon="ice"
               label="Load demo fridge"
               caption="The full cast, one per mood, plus a ghost"
               onPress={after(loadDemo)}
             />
             <LinkRow
-              emoji="📷"
+              icon="camera"
               label="Add a scan"
               caption="Three new characters, highlighted"
               onPress={after(() => addScanned(mockScanResponse.items))}
             />
             <LinkRow
-              emoji="⏭"
+              icon="fast-forward-button"
               label="Skip a day"
               caption={dayOffset ? `Today +${dayOffset}` : 'Moods shift as the clock moves'}
               onPress={after(skipDay)}
             />
             <LinkRow
-              emoji="💬"
+              icon="speech-balloon"
               label="Text me"
               caption="The most urgent character sends a message"
               onPress={after(textMe)}
             />
             {onTestSafety && (
               <LinkRow
-                emoji="🛡️"
+                icon="shield"
                 label="Test safety filter"
                 caption="Sends a blocked phrase; shows the friendly refusal"
                 onPress={after(onTestSafety)}
@@ -155,13 +167,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function ToggleRow({
-  emoji,
+  icon,
   label,
   caption,
   value,
   onChange,
 }: {
-  emoji: string;
+  icon: FluentIconName;
   label: string;
   caption: string;
   value: boolean;
@@ -175,7 +187,7 @@ function ToggleRow({
       accessibilityLabel={label}
       accessibilityState={{ checked: value }}
     >
-      <RowEmoji emoji={emoji} />
+      <RowEmoji icon={icon} />
       <View style={{ flex: 1 }}>
         <AppText variant="bodyBold">{label}</AppText>
         <AppText variant="caption" color={colors.inkMuted}>
@@ -196,13 +208,13 @@ function ToggleRow({
 }
 
 function LinkRow({
-  emoji,
+  icon,
   label,
   caption,
   onPress,
   tone = 'default',
 }: {
-  emoji: string;
+  icon: FluentIconName;
   label: string;
   caption: string;
   onPress: () => void;
@@ -216,7 +228,7 @@ function LinkRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <RowEmoji emoji={emoji} />
+      <RowEmoji icon={icon} />
       <View style={{ flex: 1 }}>
         <AppText variant="bodyBold" color={tone === 'danger' ? colors.dangerStrong : colors.ink}>
           {label}
@@ -232,28 +244,28 @@ function LinkRow({
   );
 }
 
-function RowEmoji({ emoji }: { emoji: string }) {
+function RowEmoji({ icon }: { icon: FluentIconName }) {
   return (
     <View style={styles.rowEmoji}>
-      <AppText style={styles.rowEmojiText}>{emoji}</AppText>
+      <UiIcon icon={icon} size={22} />
     </View>
   );
 }
 
 function Stat({
-  emoji,
+  icon,
   value,
   label,
   color,
 }: {
-  emoji: string;
+  icon: FluentIconName;
   value: string;
   label: string;
   color: string;
 }) {
   return (
     <View style={styles.stat}>
-      <AppText style={styles.statEmoji}>{emoji}</AppText>
+      <UiIcon icon={icon} size={18} />
       <AppText variant="title" color={color}>
         {value}
       </AppText>

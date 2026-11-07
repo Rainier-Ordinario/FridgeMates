@@ -2,6 +2,7 @@ import { api, ApiError, apiErrorKind } from '@/api/client';
 import type { MatchResponse } from '@/api/types';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
+import { UiIcon } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
@@ -108,7 +109,9 @@ export default function MatchScreen() {
                     </AppText>
                   </Animated.View>
                 )}
-                <AppText style={styles.heart}>❤️</AppText>
+                <View style={styles.heart}>
+                  <UiIcon icon="red-heart" size={34} />
+                </View>
                 {b && (
                   <Animated.View entering={SlideInRight.springify().damping(14)} style={styles.faceCol}>
                     <Face food={b.name} emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
@@ -141,7 +144,8 @@ export default function MatchScreen() {
                   {match.title}
                 </AppText>
                 <View style={styles.minChip}>
-                  <AppText variant="caption">⏱ {match.minutes} min</AppText>
+                  <UiIcon icon="alarm-clock" size={14} />
+                  <AppText variant="caption">{match.minutes} min</AppText>
                 </View>
               </View>
               {match.steps.map((step, i) => (
@@ -168,7 +172,12 @@ export default function MatchScreen() {
             </Animated.View>
           </ScrollView>
           <DockedFooter>
-            <PrimaryButton emoji="🍳" label="I cooked it" onPress={cookedIt} style={styles.bigButton} />
+            <PrimaryButton
+              icon={<UiIcon icon="cooking" size={24} />}
+              label="I cooked it"
+              onPress={cookedIt}
+              style={styles.bigButton}
+            />
           </DockedFooter>
         </>
       )}
@@ -197,7 +206,7 @@ const styles = StyleSheet.create({
   faces: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: space.xs },
   faceCol: { alignItems: 'center', gap: 6, maxWidth: 130 },
   faceName: { fontFamily: 'Nunito_800ExtraBold', fontSize: 18, lineHeight: 24 },
-  heart: { fontSize: 34, lineHeight: 40, marginHorizontal: -8, marginTop: 28, zIndex: 2 },
+  heart: { marginHorizontal: -8, marginTop: 28, zIndex: 2 },
   thirdWheel: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
   recipe: { gap: space.sm },
   recipeHead: {
@@ -208,6 +217,9 @@ const styles = StyleSheet.create({
   },
   recipeTitle: { flex: 1 },
   minChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.line,
