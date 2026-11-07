@@ -1,10 +1,9 @@
 import { API_URL, APP_TOKEN, MOCK_DELAY_MS, MOCK_SCAN_DELAY_MS, USE_MOCK } from './config';
-import { mockChatResponse } from './mocks/chat';
 import { mockGhostResponse } from './mocks/ghost';
 import { mockMatchResponse } from './mocks/match';
 import { mockMessagesResponse } from './mocks/messages';
 import { mockScanResponse } from './mocks/scan';
-import { safeText, stripSafetyRule } from '@/logic/safety';
+import { safeText } from '@/logic/safety';
 import type {
   ChatRequest,
   ChatResponse,
@@ -136,7 +135,8 @@ export const api = {
   async chat(req: ChatRequest): Promise<ChatResponse> {
     if (USE_MOCK) {
       await sleep(MOCK_DELAY_MS);
-      return mockChatResponse({ ...req, userMessage: stripSafetyRule(req.userMessage) });
+      // Mock mode: the only chat left is the fridge manager, which answers locally.
+      return { lines: [] };
     }
     return normalize.chat(await post('/chat', req));
   },

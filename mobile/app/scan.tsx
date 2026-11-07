@@ -218,7 +218,7 @@ export default function ScanScreen() {
   }
 
   /** Put the new characters in the fridge, close Scan, and optionally continue to another screen. */
-  function finish(next?: '/chat' | '/match') {
+  function finish(next?: '/match') {
     addScanned(found);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.back();
@@ -394,12 +394,6 @@ export default function ScanScreen() {
               <Animated.View entering={FadeIn.delay(100).duration(200)}>
                 <DockedFooter>
                   <View style={styles.resultRow}>
-                    <SecondaryButton
-                      label="Open the chat"
-                      outlined
-                      onPress={() => finish('/chat')}
-                      style={styles.half}
-                    />
                     <SecondaryButton
                       label="Find a match"
                       outlined

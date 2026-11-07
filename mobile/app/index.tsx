@@ -428,18 +428,10 @@ export default function FridgeScreen() {
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
         <View style={styles.secondaryRow}>
           <SecondaryButton
-            icon={<UiIcon icon="speech-balloon" size={20} />}
-            label="Chat"
-            accessibilityLabel="Open fridge chat"
-            onPress={() => router.push('/chat')}
-            style={styles.half}
-          />
-          <SecondaryButton
             icon={<UiIcon icon="cooking" size={20} />}
-            label="Match"
+            label="What to cook?"
             accessibilityLabel="Find a recipe match"
             onPress={() => router.push('/match')}
-            style={styles.half}
           />
         </View>
         <View style={styles.scanRow}>
