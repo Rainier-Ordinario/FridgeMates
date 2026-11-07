@@ -52,10 +52,12 @@ interface RoundProps {
   label: string;
   onPress?: () => void;
   size?: number;
+  /** Over the camera: white 14% fill, white 25% border, white glyph. */
+  dark?: boolean;
 }
 
 /** Small round tonal button (Chat, Match, back, etc.). */
-export function RoundButton({ emoji, label, onPress, size = hit.primary }: RoundProps) {
+export function RoundButton({ emoji, label, onPress, size = hit.primary, dark = false }: RoundProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -67,12 +69,25 @@ export function RoundButton({ emoji, label, onPress, size = hit.primary }: Round
       style={({ pressed }) => [
         styles.round,
         { width: size, height: size, borderRadius: size / 2 },
+        dark && styles.roundDark,
         pressed && styles.pressed,
       ]}
     >
-      <AppText style={{ fontSize: size * 0.42, lineHeight: size * 0.52 }}>{emoji}</AppText>
+      <AppText
+        style={{ fontSize: size * 0.42, lineHeight: size * 0.52 }}
+        color={getRoundTextColor(dark)}
+      >
+        {emoji}
+      </AppText>
     </Pressable>
   );
+}
+
+function getRoundTextColor(dark: boolean): string {
+  if (dark) {
+    return colors.surface;
+  }
+  return colors.ink;
 }
 
 interface ChipProps {
@@ -122,6 +137,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.line,
     ...shadow.card,
+  },
+  roundDark: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.25)',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   chip: {
     minHeight: 36,

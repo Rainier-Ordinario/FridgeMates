@@ -39,3 +39,11 @@ export function addDays(iso: string, days: number): string {
 export function daysBetween(fromISO: string, toISO: string): number {
   return Math.round((parseISODate(toISO).getTime() - parseISODate(fromISO).getTime()) / DAY_MS);
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "Nov 4" for tombstones and memorial dates. */
+export function formatShort(iso: string): string {
+  const d = parseISODate(iso);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}

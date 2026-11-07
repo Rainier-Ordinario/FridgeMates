@@ -33,7 +33,13 @@ export default function MatchScreen() {
     setError(null);
     try {
       const res = await api.match({ items: characters.map((c) => toChatItem(c, c.daysLeft)) });
-      setMatch(res);
+      // If the backend names ids we don't have, pair the two most urgent so the screen still works.
+      const known = res.rescues.filter((id) => characters.some((c) => c.id === id));
+      let rescues = known;
+      if (known.length < 1) {
+        rescues = characters.slice(0, 2).map((c) => c.id);
+      }
+      setMatch({ ...res, rescues });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       setError('The matchmaker is offline. Try again in a moment.');

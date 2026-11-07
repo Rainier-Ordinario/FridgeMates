@@ -4,6 +4,7 @@ import { AppText } from '@/components/AppText';
 import { RoundButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { Screen } from '@/components/Screen';
+import { TypingDots } from '@/components/TypingDots';
 import { useFridge, type Character } from '@/logic/store';
 import { voiceFor } from '@/logic/voices';
 import { colors, hit, moods, radius, shadow, space } from '@/theme';
@@ -255,10 +256,10 @@ function avatarMargin(index: number): number {
 
 function getVoiceLabel(speaking: boolean, short = false): string {
   if (speaking) {
+    if (short) {
+      return 'Stop';
+    }
     return 'Stop voices';
-  }
-  if (short) {
-    return 'Play voices';
   }
   return 'Play voices';
 }
@@ -295,28 +296,6 @@ function getKeyboardBehavior(): 'padding' | undefined {
   return undefined;
 }
 
-function renderTyping(loading: boolean): React.ReactElement | undefined {
-  if (!loading) {
-    return undefined;
-  }
-  return (
-    <AppText variant="caption" color={colors.inkMuted} style={styles.typing}>
-      the fridge is typing…
-    </AppText>
-  );
-}
-
-function renderEmpty(loading: boolean, memberCount: number): React.ReactElement | undefined {
-  if (loading || memberCount !== 0) {
-    return undefined;
-  }
-  return (
-    <AppText variant="body" color={colors.inkMuted} align="center" style={styles.typing}>
-      Nobody’s home. Scan some food first.
-    </AppText>
-  );
-}
-
 function getMessageCharacter(id: string, byId: (value: string) => Character | undefined): Character | undefined {
   if (id === 'me') {
     return undefined;
@@ -329,6 +308,31 @@ function renderBubbleFace(who: Character | undefined, mood: Character['mood'], a
     return <Face emoji={who.emoji} mood={mood} size={40} showBadge={false} animated={active} />;
   }
   return <AppText style={{ fontSize: 28 }}>🧊</AppText>;
+}
+
+function renderTyping(loading: boolean): React.ReactElement | undefined {
+  if (!loading) {
+    return undefined;
+  }
+  return (
+    <View style={styles.typingRow}>
+      <View style={styles.faceCol}>
+        <AppText style={{ fontSize: 24 }}>🧊</AppText>
+      </View>
+      <TypingDots />
+    </View>
+  );
+}
+
+function renderEmpty(loading: boolean, memberCount: number): React.ReactElement | undefined {
+  if (loading || memberCount !== 0) {
+    return undefined;
+  }
+  return (
+    <AppText variant="body" color={colors.inkMuted} align="center" style={styles.typing}>
+      Nobody’s home. Scan some food first.
+    </AppText>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -371,6 +375,7 @@ const styles = StyleSheet.create({
   playIcon: { fontSize: 13, lineHeight: 16 },
   list: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: 10 },
   typing: { paddingVertical: space.sm, paddingLeft: 52 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: 302 },
   rowMe: { alignSelf: 'flex-end', maxWidth: 262 },
   faceCol: { width: 40, alignItems: 'center' },

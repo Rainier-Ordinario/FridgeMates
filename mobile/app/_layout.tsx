@@ -43,6 +43,7 @@ export default function RootLayout() {
         <Stack.Screen name="scan" options={{ presentation: 'modal' }} />
         <Stack.Screen name="item/[id]" />
         <Stack.Screen name="chat" />
+        <Stack.Screen name="memorial" />
         <Stack.Screen name="match" />
         <Stack.Screen name="rescue" options={{ gestureEnabled: false }} />
       </Stack>
