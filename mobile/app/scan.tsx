@@ -159,8 +159,8 @@ export default function ScanScreen() {
       setShown(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setPhase('reveal'), 700);
-    } catch {
-      setError(FRIENDLY_ERROR);
+    } catch (error) {
+      setError(getScanError(error));
       setPhase('pick');
     }
   }
@@ -443,6 +443,13 @@ function Viewfinder({
 }
 
 const CORNER = 44;
+
+function getScanError(error: unknown): string {
+  if (error instanceof TypeError) {
+    return 'Cannot reach the fridge backend. Start the server and use your computer’s LAN IP in EXPO_PUBLIC_API_URL.';
+  }
+  return FRIENDLY_ERROR;
+}
 
 const styles = StyleSheet.create({
   topBar: {

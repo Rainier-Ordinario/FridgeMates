@@ -7,13 +7,21 @@ import { Screen } from '@/components/Screen';
 import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { useFridge, type Character } from '@/logic/store';
-import { colors, space } from '@/theme';
+import { colors, radius, space } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useRef } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type SortMode = 'expiry' | 'alphabetical' | 'newest';
+
+const sortOptions: { label: string; value: SortMode }[] = [
+  { label: 'Expiry', value: 'expiry' },
+  { label: 'A–Z', value: 'alphabetical' },
+  { label: 'Newest', value: 'newest' },
+];
 
 /** Fridge (home): characters sorted by fewest days left, scoreboard, big scan button. */
 export default function FridgeScreen() {
@@ -31,6 +39,19 @@ export default function FridgeScreen() {
     toss,
   } = useFridge();
   const requestedEpitaphs = useRef(new Set<string>());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('expiry');
+
+  const visibleCharacters = useMemo(() => {
+    const filtered = characters.filter((character) => matchesSearch(character, searchQuery));
+    return sortCharacters(filtered, sortMode);
+  }, [characters, searchQuery, sortMode]);
+
+  const visibleGhosts = useMemo(() => {
+    const filtered = ghosts.filter((ghost) => matchesSearch(ghost, searchQuery));
+    return sortCharacters(filtered, sortMode);
+  }, [ghosts, searchQuery, sortMode]);
 
   // Ask /ghost for an epitaph as soon as something expires, so the memorial is ready when it's tossed.
   useEffect(() => {
@@ -51,19 +72,29 @@ export default function FridgeScreen() {
     // Let the ghosts drift up and fade (500 ms) before showing the wall.
     setTimeout(() => router.push('/memorial' as never), 550);
   }
+
+  function toggleSearch() {
+    if (searchOpen) {
+      setSearchOpen(false);
+      setSearchQuery('');
+      return;
+    }
+    setSearchOpen(true);
+  }
+
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
 
   // After a scan: scroll to the first new character, keep the highlight for a few seconds.
   useEffect(() => {
     if (recentlyAddedIds.length === 0) return;
-    const index = characters.findIndex((c) => recentlyAddedIds.includes(c.id));
+    const index = visibleCharacters.findIndex((c) => recentlyAddedIds.includes(c.id));
     if (index >= 0) {
       setTimeout(() => listRef.current?.scrollToIndex({ index, viewPosition: 0.2, animated: true }), 350);
     }
     const t = setTimeout(clearRecentlyAdded, 6000);
     return () => clearTimeout(t);
-  }, [recentlyAddedIds, characters, clearRecentlyAdded]);
+  }, [recentlyAddedIds, visibleCharacters, clearRecentlyAdded]);
 
   // After "I cooked it": show +N on the rescued tile for a few seconds.
   useEffect(() => {
@@ -103,7 +134,7 @@ export default function FridgeScreen() {
       <View style={styles.listArea}>
         <FlatList
           ref={listRef}
-          data={characters}
+          data={visibleCharacters}
           onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => (
@@ -118,13 +149,63 @@ export default function FridgeScreen() {
             { paddingBottom: getBottomPadding(ghosts.length, insets.bottom) },
           ]}
           ListHeaderComponent={
-            <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
-              {getSectionLabel(characters.length)}
-            </AppText>
+            <View style={styles.listHeader}>
+              <View style={styles.listControls}>
+                <AppText variant="caption" color={colors.inkMuted} style={styles.sectionLabel}>
+                  {getSectionLabel(characters.length, sortMode)}
+                </AppText>
+                <Chip
+                  emoji="🔍"
+                  label={getSearchButtonLabel(searchOpen)}
+                  onPress={toggleSearch}
+                />
+              </View>
+              {searchOpen && (
+                <TextInput
+                  accessibilityLabel="Search food in your fridge"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search food..."
+                  placeholderTextColor={colors.inkMuted}
+                  returnKeyType="search"
+                  style={styles.searchInput}
+                  value={searchQuery}
+                />
+              )}
+              <View style={styles.sortRow}>
+                <AppText variant="caption" color={colors.inkMuted}>
+                  Sort
+                </AppText>
+                <View style={styles.sortOptions}>
+                  {sortOptions.map((option) => {
+                    const selected = sortMode === option.value;
+                    return (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        key={option.value}
+                        onPress={() => setSortMode(option.value)}
+                        style={({ pressed }) => [
+                          styles.sortOption,
+                          selected && styles.sortOptionActive,
+                          pressed && styles.sortOptionPressed,
+                        ]}
+                      >
+                        <AppText variant="caption" color={colors.ink}>
+                          {option.label}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
           }
+          ListEmptyComponent={() => renderEmptySearch(searchQuery, visibleGhosts.length)}
           showsVerticalScrollIndicator={false}
         />
-        <GhostLayer ghosts={ghosts} onPress={openCharacter} />
+        <GhostLayer ghosts={visibleGhosts} onPress={openCharacter} />
       </View>
 
       <LinearGradient
@@ -165,11 +246,17 @@ function getDayLabel(dayOffset: number): string {
   return `Day +${dayOffset}`;
 }
 
-function getSectionLabel(characterCount: number): string {
+function getSectionLabel(characterCount: number, sortMode: SortMode): string {
   if (characterCount === 0) {
     return 'Your fridge is quiet. Suspiciously quiet.';
   }
-  return 'MOST URGENT FIRST';
+  if (sortMode === 'alphabetical') {
+    return 'A TO Z';
+  }
+  if (sortMode === 'newest') {
+    return 'NEWEST FIRST';
+  }
+  return 'SOONEST EXPIRY FIRST';
 }
 
 function getBottomPadding(ghostCount: number, inset: number): number {
@@ -195,10 +282,85 @@ function getTrashLabel(ghostCount: number): string {
   return `Take out the trash (${ghostCount})`;
 }
 
+function getSearchButtonLabel(searchOpen: boolean): string {
+  if (searchOpen) {
+    return 'Close search';
+  }
+  return 'Search food';
+}
+
+function matchesSearch(character: Character, query: string): boolean {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+  return (
+    character.name.toLocaleLowerCase().includes(normalizedQuery) ||
+    character.characterName.toLocaleLowerCase().includes(normalizedQuery)
+  );
+}
+
+function sortCharacters(characters: Character[], sortMode: SortMode): Character[] {
+  return [...characters].sort((a, b) => {
+    if (sortMode === 'alphabetical') {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    }
+    if (sortMode === 'newest') {
+      const newestFirst = b.addedAt.localeCompare(a.addedAt);
+      if (newestFirst !== 0) {
+        return newestFirst;
+      }
+    } else {
+      const soonestFirst = a.daysLeft - b.daysLeft;
+      if (soonestFirst !== 0) {
+        return soonestFirst;
+      }
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+function renderEmptySearch(query: string, visibleGhostCount: number): React.ReactElement | null {
+  if (!query.trim() || visibleGhostCount > 0) {
+    return null;
+  }
+  return (
+    <AppText variant="body" color={colors.inkMuted} style={styles.emptySearch}>
+      No food matches that search.
+    </AppText>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.lg },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   sectionLabel: { marginBottom: space.sm, letterSpacing: 1 },
+  listHeader: { gap: space.sm, paddingBottom: space.md },
+  listControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  searchInput: {
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    paddingHorizontal: space.md,
+    fontSize: 16,
+  },
+  sortRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  sortOptions: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  sortOption: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+  },
+  sortOptionActive: { backgroundColor: colors.surfaceAlt, borderColor: colors.brand },
+  sortOptionPressed: { opacity: 0.8 },
+  emptySearch: { paddingTop: space.xl, textAlign: 'center' },
   listArea: { flex: 1 },
   list: { paddingHorizontal: space.lg, paddingTop: space.xl },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 15 },
