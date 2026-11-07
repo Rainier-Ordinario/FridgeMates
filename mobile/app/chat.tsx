@@ -2,7 +2,9 @@ import { api } from '@/api/client';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { Chip } from '@/components/Buttons';
+import { SendIcon, SpeakerIcon, StopIcon } from '@/components/Icons';
 import { Face } from '@/components/Face';
+import { useNudge } from '@/components/NudgeBanner';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { TypingDots } from '@/components/TypingDots';
@@ -47,6 +49,7 @@ interface Msg {
 export default function ChatScreen() {
   const { characters, ghosts } = useFridge();
   const { voices } = useSettings();
+  const { showToast } = useNudge();
   const members = useMemo(() => [...characters, ...ghosts], [characters, ghosts]);
   const byId = useCallback((id: string) => members.find((m) => m.id === id), [members]);
 
@@ -93,13 +96,17 @@ export default function ChatScreen() {
   // Never leave speech running when the screen goes away.
   useEffect(() => () => void Speech.stop(), []);
 
+  function sendText(text: string) {
+    setDraft('');
+    setMsgs((prev) => [...prev, { key: `m${seq.current++}`, from: 'me', text }]);
+    ask(text);
+  }
+
   function send() {
     const text = draft.trim();
     if (!text) return;
     Haptics.selectionAsync();
-    setDraft('');
-    setMsgs((prev) => [...prev, { key: `m${seq.current++}`, from: 'me', text }]);
-    ask(text);
+    sendText(text);
   }
 
   const data = useMemo(() => [...msgs].reverse(), [msgs]);
@@ -142,12 +149,16 @@ export default function ChatScreen() {
       const after = () => {
         setTimeout(next, 250);
       };
+      const failed = () => {
+        showToast('They lost their voice. Reading it out instead.');
+        after();
+      };
       Speech.speak(m.text, {
         pitch: v.pitch,
         rate: v.rate,
         language: v.language,
         onDone: after,
-        onError: after,
+        onError: failed,
         onStopped: () => {
           if (session.current === id) setSpeakingKey(null);
         },
@@ -162,12 +173,12 @@ export default function ChatScreen() {
         title={
           <View style={styles.headerText}>
             <AppText variant="heading" numberOfLines={1} accessibilityRole="header" style={styles.chatTitle}>
-              Fridge group chat
+              Fridge chat
             </AppText>
             <View style={styles.avatars} accessible accessibilityLabel={`${members.length} members`}>
               {members.slice(0, 6).map((m, i) => (
-                <View key={m.id} style={[styles.avatar, { marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i }]}>
-                  <Face emoji={m.emoji} mood={m.mood} size={22} animated={false} showBadge={false} />
+                <View key={m.id} style={[styles.avatar, { marginLeft: i === 0 ? 0 : -8, zIndex: 10 - i }]}>
+                  <Face emoji={m.emoji} mood={m.mood} size={32} animated={false} showBadge={false} />
                 </View>
               ))}
             </View>
@@ -182,13 +193,7 @@ export default function ChatScreen() {
               style={({ pressed }) => [styles.playChip, pressed && styles.pressed]}
             >
               <View style={[styles.playDot, speaking && { backgroundColor: colors.danger }]}>
-                {speaking ? (
-                  <Equalizer />
-                ) : (
-                  <AppText style={styles.playIcon} color={colors.ink}>
-                    ▶
-                  </AppText>
-                )}
+                {speaking ? <StopIcon /> : <SpeakerIcon size={18} />}
               </View>
               <AppText variant="caption">{speaking ? 'Stop' : 'Play voices'}</AppText>
             </Pressable>
@@ -224,10 +229,36 @@ export default function ChatScreen() {
               </View>
             ) : undefined
           }
+          ListFooterComponent={
+            msgs.length < 3 && members.length > 0 ? (
+              <View style={styles.intro}>
+                <View style={styles.introFaces}>
+                  {members.slice(0, 5).map((m, i) => (
+                    <View
+                      key={m.id}
+                      style={[styles.introFace, { marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i }]}
+                    >
+                      <Face
+                        emoji={m.emoji}
+                        mood={m.mood}
+                        size={44}
+                        animated={false}
+                        showBadge={false}
+                        label={m.characterName}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <AppText style={styles.introText} align="center">
+                  Your food has opinions. Ask it anything.
+                </AppText>
+              </View>
+            ) : undefined
+          }
           ListEmptyComponent={
             !loading && members.length === 0 ? (
               <AppText variant="body" color={colors.inkMuted} align="center" style={styles.typing}>
-                Nobody’s home. Scan some food first.
+                Your food has opinions. Ask it anything.
               </AppText>
             ) : undefined
           }
@@ -240,12 +271,30 @@ export default function ChatScreen() {
           )}
         />
 
+        {members.length > 0 && (
+          <View style={styles.promptRow} accessibilityLabel="Suggested questions">
+            {['Who goes first?', 'What can I cook?', 'Roast my fridge'].map((q) => (
+              <Pressable
+                key={q}
+                accessibilityRole="button"
+                accessibilityLabel={`Ask: ${q}`}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  sendText(q);
+                }}
+                style={({ pressed }) => [styles.prompt, pressed && styles.pressed]}
+              >
+                <AppText style={styles.promptText}>{q}</AppText>
+              </Pressable>
+            ))}
+          </View>
+        )}
         <View style={styles.inputBar}>
           <TextInput
             value={draft}
             onChangeText={setDraft}
             onSubmitEditing={send}
-            placeholder="Talk to the fridge…"
+            placeholder="Say something to your food..."
             placeholderTextColor={colors.inkMuted}
             returnKeyType="send"
             style={styles.input}
@@ -262,9 +311,7 @@ export default function ChatScreen() {
               pressed && styles.pressed,
             ]}
           >
-            <AppText style={styles.sendIcon} color={colors.ink}>
-              ➤
-            </AppText>
+            <SendIcon color={draft.trim() ? colors.ink : colors.inkMuted} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -344,39 +391,12 @@ function Bubble({ msg, who, active }: { msg: Msg; who?: Character; active: boole
   );
 }
 
-/** Three tiny bars that dance while voices play (static under Reduce Motion). */
-function Equalizer() {
-  return (
-    <View style={styles.eq} accessibilityElementsHidden>
-      {[0, 1, 2].map((i) => (
-        <EqBar key={i} index={i} />
-      ))}
-    </View>
-  );
-}
-
-function EqBar({ index }: { index: number }) {
-  const reduceMotion = useReducedMotion();
-  const t = useSharedValue(0.5);
-  useEffect(() => {
-    if (reduceMotion) return;
-    t.value = withRepeat(
-      withTiming(1, { duration: 260 + index * 90, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-    return () => cancelAnimation(t);
-  }, [index, reduceMotion, t]);
-  const style = useAnimatedStyle(() => ({ height: interpolate(t.value, [0, 1], [4, 14]) }));
-  return <Animated.View style={[styles.eqBar, style]} />;
-}
-
 const styles = StyleSheet.create({
   headerText: { flex: 1, gap: space.xs },
   chatTitle: { fontFamily: 'Nunito_800ExtraBold' },
   dayCaption: { paddingBottom: space.sm },
   avatars: { flexDirection: 'row' },
-  avatar: { borderRadius: 13, borderWidth: 1.5, borderColor: colors.bg },
+  avatar: { borderRadius: 18, borderWidth: 1.5, borderColor: colors.bg },
   playChip: {
     flexShrink: 0,
     flexDirection: 'row',
@@ -398,7 +418,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playIcon: { fontSize: 13, lineHeight: 16 },
   list: { paddingHorizontal: space.xl, paddingVertical: space.md, gap: 10 },
   typing: { paddingVertical: space.sm, paddingLeft: 52 },
   retryRow: { paddingLeft: 52, paddingVertical: space.xs },
@@ -423,6 +442,27 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: radius.md,
     borderBottomRightRadius: 6,
   },
+  intro: { alignItems: 'center', gap: space.md, paddingVertical: space.xl },
+  introFaces: { flexDirection: 'row' },
+  introFace: { borderRadius: 24, borderWidth: 2, borderColor: colors.bg },
+  introText: { fontFamily: 'Nunito_700Bold', fontSize: 17, lineHeight: 22 },
+  promptRow: {
+    flexDirection: 'row',
+    gap: space.sm,
+    paddingHorizontal: space.xl,
+    paddingTop: space.sm,
+    flexWrap: 'wrap',
+  },
+  prompt: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    justifyContent: 'center',
+  },
+  promptText: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -451,9 +491,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendDisabled: { opacity: 0.4 },
-  sendIcon: { fontSize: 20, lineHeight: 24 },
+  sendDisabled: { backgroundColor: colors.line },
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  eq: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 14 },
-  eqBar: { width: 3, borderRadius: 1.5, backgroundColor: colors.surface },
 });
