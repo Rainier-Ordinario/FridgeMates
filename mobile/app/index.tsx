@@ -8,6 +8,7 @@ import { EmptyFridge } from '@/components/EmptyFridge';
 import { useNudge } from '@/components/NudgeBanner';
 import { StatsLine } from '@/components/Scoreboard';
 import { GearIcon } from '@/components/Icons';
+import { Mascot, type MascotExpression, type MascotState } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useFirstRun } from '@/logic/firstRun';
@@ -46,6 +47,8 @@ export default function FridgeScreen() {
   const hint = useFlag('fridgemates.hint.moods.v1');
   const { demoMode } = useSettings();
   const { showToast } = useNudge();
+  const [cheer, setCheer] = useState(false);
+  const [, setManagerOpen] = useState(false);
   // Ghosts need action first, then the living, most urgent first.
   const rows = [...ghosts, ...characters];
   const insets = useSafeAreaInsets();
@@ -120,9 +123,20 @@ export default function FridgeScreen() {
   // After a rescue: show +N on the stats line for a few seconds.
   useEffect(() => {
     if (!recentRescue) return;
+    const on = setTimeout(() => setCheer(true), 0);
+    const off = setTimeout(() => setCheer(false), 1700);
     const t = setTimeout(clearRecentRescue, 6000);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(on);
+      clearTimeout(off);
+      clearTimeout(t);
+    };
   }, [recentRescue, clearRecentRescue]);
+
+  // The manager's mood follows the fridge: sleepy when empty, sad with ghosts, happy otherwise.
+  const mascotExpression: MascotExpression =
+    rows.length === 0 ? 'sleepy' : ghosts.length > 0 ? 'sad' : 'happy';
+  const mascotState: MascotState = cheer ? 'goodNews' : rows.length === 0 ? 'empty' : 'idle';
 
   const openCharacter = useCallback((c: Character) => {
     router.push({ pathname: '/item/[id]', params: { id: c.id } });
@@ -270,7 +284,33 @@ export default function FridgeScreen() {
             style={styles.half}
           />
         </View>
-        <PrimaryButton emoji="📷" label="Scan your fridge" big onPress={() => router.push('/scan')} />
+        <View style={styles.scanRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ask the fridge manager"
+            onPress={() => {
+              Haptics.selectionAsync();
+              setManagerOpen(true);
+              showToast('The fridge manager is on the way.');
+            }}
+            style={({ pressed }) => [styles.mascotButton, pressed && { opacity: 0.85 }]}
+          >
+            <Mascot
+              size={44}
+              state={mascotState}
+              expression={cheer ? 'excited' : mascotExpression}
+              hideBubble
+              accessibilityLabel=""
+            />
+          </Pressable>
+          <PrimaryButton
+            emoji="📷"
+            label="Scan your fridge"
+            big
+            onPress={() => router.push('/scan')}
+            style={styles.scan}
+          />
+        </View>
       </View>
     </Screen>
   );
@@ -305,5 +345,18 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   secondaryRow: { flexDirection: 'row', gap: space.md },
+  scanRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  scan: { flex: 1 },
+  mascotButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
   half: { flex: 1, paddingHorizontal: space.sm },
 });
