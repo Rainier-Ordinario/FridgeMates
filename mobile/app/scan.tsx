@@ -240,15 +240,7 @@ export default function ScanScreen() {
     <Screen>
       <TopBar
         left="close"
-        title={
-          phase === 'reveal' ? (
-            <AppText variant="kicker" numberOfLines={1} accessibilityRole="header">
-              Meet your fridge
-            </AppText>
-          ) : (
-            'Scan food'
-          )
-        }
+        title={phase === 'reveal' ? '' : 'Scan food'}
         right={
           phase === 'reveal' ? (
             <View style={styles.newTag} accessible accessibilityLabel={`${found.length} new`}>
@@ -353,6 +345,9 @@ export default function ScanScreen() {
 
       {phase === 'reveal' && (
         <>
+          <AppText variant="kicker" style={styles.revealTitle} accessibilityRole="header">
+            Meet your fridge
+          </AppText>
           <AppText style={styles.sub} color={colors.inkMuted}>
             {found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.
           </AppText>
@@ -514,6 +509,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  revealTitle: { paddingHorizontal: space.xl, paddingTop: space.xs },
   sub: {
     paddingHorizontal: space.xl,
     paddingBottom: space.md,
