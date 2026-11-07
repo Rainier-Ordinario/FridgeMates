@@ -88,6 +88,7 @@ export function SettingsSheet({ visible, onClose, demoFirst = false }: Props) {
 
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.about}>
         v1.0 · Made at Fall Hacks 2026 by Rainier, Kenneth and Kerwin.
+        {'\n'}Mascot courtesy of the Fall Hacks organizers.
       </AppText>
 
       <Section title="Demo mode">
