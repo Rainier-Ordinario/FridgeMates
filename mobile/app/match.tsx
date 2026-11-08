@@ -3,10 +3,10 @@ import type { MatchResponse } from '@/api/types';
 import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
-import { PrimaryButton } from '@/components/Buttons';
+import { PrimaryButton, SecondaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodLoader } from '@/components/MoodLoader';
-import { DockedFooter } from '@/components/DockedFooter';
+import { DockedFooter, FOOTER_SECONDARY_WIDTH, FooterRow } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
@@ -15,7 +15,7 @@ import { colors, radius, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, SlideInLeft, SlideInRight, ZoomIn } from 'react-native-reanimated';
 
 const loaderPhrases = [
@@ -97,46 +97,63 @@ export default function MatchScreen() {
         <>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.card}>
-              <AppText variant="kicker" color={colors.ink} align="center">
-                It’s a match!
-              </AppText>
               <View style={styles.faces}>
                 {a && (
-                  <Animated.View entering={SlideInLeft.springify().damping(14)} style={styles.faceCol}>
-                    <Face food={a.name} emoji={a.emoji} mood={a.mood} size={96} label={a.characterName} />
-                    <AppText style={styles.faceName} align="center" numberOfLines={1}>
-                      {a.characterName}
-                    </AppText>
+                  <Animated.View entering={SlideInLeft.springify().damping(14)}>
+                    <Face food={a.name} mood={a.mood} size={64} label={a.characterName} />
                   </Animated.View>
                 )}
                 <View style={styles.heart}>
-                  <UiIcon icon="red-heart" size={34} />
+                  <UiIcon icon="red-heart" size={24} />
                 </View>
                 {b && (
-                  <Animated.View entering={SlideInRight.springify().damping(14)} style={styles.faceCol}>
-                    <Face food={b.name} emoji={b.emoji} mood={b.mood} size={96} label={b.characterName} />
-                    <AppText style={styles.faceName} align="center" numberOfLines={1}>
-                      {b.characterName}
-                    </AppText>
+                  <Animated.View entering={SlideInRight.springify().damping(14)}>
+                    <Face food={b.name} mood={b.mood} size={64} label={b.characterName} />
                   </Animated.View>
                 )}
               </View>
-              {others.length > 0 && (
-                <View style={styles.thirdWheel}>
-                  <Face
-                    food={others[0].name}
-                    emoji={others[0].emoji}
-                    mood="cocky"
-                    size={32}
-                    showBadge={false}
-                    animated={false}
-                  />
-                  <AppText variant="caption" color={colors.inkMuted}>
+              <View style={styles.cardText}>
+                <AppText style={styles.matchTitle} numberOfLines={1}>
+                  It’s a match!
+                </AppText>
+                <AppText style={styles.names} numberOfLines={1}>
+                  {a?.characterName} × {b?.characterName}
+                </AppText>
+                {others.length > 0 && (
+                  <AppText style={styles.thirdWheel} color={colors.inkMuted} numberOfLines={1}>
                     + {others.map((o) => o.characterName).join(', ')}, third wheel
                   </AppText>
-                </View>
-              )}
+                )}
+              </View>
             </Animated.View>
+
+            <View style={styles.need}>
+              <AppText variant="sectionLabel" color={colors.inkMuted} accessibilityRole="header">
+                You’ll need
+              </AppText>
+              <View style={styles.chips}>
+                {rescued.map((c) => (
+                  <View
+                    key={c.id}
+                    style={styles.chip}
+                    accessible
+                    accessibilityLabel={`${c.characterName}, ${c.name}`}
+                  >
+                    <Face
+                      food={c.name}
+                      mood={c.mood}
+                      size={22}
+                      showBadge={false}
+                      animated={false}
+                      expression={false}
+                    />
+                    <AppText style={styles.chipText} numberOfLines={1}>
+                      {c.name}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            </View>
 
             <Animated.View entering={FadeIn.delay(350)} style={styles.recipe}>
               <View style={styles.recipeHead}>
@@ -156,27 +173,25 @@ export default function MatchScreen() {
                   <AppText style={styles.stepText}>{step}</AppText>
                 </View>
               ))}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Show me another match"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setAttempt((n) => n + 1);
-                }}
-                style={({ pressed }) => [styles.skip, pressed && { opacity: 0.7 }]}
-              >
-                <AppText variant="caption" color={colors.inkMuted}>
-                  Show me another
-                </AppText>
-              </Pressable>
             </Animated.View>
           </ScrollView>
           <DockedFooter>
-            <PrimaryButton
-              icon={<UiIcon icon="cooking" size={24} />}
-              label="I cooked it"
-              onPress={cookedIt}
-            />
+            <FooterRow>
+              <SecondaryButton
+                label="Another idea"
+                accessibilityLabel="Another idea: find a different match"
+                outlined
+                tall
+                onPress={() => setAttempt((n) => n + 1)}
+                style={{ width: FOOTER_SECONDARY_WIDTH }}
+              />
+              <PrimaryButton
+                icon={<UiIcon icon="cooking" size={22} />}
+                label="I cooked it"
+                onPress={cookedIt}
+                style={{ flex: 1 }}
+              />
+            </FooterRow>
           </DockedFooter>
         </>
       )}
@@ -185,34 +200,45 @@ export default function MatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
+  scroll: { paddingHorizontal: space.xl, paddingVertical: space.md, gap: space.md },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
-  scroll: { paddingHorizontal: space.xl, paddingVertical: space.lg, gap: space.lg },
-  card: {
+    height: 88,
+    padding: 12,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: 20,
-    gap: space.sm,
-    alignItems: 'center',
+    borderRadius: radius.md,
     ...shadow.card,
   },
-  faces: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: space.xs },
-  faceCol: { alignItems: 'center', gap: 6, maxWidth: 130 },
-  faceName: { fontFamily: 'Nunito_800ExtraBold', fontSize: 18, lineHeight: 24 },
-  heart: { marginHorizontal: -8, marginTop: 28, zIndex: 2 },
-  thirdWheel: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
-  recipe: { gap: space.sm },
+  faces: { flexDirection: 'row', alignItems: 'center' },
+  heart: { marginHorizontal: -8, zIndex: 2 },
+  cardText: { flex: 1, minWidth: 0 },
+  matchTitle: { fontFamily: 'Nunito_800ExtraBold', fontSize: 22, lineHeight: 28 },
+  names: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
+  thirdWheel: { fontFamily: 'Nunito_600SemiBold', fontSize: 13, lineHeight: 18 },
+  need: { gap: 6 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    height: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 4,
+    paddingRight: 10,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+  },
+  chipText: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+  recipe: { gap: 6 },
   recipeHead: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: space.xs,
+    marginBottom: 2,
   },
   recipeTitle: { flex: 1 },
   minChip: {
@@ -229,23 +255,22 @@ const styles = StyleSheet.create({
   step: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
+    gap: 10,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.line,
     borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   stepNum: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepNumText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 15, lineHeight: 20 },
-  stepText: { flex: 1, fontFamily: 'Nunito_600SemiBold', fontSize: 16, lineHeight: 22 },
-  skip: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
+  stepNumText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 14, lineHeight: 18 },
+  stepText: { flex: 1, fontFamily: 'Nunito_600SemiBold', fontSize: 15, lineHeight: 20 },
 });
