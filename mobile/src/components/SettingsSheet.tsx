@@ -1,5 +1,4 @@
 import { mockScanResponse } from '@/api/mocks/scan';
-import { useFirstRun } from '@/logic/firstRun';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -8,7 +7,7 @@ import {
 import { useSettings } from '@/logic/settings';
 import { formatDollars } from '@/logic/prices';
 import { useFridge } from '@/logic/store';
-import { colors, radius, space } from '@/theme';
+import { colors, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -31,7 +30,7 @@ interface Props {
   pictureFirst?: boolean;
 }
 
-/** Every control in one place: voices, sounds, stats, help, reset, about, and the demo tools. */
+/** Every control in one place: profile, sounds, stats, help, reset, about, and the demo tools. */
 export function SettingsSheet({
   visible,
   onClose,
@@ -41,7 +40,6 @@ export function SettingsSheet({
 }: Props) {
   const settings = useSettings();
   const { scoreboard, loadDemo, addScanned, skipDay, clearAll, dayOffset, characters } = useFridge();
-  const { welcomed } = useFirstRun();
   const textMe = useTextMe();
   const { showToast } = useNudge();
   const [pictureOpen, setPictureOpen] = useState(false);
@@ -91,7 +89,7 @@ export function SettingsSheet({
     <BottomSheet visible={visible} onClose={onClose} title="Settings" scrollToEnd={demoFirst}>
       <View style={styles.profileHead}>
         <ProfilePicture
-          size={64}
+          size={56}
           onPress={() => setPictureOpen(true)}
           accessibilityLabel="Change profile picture"
         />
@@ -103,30 +101,31 @@ export function SettingsSheet({
           maxLength={24}
           returnKeyType="done"
           accessibilityLabel="Fridge name"
+          accessibilityHint="Tap to rename your fridge"
           placeholder="My fridge"
           placeholderTextColor={colors.inkMuted}
           style={styles.nameInput}
         />
-        <AppText variant="caption" color={colors.inkMuted}>
-          Tap the picture or the name to change them
-        </AppText>
       </View>
       <ProfileSheet visible={pictureOpen} onClose={() => setPictureOpen(false)} />
+
       <Section title="Sound">
-        <ToggleRow
-          icon="bell"
-          label="Sounds"
-          caption="Pops, sighs and confetti"
-          value={settings.sounds}
-          onChange={(v) => settings.set('sounds', v)}
-        />
-        <ToggleRow
-          icon="mobile-phone"
-          label="Notifications"
-          caption="Max 2 a day, never at night"
-          value={settings.notifications}
-          onChange={(v) => void toggleNotifications(v)}
-        />
+        <Group>
+          <ToggleRow
+            icon="bell"
+            label="Sounds"
+            hint="Pops, sighs and confetti"
+            value={settings.sounds}
+            onChange={(v) => settings.set('sounds', v)}
+          />
+          <ToggleRow
+            icon="mobile-phone"
+            label="Notifications"
+            hint="At most two a day, never at night"
+            value={settings.notifications}
+            onChange={(v) => void toggleNotifications(v)}
+          />
+        </Group>
       </Section>
 
       <Section title="Your stats">
@@ -135,36 +134,28 @@ export function SettingsSheet({
           accessible
           accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, about ${formatDollars(scoreboard.savedDollars)} saved`}
         >
-          <Stat
-            icon="party-popper"
-            value={String(scoreboard.rescued)}
-            label="rescued"
-            color={colors.successText}
-          />
-          <Stat icon="headstone" value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
-          <Stat
-            icon="money-with-wings"
-            value={formatDollars(scoreboard.savedDollars)}
-            label="saved"
-            color={colors.ink}
-          />
+          <Stat value={String(scoreboard.rescued)} label="rescued" color={colors.successText} />
+          <Stat value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
+          <Stat value={formatDollars(scoreboard.savedDollars)} label="saved" color={colors.ink} />
         </View>
       </Section>
 
       <Section title="Help">
-        <LinkRow
-          icon="waving-hand"
-          label="How FridgeMates works"
-          caption="See the intro again"
-          onPress={after(() => router.push('/welcome?replay=1'))}
-        />
-        <LinkRow
-          icon="broom"
-          label="Reset fridge"
-          caption="Empty everything"
-          onPress={confirmReset}
-          tone="danger"
-        />
+        <Group>
+          <LinkRow
+            icon="waving-hand"
+            label="How FridgeMates works"
+            hint="See the intro again"
+            onPress={after(() => router.push('/welcome?replay=1'))}
+          />
+          <LinkRow
+            icon="broom"
+            label="Reset fridge"
+            hint="Empty everything"
+            onPress={confirmReset}
+            tone="danger"
+          />
+        </Group>
       </Section>
 
       <AppText variant="caption" color={colors.inkMuted} align="center" style={styles.about}>
@@ -173,62 +164,59 @@ export function SettingsSheet({
         {'\n'}Food icons: Microsoft Fluent Emoji (MIT).
       </AppText>
 
-      <Section title="Demo mode">
-        <ToggleRow
-          icon="clapper-board"
-          label="Demo mode"
-          caption="Shows the stage tools and a Skip ahead a day chip"
+      <View
+        style={styles.demoRow}
+        accessible
+        accessibilityRole="switch"
+        accessibilityLabel="Demo mode"
+        accessibilityState={{ checked: settings.demoMode }}
+      >
+        <UiIcon icon="clapper-board" size={16} />
+        <AppText style={styles.demoLabel} color={colors.inkMuted}>
+          Demo mode
+        </AppText>
+        <View style={{ flex: 1 }} />
+        <Switch
           value={settings.demoMode}
-          onChange={(v) => settings.set('demoMode', v)}
+          onValueChange={(v) => {
+            Haptics.selectionAsync();
+            settings.set('demoMode', v);
+          }}
+          trackColor={{ true: colors.brandDark, false: colors.inkMuted }}
+          thumbColor={colors.surface}
+          style={styles.demoSwitch}
         />
-        {settings.demoMode && (
-          <>
-            <LinkRow
-              icon="ice"
-              label="Load demo fridge"
-              caption="The full cast, one per mood, plus a ghost"
-              onPress={after(loadDemo)}
+      </View>
+      {settings.demoMode && (
+        <View style={styles.tools}>
+          <Tool icon="ice" label="Load demo fridge" onPress={after(loadDemo)} />
+          <Tool icon="camera" label="Add a scan" onPress={after(() => addScanned(mockScanResponse.items))} />
+          <Tool
+            icon="fast-forward-button"
+            label={dayOffset ? `Skip a day (+${dayOffset})` : 'Skip a day'}
+            onPress={after(skipDay)}
+          />
+          <Tool icon="speech-balloon" label="Text me" onPress={after(textMe)} />
+          <Tool
+            icon="bell"
+            label="Test notification"
+            hint="Lock the phone: a real one lands in 5 seconds, or a banner if denied"
+            onPress={after(async () => {
+              const ok = await scheduleTestNotification(characters[0]);
+              if (ok) showToast('Lock your phone. It arrives in 5 seconds.');
+              else textMe();
+            })}
+          />
+          {onTestSafety && (
+            <Tool
+              icon="shield"
+              label="Test safety filter"
+              hint="Sends a blocked phrase; shows the friendly refusal"
+              onPress={after(onTestSafety)}
             />
-            <LinkRow
-              icon="camera"
-              label="Add a scan"
-              caption="Three new characters, highlighted"
-              onPress={after(() => addScanned(mockScanResponse.items))}
-            />
-            <LinkRow
-              icon="fast-forward-button"
-              label="Skip a day"
-              caption={dayOffset ? `Today +${dayOffset}` : 'Moods shift as the clock moves'}
-              onPress={after(skipDay)}
-            />
-            <LinkRow
-              icon="speech-balloon"
-              label="Text me"
-              caption="The most urgent character sends a message"
-              onPress={after(textMe)}
-            />
-            <LinkRow
-              icon="bell"
-              label="Send test notification"
-              caption="Lock the phone: a real one lands in 5 seconds (banner if denied)"
-              onPress={after(async () => {
-                const ok = await scheduleTestNotification(characters[0]);
-                if (ok) showToast('Lock your phone. It arrives in 5 seconds.');
-                else textMe();
-              })}
-            />
-            {onTestSafety && (
-              <LinkRow
-                icon="shield"
-                label="Test safety filter"
-                caption="Sends a blocked phrase; shows the friendly refusal"
-                onPress={after(onTestSafety)}
-              />
-            )}
-            {!welcomed ? null : null}
-          </>
-        )}
-      </Section>
+          )}
+        </View>
+      )}
     </BottomSheet>
   );
 }
@@ -236,10 +224,25 @@ export function SettingsSheet({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <AppText variant="caption" color={colors.inkMuted} style={styles.sectionTitle}>
-        {title.toUpperCase()}
+      <AppText variant="sectionLabel" color={colors.inkMuted}>
+        {title}
       </AppText>
       {children}
+    </View>
+  );
+}
+
+/** Cream card that groups rows with 1pt dividers inset past the icon. */
+function Group({ children }: { children: React.ReactNode }) {
+  const rows = React.Children.toArray(children);
+  return (
+    <View style={styles.group}>
+      {rows.map((row, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <View style={styles.divider} />}
+          {row}
+        </React.Fragment>
+      ))}
     </View>
   );
 }
@@ -247,13 +250,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ToggleRow({
   icon,
   label,
-  caption,
+  hint,
   value,
   onChange,
 }: {
   icon: FluentIconName;
   label: string;
-  caption: string;
+  hint: string;
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
@@ -263,15 +266,13 @@ function ToggleRow({
       accessible
       accessibilityRole="switch"
       accessibilityLabel={label}
+      accessibilityHint={hint}
       accessibilityState={{ checked: value }}
     >
-      <RowEmoji icon={icon} />
-      <View style={{ flex: 1 }}>
-        <AppText variant="bodyBold">{label}</AppText>
-        <AppText variant="caption" color={colors.inkMuted}>
-          {caption}
-        </AppText>
-      </View>
+      <RowIcon icon={icon} />
+      <AppText style={styles.rowLabel} numberOfLines={1}>
+        {label}
+      </AppText>
       <Switch
         value={value}
         onValueChange={(v) => {
@@ -288,13 +289,13 @@ function ToggleRow({
 function LinkRow({
   icon,
   label,
-  caption,
+  hint,
   onPress,
   tone = 'default',
 }: {
   icon: FluentIconName;
   label: string;
-  caption: string;
+  hint: string;
   onPress: () => void;
   tone?: 'default' | 'danger';
 }) {
@@ -302,19 +303,18 @@ function LinkRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={caption}
+      accessibilityHint={hint}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <RowEmoji icon={icon} />
-      <View style={{ flex: 1 }}>
-        <AppText variant="bodyBold" color={tone === 'danger' ? colors.dangerStrong : colors.ink}>
-          {label}
-        </AppText>
-        <AppText variant="caption" color={colors.inkMuted}>
-          {caption}
-        </AppText>
-      </View>
+      <RowIcon icon={icon} />
+      <AppText
+        style={styles.rowLabel}
+        color={tone === 'danger' ? colors.dangerStrong : colors.ink}
+        numberOfLines={1}
+      >
+        {label}
+      </AppText>
       <AppText variant="heading" color={colors.inkFaint}>
         ›
       </AppText>
@@ -322,29 +322,18 @@ function LinkRow({
   );
 }
 
-function RowEmoji({ icon }: { icon: FluentIconName }) {
+function RowIcon({ icon }: { icon: FluentIconName }) {
   return (
-    <View style={styles.rowEmoji}>
-      <UiIcon icon={icon} size={22} />
+    <View style={styles.rowIcon}>
+      <UiIcon icon={icon} size={18} />
     </View>
   );
 }
 
-function Stat({
-  icon,
-  value,
-  label,
-  color,
-}: {
-  icon: FluentIconName;
-  value: string;
-  label: string;
-  color: string;
-}) {
+function Stat({ value, label, color }: { value: string; label: string; color: string }) {
   return (
     <View style={styles.stat}>
-      <UiIcon icon={icon} size={18} />
-      <AppText variant="title" color={color}>
+      <AppText style={styles.statValue} color={color} numberOfLines={1}>
         {value}
       </AppText>
       <AppText variant="caption" color={colors.inkMuted}>
@@ -354,51 +343,95 @@ function Stat({
   );
 }
 
+/** Demo tool: a 36pt chip inside a 44pt hit area, two per row. */
+function Tool({
+  icon,
+  label,
+  hint,
+  onPress,
+}: {
+  icon: FluentIconName;
+  label: string;
+  hint?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onPress}
+      style={({ pressed }) => [styles.toolHit, pressed && styles.pressed]}
+    >
+      <View style={styles.tool}>
+        <UiIcon icon={icon} size={16} />
+        <AppText style={styles.toolText} numberOfLines={1}>
+          {label}
+        </AppText>
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  section: { gap: space.sm },
-  profileHead: { alignItems: 'center', gap: space.sm, paddingBottom: space.sm },
+  section: { gap: 6, marginTop: 6 },
+  profileHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   nameInput: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
+    flex: 1,
     fontFamily: 'Nunito_800ExtraBold',
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 26,
     color: colors.ink,
-    paddingVertical: space.xs,
+    minHeight: 44,
+    paddingVertical: 0,
     borderBottomWidth: 1.5,
     borderBottomColor: colors.line,
   },
-  sectionTitle: { letterSpacing: 1, marginTop: space.xs },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    minHeight: 56,
-    paddingVertical: space.sm,
-    paddingHorizontal: space.md,
-    backgroundColor: colors.bg,
-    borderRadius: radius.md,
-  },
-  rowEmoji: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  group: { backgroundColor: colors.bg, borderRadius: 16, paddingHorizontal: 12 },
+  divider: { height: 1, backgroundColor: colors.line, marginLeft: 42 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  rowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowEmojiText: { fontSize: 20, lineHeight: 26 },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  statsHead: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingBottom: space.xs },
+  rowLabel: { flex: 1, fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
+  pressed: { opacity: 0.85 },
   stats: { flexDirection: 'row', gap: space.sm },
   stat: {
     flex: 1,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.bg,
-    borderRadius: radius.md,
-    paddingVertical: space.md,
-    gap: 2,
+    borderRadius: 16,
   },
-  statEmoji: { fontSize: 18, lineHeight: 22 },
-  about: { marginVertical: space.xs },
+  statValue: {
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 17,
+    lineHeight: 22,
+    fontVariant: ['tabular-nums'],
+  },
+  about: { marginTop: 6 },
+  demoRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 44, marginTop: 6 },
+  demoLabel: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+  demoSwitch: { transform: [{ scale: 0.86 }] },
+  tools: { flexDirection: 'row', flexWrap: 'wrap', columnGap: space.sm },
+  toolHit: { width: '48%', flexGrow: 1, height: 44, justifyContent: 'center' },
+  tool: {
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1.5,
+    borderColor: '#FFD3B3',
+    borderStyle: 'dashed',
+  },
+  toolText: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18, flexShrink: 1 },
 });
