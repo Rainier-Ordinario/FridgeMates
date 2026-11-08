@@ -49,6 +49,8 @@ interface SecondaryProps {
   outlined?: boolean;
   /** 52pt, for a secondary that sits next to a primary in a footer row. */
   tall?: boolean;
+  /** 15/20 label (dense rows of two). */
+  small?: boolean;
   emoji?: string;
   onPress: () => void;
   style?: ViewStyle;
@@ -64,6 +66,7 @@ export function SecondaryButton({
   accessibilityLabel,
   outlined = false,
   tall = false,
+  small = false,
 }: SecondaryProps) {
   return (
     <Pressable
@@ -82,7 +85,7 @@ export function SecondaryButton({
       ]}
     >
       {icon ?? (emoji ? <AppText style={styles.secondaryEmoji}>{emoji}</AppText> : null)}
-      <AppText variant="bodyBold" color={colors.ink} numberOfLines={1}>
+      <AppText variant="bodyBold" color={colors.ink} numberOfLines={1} style={small && styles.secondarySmall}>
         {label}
       </AppText>
     </Pressable>
@@ -185,6 +188,7 @@ const styles = StyleSheet.create({
   },
   secondaryOutlined: { borderWidth: 2, borderColor: colors.ink },
   secondaryTall: { minHeight: 52 },
+  secondarySmall: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
   secondaryEmoji: { fontSize: 18, lineHeight: 22 },
   round: {
     alignItems: 'center',
