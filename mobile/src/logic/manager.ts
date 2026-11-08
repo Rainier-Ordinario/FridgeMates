@@ -18,12 +18,12 @@ export interface ManagerAnswer {
   faces: Character[];
   /** An optional follow-up action. */
   action?: 'match';
-  /** The date card shown inside the manager for 'What should I cook?'. */
+  /** The date card shown inside the manager for 'What to cook?'. */
   match?: { pair: [Character, Character]; title: string; minutes: number };
 }
 
 export const managerChips: { id: ManagerQuestion; label: string }[] = [
-  { id: 'cookTonight', label: 'What should I cook?' },
+  { id: 'cookTonight', label: 'What to cook?' },
   { id: 'eatFirst', label: 'What should I eat first?' },
   { id: 'expiring', label: "What's about to expire?" },
   { id: 'saved', label: 'How much have I saved?' },

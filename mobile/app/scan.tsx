@@ -8,7 +8,7 @@ import { PrimaryButton, RoundButton, SecondaryButton } from '@/components/Button
 import { FoodRow } from '@/components/FoodRow';
 import { Toast, useToastState } from '@/components/NudgeBanner';
 import { ScanLoader } from '@/components/ScanLoader';
-import { DockedFooter } from '@/components/DockedFooter';
+import { DockedFooter, FOOTER_SECONDARY_WIDTH, FooterRow } from '@/components/DockedFooter';
 import { RecoveryCard, type RecoveryKind } from '@/components/RecoveryCard';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
@@ -333,12 +333,12 @@ export default function ScanScreen() {
     <Screen>
       <TopBar
         left="close"
-        title={phase === 'reveal' ? '' : 'Scan food'}
+        title={phase === 'reveal' ? 'Meet your fridge' : 'Scan food'}
         right={
           phase === 'reveal' ? (
-            <View style={styles.newTag} accessible accessibilityLabel={`${found.length} new`}>
-              <AppText variant="captionBold" color={colors.ink}>
-                +{found.length} new
+            <View style={styles.countChip} accessible accessibilityLabel={`${found.length} found`}>
+              <AppText style={styles.countText} color={colors.successText}>
+                {found.length} found
               </AppText>
             </View>
           ) : undefined
@@ -433,13 +433,8 @@ export default function ScanScreen() {
 
       {phase === 'reveal' && (
         <>
-          <AppText variant="kicker" style={styles.revealTitle} accessibilityRole="header">
-            Meet your fridge
-          </AppText>
           <AppText style={styles.sub} color={colors.inkMuted}>
-            {found.length === 0
-              ? 'Everyone was sent back.'
-              : `${found.length === 1 ? '1 roommate' : `${found.length} roommates`} just woke up. Be nice.`}
+            {found.length === 0 ? 'Everyone was sent back.' : 'They just woke up. Be nice.'}
           </AppText>
           <ScrollView
             style={{ flex: 1 }}
@@ -477,28 +472,25 @@ export default function ScanScreen() {
           {allArrived && (
             <>
               <Confetti count={24} />
-              <Animated.View entering={FadeIn.duration(motion.base)} style={styles.arrived}>
-                <AppText variant="caption" color={colors.inkMuted} align="center">
-                  Everyone’s here. Be nice to them.
-                </AppText>
-              </Animated.View>
               <Animated.View entering={FadeIn.delay(100).duration(200)}>
                 <DockedFooter>
-                  {found.length >= 2 && (
-                    <View style={styles.resultRow}>
+                  <FooterRow>
+                    {found.length >= 2 && (
                       <SecondaryButton
-                        label="What should I cook?"
+                        label="What to cook?"
                         outlined
+                        tall
                         onPress={() => finish('cook')}
-                        style={styles.half}
+                        style={{ width: FOOTER_SECONDARY_WIDTH }}
                       />
-                    </View>
-                  )}
-                  <PrimaryButton
-                    icon={<UiIcon icon="ice" size={22} />}
-                    label={`Add ${found.reduce((sum, item) => sum + item.quantity, 0)} to fridge`}
-                    onPress={() => finish()}
-                  />
+                    )}
+                    <PrimaryButton
+                      icon={<UiIcon icon="ice" size={22} />}
+                      label={`Add ${found.reduce((sum, item) => sum + item.quantity, 0)} to fridge`}
+                      onPress={() => finish()}
+                      style={{ flex: 1 }}
+                    />
+                  </FooterRow>
                 </DockedFooter>
               </Animated.View>
             </>
@@ -519,7 +511,7 @@ export default function ScanScreen() {
               key={toast.key}
               text={toast.text}
               action={toast.action}
-              offset={found.length >= 2 ? 180 : 110}
+              offset={84}
               onDone={() => dismissToast('action')}
             />
           )}
@@ -618,19 +610,20 @@ function Viewfinder({
 const CORNER = 44;
 
 const styles = StyleSheet.create({
-  newTag: {
-    backgroundColor: colors.brand,
+  countChip: {
+    backgroundColor: moods.cocky.tint,
     borderRadius: radius.pill,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    minHeight: 24,
+    justifyContent: 'center',
   },
-  revealTitle: { paddingHorizontal: space.xl, paddingTop: space.xs },
+  countText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
   sub: {
     paddingHorizontal: space.xl,
-    paddingBottom: space.md,
+    paddingBottom: space.sm,
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 18,
   },
   pick: {
     flex: 1,
@@ -667,8 +660,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.lg },
   thumb: { width: 96, height: 96, borderRadius: radius.md, ...shadow.card },
   foundNote: { position: 'absolute', bottom: 34, left: 0, right: 0 },
-  resultRow: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
   reveal: { paddingHorizontal: space.xl, paddingBottom: space.md },
   row: {
     flexDirection: 'row',
@@ -680,7 +671,6 @@ const styles = StyleSheet.create({
   },
   rowBody: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  arrived: { paddingTop: space.xs },
   // viewfinder
   cameraGround: { flex: 1, backgroundColor: '#1F1812' },
   hintPill: {
