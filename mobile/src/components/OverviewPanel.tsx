@@ -3,6 +3,7 @@ import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { UiIcon } from '@/components/FoodIcon';
 import { Mascot } from '@/components/Mascot';
+import { SpeechBubble } from '@/components/SpeechBubble';
 import {
   categoryGroups,
   fridgeValue,
@@ -13,7 +14,7 @@ import {
 } from '@/logic/overview';
 import { formatDollars } from '@/logic/prices';
 import { useFridge } from '@/logic/store';
-import { colors, moods, radius, shadow, space } from '@/theme';
+import { colors, moods, shadow, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React from 'react';
@@ -26,7 +27,7 @@ interface Props {
   bottomPadding: number;
 }
 
-/** Page 2 of the home pager: profile-lite, stats, what's inside, and the manager's summary. */
+/** Page 2 of the home pager: stats, what's inside (urgency + categories), and the manager's one-line summary. */
 export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
   const { scoreboard, characters, ghosts } = useFridge();
   const buckets = urgencyBuckets(characters, ghosts);
@@ -46,34 +47,34 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
       nestedScrollEnabled
     >
       <View
-        style={styles.statsGrid}
+        style={styles.statsRow}
         accessibilityLabel={`${scoreboard.rescued} rescued, ${scoreboard.lost} lost, ${formatDollars(scoreboard.savedDollars)} saved, rescue rate ${rate}`}
       >
         <StatTile value={String(scoreboard.rescued)} label="rescued" color={colors.successText} />
         <StatTile value={String(scoreboard.lost)} label="lost" color={colors.dangerStrong} />
         <StatTile value={formatDollars(scoreboard.savedDollars)} label="saved" color={colors.ink} />
-        <StatTile value={rate} label="rescue rate" color={colors.ink} />
+        <StatTile value={rate} label="rescue %" color={colors.ink} />
       </View>
 
       {empty ? (
         <View style={styles.empty}>
           <Mascot
-            size={110}
+            size={80}
             state="empty"
             expression="sleepy"
             line="Nothing in here yet. Scan your fridge to meet everyone."
             accessibilityLabel="The fridge manager is asleep. Nothing in here yet."
           />
           <PrimaryButton
-            icon={<UiIcon icon="camera" size={24} />}
+            icon={<UiIcon icon="camera" size={22} />}
             label="Scan your first food"
             onPress={() => router.push('/scan')}
           />
         </View>
       ) : (
         <>
-          <AppText variant="heading" accessibilityRole="header">
-            What’s inside
+          <AppText variant="sectionLabel" color={colors.inkMuted} accessibilityRole="header">
+            What’s inside · {scoreboard.inFridge}
           </AppText>
           <View style={styles.urgencyGrid}>
             {(
@@ -101,68 +102,70 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
                 <AppText style={styles.tileValue} color={m.text}>
                   {buckets[key].length}
                 </AppText>
-                <AppText style={styles.tileLabel} color={m.text}>
+                <AppText style={styles.tileLabel} color={m.text} numberOfLines={1}>
                   {urgencyLabel[key]}
                 </AppText>
               </Pressable>
             ))}
           </View>
 
-          <View style={styles.categories}>
+          <View style={styles.categoryGrid}>
             {groups.map((g) => (
               <View
                 key={g.category}
-                style={styles.categoryRow}
+                style={styles.categoryTile}
                 accessible
                 accessibilityLabel={`${g.category}: ${g.count}`}
               >
                 <AppText
-                  variant="bodyBold"
+                  style={styles.categoryName}
                   color={g.count ? colors.ink : colors.inkMuted}
-                  style={{ flex: 1 }}
+                  numberOfLines={1}
                 >
                   {g.category}
                 </AppText>
-                <View style={styles.categoryFaces}>
-                  {g.faces.map((c, i) => (
-                    <View
-                      key={c.id}
-                      style={[styles.categoryFace, { marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i }]}
-                    >
-                      <Face
-                        food={c.name}
-                        emoji={c.emoji}
-                        mood={c.mood}
-                        size={36}
-                        showBadge={false}
-                        animated={false}
-                        label={c.characterName}
-                      />
-                    </View>
-                  ))}
+                <View style={styles.categoryBottom}>
+                  <View style={styles.categoryFaces}>
+                    {g.faces.slice(0, 3).map((c, i) => (
+                      <View
+                        key={c.id}
+                        style={[styles.categoryFace, { marginLeft: i === 0 ? 0 : -7, zIndex: 10 - i }]}
+                      >
+                        <Face
+                          food={c.name}
+                          mood={c.mood}
+                          size={24}
+                          showBadge={false}
+                          animated={false}
+                          expression={false}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                  <AppText style={styles.categoryCount} color={g.count ? colors.ink : colors.inkMuted}>
+                    {g.count}
+                  </AppText>
                 </View>
-                <AppText
-                  variant="heading"
-                  color={g.count ? colors.ink : colors.inkMuted}
-                  style={styles.categoryCount}
-                >
-                  {g.count}
-                </AppText>
               </View>
             ))}
           </View>
 
-          <AppText variant="body" color={colors.inkMuted} align="center">
-            About {formatDollars(value)} of food in here right now.
-          </AppText>
-
-          <View style={styles.mascot}>
+          <View
+            style={styles.mascotRow}
+            accessible
+            accessibilityLabel={`The fridge manager says: ${summary.text} About ${formatDollars(value)} of food in here right now.`}
+          >
             <Mascot
-              size={110}
+              size={44}
               state={summary.happy ? 'idle' : 'badNews'}
               expression={summary.happy ? 'happy' : 'sad'}
-              line={summary.text}
-              accessibilityLabel={`The fridge manager says: ${summary.text}`}
+              hideBubble
+              accessibilityLabel=""
+            />
+            <SpeechBubble
+              compact
+              text={`${summary.text} About ${formatDollars(value)} of food in here right now.`}
+              style={styles.bubble}
             />
           </View>
         </>
@@ -174,10 +177,10 @@ export function OverviewPanel({ onShowUrgency, bottomPadding }: Props) {
 function StatTile({ value, label, color }: { value: string; label: string; color: string }) {
   return (
     <View style={styles.tile}>
-      <AppText style={styles.tileValue} color={color}>
+      <AppText style={styles.tileValue} color={color} numberOfLines={1}>
         {value}
       </AppText>
-      <AppText style={styles.tileLabel} color={colors.inkMuted}>
+      <AppText style={styles.tileLabel} color={colors.inkMuted} numberOfLines={1}>
         {label}
       </AppText>
     </View>
@@ -185,54 +188,60 @@ function StatTile({ value, label, color }: { value: string; label: string; color
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: space.xl, paddingTop: space.lg, gap: space.lg },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  scroll: { paddingHorizontal: space.xl, paddingTop: space.md, gap: space.md },
+  statsRow: { flexDirection: 'row', gap: space.sm },
   tile: {
-    width: '47%',
-    flexGrow: 1,
-    height: 84,
+    flex: 1,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    gap: 2,
+    borderRadius: 16,
+    gap: 0,
     ...shadow.card,
   },
-  mascot: { alignItems: 'center', paddingTop: space.lg },
-  empty: { alignItems: 'center', gap: space.xl, paddingTop: space.lg },
-  urgencyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  empty: { alignItems: 'center', gap: space.lg, paddingTop: space.md },
+  urgencyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   urgencyTile: {
-    width: '47%',
+    width: '48%',
     flexGrow: 1,
-    height: 84,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: radius.md,
-    borderWidth: 2,
-    gap: 2,
-  },
-  categories: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    paddingHorizontal: space.lg,
-    ...shadow.card,
-  },
-  categoryRow: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    minHeight: 56,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    gap: space.sm,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
   },
-  categoryFaces: { flexDirection: 'row' },
-  categoryFace: { borderRadius: 20, borderWidth: 2, borderColor: colors.surface },
-  categoryCount: { minWidth: 28, textAlign: 'right' },
   tileValue: {
     fontFamily: 'Nunito_800ExtraBold',
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 22,
+    lineHeight: 26,
     fontVariant: ['tabular-nums'],
   },
-  tileLabel: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+  tileLabel: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  categoryTile: {
+    width: '31%',
+    flexGrow: 1,
+    height: 72,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    justifyContent: 'space-between',
+    ...shadow.card,
+  },
+  categoryName: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+  categoryBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  categoryFaces: { flexDirection: 'row', minHeight: 24 },
+  categoryFace: { borderRadius: 14, borderWidth: 2, borderColor: colors.surface },
+  categoryCount: {
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 17,
+    lineHeight: 22,
+    fontVariant: ['tabular-nums'],
+  },
+  mascotRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56 },
+  bubble: { flex: 1 },
 });
