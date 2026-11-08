@@ -1,4 +1,3 @@
-import { USE_MOCK } from '@/api/config';
 import { AppText } from '@/components/AppText';
 import { UiIcon, type FluentIconName } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
@@ -35,13 +34,7 @@ export default function WelcomeScreen() {
   const { markWelcomed } = useFirstRun();
   const { loadDemo } = useFridge();
   // ?replay=1: opened from Settings → just go back, don't touch the first-run flag.
-  // Dev (mock only): ?demo=1 loads the demo fridge and any other params are forwarded to the home screen,
-  // so a cold deep link can reach e.g. the Overview page or the Settings sheet.
-  const { replay, demo, ...forward } = useLocalSearchParams<{
-    replay?: string;
-    demo?: string;
-    [k: string]: string | undefined;
-  }>();
+  const { replay } = useLocalSearchParams<{ replay?: string }>();
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
 
@@ -50,17 +43,6 @@ export default function WelcomeScreen() {
     t.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true);
     return () => cancelAnimation(t);
   }, [reduceMotion, t]);
-  useEffect(() => {
-    if (!demo || !USE_MOCK) return;
-    const id = setTimeout(() => {
-      loadDemo();
-      markWelcomed();
-      router.replace({ pathname: '/', params: forward });
-    }, 50);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
-
   const breathe = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.04]) }],
   }));
