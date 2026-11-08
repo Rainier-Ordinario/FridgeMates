@@ -51,6 +51,7 @@ type Action =
   | { type: 'restore'; item: FoodItem; index: number }
   | { type: 'openedToday'; id: string; shelfDaysOnceOpened?: number }
   | { type: 'adjustDays'; id: string; delta: number }
+  | { type: 'adjustQuantity'; id: string; quantity: number }
   | { type: 'setEpitaph'; id: string; epitaph: string }
   | { type: 'skipDay' }
   | { type: 'loadDemo' }
@@ -59,6 +60,20 @@ type Action =
 
 function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem) {
   return items.map((i) => (i.id === id ? patch(i) : i));
+}
+
+function rescueOne(item: FoodItem, today: string): FoodItem {
+  if (item.status !== 'inFridge') return item;
+  const quantity = item.quantity ?? 1;
+  if (quantity > 1) {
+    return {
+      ...item,
+      quantity: quantity - 1,
+      rescuedQuantity: (item.rescuedQuantity ?? 0) + 1,
+    };
+  }
+  // The last unit: rescued for good, and the photo crop is no longer needed (the file is deleted by the caller).
+  return { ...item, status: 'rescued', resolvedAt: today, photo: undefined };
 }
 
 function reducer(state: State, action: Action): State {
@@ -74,23 +89,14 @@ function reducer(state: State, action: Action): State {
     case 'eat':
       return {
         ...state,
-        items: update(state.items, action.id, (i) => ({
-          ...i,
-          status: 'rescued',
-          resolvedAt: todayISO(state.dayOffset),
-          photo: undefined,
-        })),
+        items: update(state.items, action.id, (i) => rescueOne(i, todayISO(state.dayOffset))),
       };
     case 'rescueMany': {
       const today = todayISO(state.dayOffset);
       const ids = new Set(action.ids);
       return {
         ...state,
-        items: state.items.map((i) =>
-          ids.has(i.id) && i.status === 'inFridge'
-            ? { ...i, status: 'rescued', resolvedAt: today, photo: undefined }
-            : i,
-        ),
+        items: state.items.map((i) => (ids.has(i.id) ? rescueOne(i, today) : i)),
         recentRescue: { ids: action.ids, count: action.ids.length },
       };
     }
@@ -113,6 +119,14 @@ function reducer(state: State, action: Action): State {
           status: 'lost',
           resolvedAt: todayISO(state.dayOffset),
           photo: undefined,
+        })),
+      };
+    case 'adjustQuantity':
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => ({
+          ...i,
+          quantity: Math.max(1, Math.min(99, Math.round(action.quantity))),
         })),
       };
     case 'openedToday': {
@@ -186,6 +200,7 @@ interface FridgeContextValue {
   restore: (item: FoodItem, index: number) => void;
   openedToday: (id: string) => void;
   adjustDays: (id: string, delta: number) => void;
+  adjustQuantity: (id: string, quantity: number) => void;
   setEpitaph: (id: string, epitaph: string) => void;
   skipDay: () => void;
   /** Fills the fridge with the demo cast (works without camera or network). */
@@ -213,7 +228,18 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
         if (raw) {
           const parsed = JSON.parse(raw) as { items?: FoodItem[]; dayOffset?: number };
           if (Array.isArray(parsed.items)) {
-            dispatch({ type: 'hydrate', items: parsed.items, dayOffset: Number(parsed.dayOffset) || 0 });
+            const items = parsed.items.map((item) => ({
+              ...item,
+              quantity:
+                typeof item.quantity === 'number' && Number.isFinite(item.quantity)
+                  ? Math.max(1, Math.min(99, Math.round(item.quantity)))
+                  : 1,
+              rescuedQuantity:
+                typeof item.rescuedQuantity === 'number' && Number.isFinite(item.rescuedQuantity)
+                  ? Math.max(0, Math.round(item.rescuedQuantity))
+                  : 0,
+            }));
+            dispatch({ type: 'hydrate', items, dayOffset: Number(parsed.dayOffset) || 0 });
           }
         }
       })
@@ -256,12 +282,18 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       ghosts,
       gone,
       scoreboard: {
-        inFridge: characters.length,
-        rescued: all.filter((c) => c.status === 'rescued').length,
-        lost: all.filter((c) => c.status === 'lost').length,
-        savedDollars: all
-          .filter((c) => c.status === 'rescued')
-          .reduce((sum, c) => sum + estimatePrice(c.name), 0),
+        inFridge: characters.reduce((sum, c) => sum + c.quantity, 0),
+        rescued: all.reduce(
+          (sum, c) => sum + (c.rescuedQuantity ?? 0) + (c.status === 'rescued' ? c.quantity : 0),
+          0,
+        ),
+        lost: all.filter((c) => c.status === 'lost').reduce((sum, c) => sum + c.quantity, 0),
+        savedDollars: all.reduce(
+          (sum, c) =>
+            sum +
+            estimatePrice(c.name) * ((c.rescuedQuantity ?? 0) + (c.status === 'rescued' ? c.quantity : 0)),
+          0,
+        ),
       },
       dayOffset: state.dayOffset,
       hydrated: isHydrated,
@@ -270,18 +302,21 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       recentRescue: state.recentRescue,
       getById: (id) => all.find((c) => c.id === id),
       addScanned: (scanned) => {
-        const items = scanned.map((s) => scanItemToFoodItem(s, state.dayOffset));
+        const items = scanned
+          .filter((s) => s.quantity > 0)
+          .map((s) => scanItemToFoodItem(s, state.dayOffset));
         dispatch({ type: 'addItems', items });
         return items.map((i) => i.id);
       },
       clearRecentlyAdded: () => dispatch({ type: 'clearRecentlyAdded' }),
       eat: (id) => {
-        // Rescued for good: the thumbnail crop is not needed any more.
-        deleteCrop(state.items.find((i) => i.id === id)?.photo);
+        // The crop is deleted only when the last unit of the item is rescued.
+        const it = state.items.find((i) => i.id === id);
+        if (it && (it.quantity ?? 1) <= 1) deleteCrop(it.photo);
         dispatch({ type: 'eat', id });
       },
       rescueMany: (ids) => {
-        for (const i of state.items) if (ids.includes(i.id)) deleteCrop(i.photo);
+        for (const i of state.items) if (ids.includes(i.id) && (i.quantity ?? 1) <= 1) deleteCrop(i.photo);
         dispatch({ type: 'rescueMany', ids });
       },
       clearRecentRescue: () => dispatch({ type: 'clearRecentRescue' }),
@@ -299,6 +334,7 @@ export function FridgeProvider({ children }: { children: React.ReactNode }) {
       restore: (item, index) => dispatch({ type: 'restore', item, index }),
       openedToday: (id) => dispatch({ type: 'openedToday', id }),
       adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
+      adjustQuantity: (id, quantity) => dispatch({ type: 'adjustQuantity', id, quantity }),
       setEpitaph: (id, epitaph) => dispatch({ type: 'setEpitaph', id, epitaph }),
       skipDay: () => dispatch({ type: 'skipDay' }),
       loadDemo: () => {

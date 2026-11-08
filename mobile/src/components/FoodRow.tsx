@@ -6,16 +6,17 @@ import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-nativ
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   ZoomIn,
+  runOnJS,
   useAnimatedReaction,
   useSharedValue,
   type SharedValue,
-  runOnJS,
 } from 'react-native-reanimated';
 import { AppText } from './AppText';
-import { CloseIcon } from './Icons';
 import { Face } from './Face';
 import { UiIcon } from './FoodIcon';
+import { CloseIcon } from './Icons';
 import { MoodPill } from './MoodPill';
+import { QuantityControl } from './QuantityControl';
 
 export interface FoodRowProps {
   /** Food name for the icon. */
@@ -33,6 +34,10 @@ export interface FoodRowProps {
   isNew?: boolean;
   /** Face motion loop (off for long static lists). */
   animated?: boolean;
+  /** Units of this item. With `onQuantityChange` a stepper shows under the row; without it, "×N" sits next to the name when N > 1. */
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
+  quantityMin?: number;
   /** Swipe left to reveal "Remove"; a full swipe removes right away. */
   onRemove?: () => void;
   /** Called while a row is being dragged / closed, so a parent pager can lock horizontal paging. */
@@ -54,7 +59,7 @@ const ACTION_WIDTH = 96;
 const FULL_SWIPE_RATIO = 0.6;
 
 /**
- * Compact 72pt row: food icon in a mood-tinted circle, name, plain-language time + mood pill, and one action.
+ * Food icon (or photo crop), name, expiry and mood, with optional quantity controls, one action, and swipe-to-remove.
  * Row background is the mood tint; dramatic rows get a red border; ghost rows are dashed and faded.
  */
 function FoodRowBase({
@@ -68,6 +73,9 @@ function FoodRowBase({
   accessibilityHint,
   isNew = false,
   animated = true,
+  quantity,
+  onQuantityChange,
+  quantityMin = 1,
   onRemove,
   onSwipeState,
   removeButton = false,
@@ -76,6 +84,7 @@ function FoodRowBase({
   const m = moods[mood];
   const isGhost = mood === 'ghost';
   const isDramatic = mood === 'dramatic';
+  const showCount = quantity !== undefined && quantity > 1 && !onQuantityChange;
   const swipeRef = useRef<SwipeableMethods>(null);
   const rowWidth = useSharedValue(300);
   const farthest = useSharedValue(0);
@@ -104,68 +113,84 @@ function FoodRowBase({
           </AppText>
         </View>
       )}
-      <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} photo={photo} />
-      <View style={styles.text}>
-        <AppText style={styles.name} numberOfLines={1}>
-          {name}
-        </AppText>
-        <View style={styles.meta}>
-          <AppText style={styles.time} color={m.text} numberOfLines={1}>
-            {plainTimeLabel(daysLeft)}
-          </AppText>
-          <MoodPill mood={mood} compact />
+      <View style={styles.details}>
+        <View style={styles.main}>
+          <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} photo={photo} />
+          <View style={styles.text}>
+            <View style={styles.nameRow}>
+              <AppText style={styles.name} numberOfLines={1}>
+                {name}
+              </AppText>
+              {showCount && (
+                <AppText
+                  style={styles.count}
+                  color={colors.inkMuted}
+                  accessibilityLabel={`${quantity} of them`}
+                >
+                  ×{quantity}
+                </AppText>
+              )}
+            </View>
+            <View style={styles.meta}>
+              <AppText style={styles.time} color={m.text} numberOfLines={1}>
+                {plainTimeLabel(daysLeft)}
+              </AppText>
+              <MoodPill mood={mood} compact />
+            </View>
+          </View>
+          {action && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.accessibilityLabel}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                action.onPress();
+              }}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.action,
+                { borderColor: action.color ?? colors.ink },
+                pressed && styles.actionPressed,
+              ]}
+            >
+              <AppText style={styles.actionText} color={action.color ?? colors.ink}>
+                {action.label}
+              </AppText>
+            </Pressable>
+          )}
+          {removeButton && onRemove && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${name}`}
+              onPress={remove}
+              hitSlop={4}
+              style={({ pressed }) => [styles.removeButton, pressed && styles.actionPressed]}
+            >
+              <CloseIcon size={18} color={colors.inkMuted} />
+            </Pressable>
+          )}
         </View>
+        {quantity !== undefined && onQuantityChange && (
+          <QuantityControl label={name} quantity={quantity} onChange={onQuantityChange} min={quantityMin} />
+        )}
       </View>
-      {action && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action.accessibilityLabel}
-          onPress={() => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            action.onPress();
-          }}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.action,
-            { borderColor: action.color ?? colors.ink },
-            pressed && styles.actionPressed,
-          ]}
-        >
-          <AppText style={styles.actionText} color={action.color ?? colors.ink}>
-            {action.label}
-          </AppText>
-        </Pressable>
-      )}
-      {removeButton && onRemove && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${name}`}
-          onPress={remove}
-          hitSlop={4}
-          style={({ pressed }) => [styles.removeButton, pressed && styles.actionPressed]}
-        >
-          <CloseIcon size={18} color={colors.inkMuted} />
-        </Pressable>
-      )}
     </Animated.View>
   );
+
+  const a11yLabel = accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`;
 
   const pressable = onPress ? (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`}
+      accessibilityLabel={a11yLabel}
       accessibilityHint={accessibilityHint ?? 'Opens the character'}
       accessibilityActions={onRemove ? [{ name: 'remove', label: 'Remove' }] : undefined}
       onAccessibilityAction={(e) => {
         if (e.nativeEvent.actionName === 'remove') onRemove?.();
       }}
       onPress={() => {
-        // Tapping a row (or any row) closes whichever row is open.
-        if (openRow && openRow !== swipeRef.current) {
-          closeOpenRow();
-          return;
-        }
-        if (openRow === swipeRef.current && openRow) {
+        // Tapping any row closes whichever row is open.
+        if (openRow) {
           closeOpenRow();
           return;
         }
@@ -179,7 +204,7 @@ function FoodRowBase({
   ) : onRemove ? (
     <View
       accessible
-      accessibilityLabel={accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`}
+      accessibilityLabel={a11yLabel}
       accessibilityActions={[{ name: 'remove', label: 'Remove' }]}
       onAccessibilityAction={(e) => {
         if (e.nativeEvent.actionName === 'remove') remove();
@@ -296,8 +321,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 10, lineHeight: 14 },
-  text: { flex: 1, gap: 2 },
-  name: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 22 },
+  details: { flex: 1 },
+  main: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  text: { flex: 1, gap: 2, minWidth: 0 },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  name: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 22, flexShrink: 1 },
+  count: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   time: { fontFamily: 'Nunito_700Bold', fontSize: 14, lineHeight: 18, flexShrink: 1 },
   action: {

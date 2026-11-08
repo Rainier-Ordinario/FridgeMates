@@ -221,8 +221,9 @@ export default function ScanScreen() {
         return;
       }
       const printed = items.filter((i) => i.dateSource === 'printed').length;
+      const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
       setFoundNote(
-        `Found ${items.length} item${items.length === 1 ? '' : 's'} · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
+        `Found ${items.length} food type${items.length === 1 ? '' : 's'} · ${totalQuantity} total · ${printed} printed date${printed === 1 ? '' : 's'}, ${items.length - printed} estimated`,
       );
       // Most urgent first, like the fridge.
       nonce.current += 1;
@@ -462,6 +463,12 @@ export default function ScanScreen() {
                     photo={item.photo}
                     onRemove={() => removeFound(item.key)}
                     removeButton
+                    quantity={item.quantity}
+                    onQuantityChange={(quantity) =>
+                      setFound((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, quantity } : entry)),
+                      )
+                    }
                   />
                 </Animated.View>
               );
@@ -489,7 +496,7 @@ export default function ScanScreen() {
                   )}
                   <PrimaryButton
                     icon={<UiIcon icon="ice" size={22} />}
-                    label={`Add ${found.length} to fridge`}
+                    label={`Add ${found.reduce((sum, item) => sum + item.quantity, 0)} to fridge`}
                     onPress={() => finish()}
                   />
                 </DockedFooter>

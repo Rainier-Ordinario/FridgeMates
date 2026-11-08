@@ -10,10 +10,11 @@ export function mockFridgeItems(): FoodItem[] {
   const mk = (
     id: string,
     daysLeft: number,
-    item: Omit<FoodItem, 'id' | 'addedAt' | 'expiresAt' | 'status'>,
+    item: Omit<FoodItem, 'id' | 'addedAt' | 'expiresAt' | 'status' | 'quantity' | 'rescuedQuantity'>,
   ): FoodItem => ({
     id,
     ...item,
+    quantity: 1,
     addedAt: addDays(today, -3),
     expiresAt: addDays(today, daysLeft),
     status: 'inFridge',

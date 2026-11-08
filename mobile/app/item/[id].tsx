@@ -3,6 +3,7 @@ import { UiIcon } from '@/components/FoodIcon';
 import { PrimaryButton } from '@/components/Buttons';
 import { Face } from '@/components/Face';
 import { MoodPill } from '@/components/MoodPill';
+import { QuantityControl } from '@/components/QuantityControl';
 import { DockedFooter } from '@/components/DockedFooter';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
@@ -30,7 +31,7 @@ const sourceIcon = { printed: 'label', estimated: 'crystal-ball', adjusted: 'wri
 /** Character detail: big face, countdown, date source, and the actions that change its fate. */
 export default function CharacterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getById, eat, toss, openedToday, adjustDays, remove, restore } = useFridge();
+  const { getById, eat, toss, openedToday, adjustDays, adjustQuantity, remove, restore } = useFridge();
   const { showToast } = useNudge();
   const c = id ? getById(id) : undefined;
 
@@ -148,6 +149,15 @@ export default function CharacterScreen() {
               <MoodPill mood={c.mood} compact />
             )}
           </View>
+          {!gone && !isGhost && (
+            <View style={styles.quantityRow}>
+              <QuantityControl
+                label={c.characterName}
+                quantity={c.quantity}
+                onChange={(quantity) => adjustQuantity(c.id, quantity)}
+              />
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -271,6 +281,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs + 1,
   },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  quantityRow: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: space.xs },
   step: {
     width: hit.min,
     height: hit.min,

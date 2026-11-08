@@ -46,13 +46,14 @@ function CharacterCardBase({
       name={character.characterName}
       mood={character.mood}
       daysLeft={character.daysLeft}
+      quantity={character.quantity}
       isNew={isNew}
       photo={character.photo}
       action={action || undefined}
       onPress={onPress ? () => onPress(character) : undefined}
       onRemove={onRemove ? () => onRemove(character) : undefined}
       onSwipeState={onSwipeState}
-      accessibilityLabel={`${character.characterName}, ${character.name}, ${moods[character.mood].label}`}
+      accessibilityLabel={`${character.characterName}, ${character.name}${character.quantity > 1 ? `, ${character.quantity} of them` : ''}, ${moods[character.mood].label}`}
     />
   );
 }
