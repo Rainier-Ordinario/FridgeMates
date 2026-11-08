@@ -60,11 +60,5 @@ npm install
 npx expo run:ios --device
 ```
 
-## Team
-- **Rainier:** UI/UX design and the iOS app
-- **Kenneth:** Gemini backend
-- **Kerwin:** search, sort, and quantity features
-
 ## Credits
 - Mascot Jeppy courtesy of the SFU Fall Hacks / CSSS organizers
-- Icons: [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (MIT)
