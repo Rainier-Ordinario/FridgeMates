@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none">
+  <!-- ghost: translucent sheet with hollow eyes and a wavy hem -->
+  <path d="M16 54 C16 26 32 10 50 10 C68 10 84 26 84 54 L84 92 q-6 -8 -11.3 0 t-11.3 0 t-11.3 0 t-11.3 0 t-11.3 0 t-11.3 0z" fill="#FFFFFF" opacity=".55" stroke="#9AA0A6" stroke-width="2.5" stroke-linejoin="round"/>
+  <ellipse cx="38" cy="44" rx="6" ry="9" fill="#5E666D"/><ellipse cx="62" cy="44" rx="6" ry="9" fill="#5E666D"/>
+  <ellipse cx="50" cy="64" rx="6" ry="4" fill="#5E666D"/>
+</svg>

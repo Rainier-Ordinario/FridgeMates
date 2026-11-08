@@ -1,0 +1,165 @@
+import type { Scoreboard as ScoreboardData } from '@/logic/store';
+import { colors, radius, shadow, space } from '@/theme';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from './AppText';
+
+interface Props {
+  data: ScoreboardData;
+  onPressLost?: () => void;
+  /** Rings the rescued tile and shows "+N" on it (after "I cooked it"). */
+  rescuedBump?: number;
+  /** Animate the rescued value counting up from (value - bump). */
+  countUp?: boolean;
+}
+
+/** In fridge / rescued / lost. "Lost" opens the memorial. */
+export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false }: Props) {
+  let rescuedStart = data.rescued;
+  if (countUp) {
+    rescuedStart = data.rescued - rescuedBump;
+  }
+  const rescued = useCountUp(data.rescued, rescuedStart);
+  return (
+    <View style={styles.row}>
+      <Tile label="in fridge" value={data.inFridge} color={colors.ink} />
+      <Tile
+        label="rescued"
+        value={rescued}
+        color={colors.successText}
+        highlight={rescuedBump > 0}
+        bump={rescuedBump}
+      />
+      <Tile label="lost" value={data.lost} color={colors.dangerStrong} onPress={onPressLost} />
+    </View>
+  );
+}
+
+/** One quiet line beside the Fridge switch: "2 rescued · 1 lost" (the in-fridge count lives in the section label). */
+export function StatsLine({
+  data,
+  rescuedBump = 0,
+  onPressLost,
+}: {
+  data: ScoreboardData;
+  rescuedBump?: number;
+  onPressLost?: () => void;
+}) {
+  return (
+    <View style={styles.line} accessible accessibilityLabel={`${data.rescued} rescued, ${data.lost} lost`}>
+      <AppText style={styles.lineText} color={rescuedBump > 0 ? colors.successText : colors.inkMuted}>
+        {data.rescued} rescued{rescuedBump > 0 ? ` (+${rescuedBump})` : ''}
+      </AppText>
+      <AppText style={styles.lineText} color={colors.inkFaint}>
+        ·
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${data.lost} lost, open the memorial`}
+        onPress={onPressLost}
+        hitSlop={8}
+      >
+        <AppText style={styles.lineText} color={data.lost > 0 ? colors.dangerStrong : colors.inkMuted}>
+          {data.lost} lost{data.lost > 0 ? ' ›' : ''}
+        </AppText>
+      </Pressable>
+    </View>
+  );
+}
+
+/** Counts from `from` to `to` over ~600ms whenever `to` changes. */
+function useCountUp(to: number, from: number): number {
+  const [value, setValue] = useState(to);
+  const fromRef = useRef(from);
+  useEffect(() => {
+    const start = fromRef.current;
+    if (start === to) {
+      setValue(to);
+      return;
+    }
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / 600);
+      setValue(Math.round(start + (to - start) * p));
+      if (p >= 1) clearInterval(id);
+    }, 40);
+    return () => clearInterval(id);
+  }, [to]);
+  return value;
+}
+
+function Tile({
+  label,
+  value,
+  color,
+  onPress,
+  highlight = false,
+  bump = 0,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  onPress?: () => void;
+  highlight?: boolean;
+  bump?: number;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={getAccessibilityRole(onPress)}
+      accessibilityLabel={`${value} ${label}`}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.tile, highlight && styles.tileHighlight, pressed && styles.pressed]}
+    >
+      {bump > 0 && (
+        <View style={styles.bump}>
+          <AppText variant="caption" color={colors.ink}>
+            +{bump}
+          </AppText>
+        </View>
+      )}
+      <AppText style={styles.value} color={color}>
+        {value}
+      </AppText>
+      <AppText style={styles.label} color={colors.inkMuted}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+function getAccessibilityRole(onPress: (() => void) | undefined): 'button' | undefined {
+  if (onPress) {
+    return 'button';
+  }
+  return undefined;
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: space.sm },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 },
+  lineText: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+  tile: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    gap: 2,
+    ...shadow.card,
+  },
+  tileHighlight: { borderWidth: 3, borderColor: colors.success },
+  bump: {
+    position: 'absolute',
+    top: -10,
+    right: -6,
+    backgroundColor: colors.success,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.sm,
+    paddingVertical: 1,
+  },
+  pressed: { opacity: 0.8 },
+  value: { fontFamily: 'Nunito_800ExtraBold', fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
+  label: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
+});

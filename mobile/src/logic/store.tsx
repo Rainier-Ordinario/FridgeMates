@@ -1,0 +1,362 @@
+import type { FoodItem, ScanItem } from '@/api/types';
+import { mockFridgeItems } from '@/api/mocks/fridge';
+import type { Mood } from '@/theme/moods';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { deleteAllCrops, deleteCrop } from './crops';
+import { addDays, todayISO } from './dates';
+import { daysLeftFor, moodFor, scanItemToFoodItem } from './mood';
+import { estimatePrice } from './prices';
+
+/**
+ * Fridge data store.
+ *
+ * TODO(ios-logic): owned by the data-model teammate. Items and the day offset are
+ * persisted in AsyncStorage (key STORAGE_KEY, debounced); swap the storage layer
+ * freely but keep the `useFridge()` return shape stable; every screen uses it.
+ * Epitaphs are fetched by the Fridge screen when an item expires.
+ */
+
+export interface Character extends FoodItem {
+  daysLeft: number;
+  mood: Mood;
+}
+
+export interface Scoreboard {
+  inFridge: number;
+  rescued: number;
+  lost: number;
+  /** Rough CAD value of everything rescued (see logic/prices.ts). */
+  savedDollars: number;
+}
+
+interface State {
+  items: FoodItem[];
+  /** Ids from the latest scan, so the Fridge can highlight them once. */
+  recentlyAddedIds: string[];
+  /** The latest "I cooked it" rescue, for the +N celebration. */
+  recentRescue: { ids: string[]; count: number } | null;
+  /** Demo-only: days to skip ahead. */
+  dayOffset: number;
+}
+
+type Action =
+  | { type: 'addItems'; items: FoodItem[] }
+  | { type: 'clearRecentlyAdded' }
+  | { type: 'eat'; id: string }
+  | { type: 'rescueMany'; ids: string[] }
+  | { type: 'clearRecentRescue' }
+  | { type: 'toss'; id: string }
+  | { type: 'remove'; id: string }
+  | { type: 'restore'; item: FoodItem; index: number }
+  | { type: 'openedToday'; id: string; shelfDaysOnceOpened?: number }
+  | { type: 'adjustDays'; id: string; delta: number }
+  | { type: 'adjustQuantity'; id: string; quantity: number }
+  | { type: 'setEpitaph'; id: string; epitaph: string }
+  | { type: 'skipDay' }
+  | { type: 'loadDemo' }
+  | { type: 'hydrate'; items: FoodItem[]; dayOffset: number }
+  | { type: 'reset' };
+
+function update(items: FoodItem[], id: string, patch: (i: FoodItem) => FoodItem) {
+  return items.map((i) => (i.id === id ? patch(i) : i));
+}
+
+function rescueOne(item: FoodItem, today: string): FoodItem {
+  if (item.status !== 'inFridge') return item;
+  const quantity = item.quantity ?? 1;
+  if (quantity > 1) {
+    return {
+      ...item,
+      quantity: quantity - 1,
+      rescuedQuantity: (item.rescuedQuantity ?? 0) + 1,
+    };
+  }
+  // The last unit: rescued for good, and the photo crop is no longer needed (the file is deleted by the caller).
+  return { ...item, status: 'rescued', resolvedAt: today, photo: undefined };
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'addItems':
+      return {
+        ...state,
+        items: [...state.items, ...action.items],
+        recentlyAddedIds: action.items.map((i) => i.id),
+      };
+    case 'clearRecentlyAdded':
+      return state.recentlyAddedIds.length === 0 ? state : { ...state, recentlyAddedIds: [] };
+    case 'eat':
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => rescueOne(i, todayISO(state.dayOffset))),
+      };
+    case 'rescueMany': {
+      const today = todayISO(state.dayOffset);
+      const ids = new Set(action.ids);
+      return {
+        ...state,
+        items: state.items.map((i) => (ids.has(i.id) ? rescueOne(i, today) : i)),
+        recentRescue: { ids: action.ids, count: action.ids.length },
+      };
+    }
+    case 'clearRecentRescue':
+      return state.recentRescue ? { ...state, recentRescue: null } : state;
+    case 'remove':
+      // Wrong scan or thrown out: just delete. Not a rescue, not a ghost, nothing in the memorial or the stats.
+      return { ...state, items: state.items.filter((i) => i.id !== action.id) };
+    case 'restore': {
+      if (state.items.some((i) => i.id === action.item.id)) return state;
+      const items = [...state.items];
+      items.splice(Math.min(action.index, items.length), 0, action.item);
+      return { ...state, items };
+    }
+    case 'toss':
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => ({
+          ...i,
+          status: 'lost',
+          resolvedAt: todayISO(state.dayOffset),
+          photo: undefined,
+        })),
+      };
+    case 'adjustQuantity':
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => ({
+          ...i,
+          quantity: Math.max(1, Math.min(99, Math.round(action.quantity))),
+        })),
+      };
+    case 'openedToday': {
+      // Opening usually shortens life. Default: 3 days from today unless the printed date is sooner.
+      const shelf = action.shelfDaysOnceOpened ?? 3;
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => {
+          const opened = addDays(todayISO(state.dayOffset), shelf);
+          return { ...i, expiresAt: opened < i.expiresAt ? opened : i.expiresAt, dateSource: 'adjusted' };
+        }),
+      };
+    }
+    case 'adjustDays':
+      return {
+        ...state,
+        items: update(state.items, action.id, (i) => ({
+          ...i,
+          expiresAt: addDays(i.expiresAt, action.delta),
+          dateSource: 'adjusted',
+        })),
+      };
+    case 'setEpitaph':
+      return { ...state, items: update(state.items, action.id, (i) => ({ ...i, epitaph: action.epitaph })) };
+    case 'skipDay':
+      return { ...state, dayOffset: state.dayOffset + 1 };
+    case 'loadDemo': {
+      const items = mockFridgeItems();
+      return { ...initialState(), items, recentlyAddedIds: items.map((i) => i.id) };
+    }
+    case 'hydrate':
+      return { ...initialState(), items: action.items, dayOffset: action.dayOffset };
+    case 'reset':
+      return initialState();
+  }
+}
+
+function initialState(): State {
+  // Starts empty in both modes; the demo cast comes from the welcome link or the demo menu.
+  return { items: [], recentlyAddedIds: [], recentRescue: null, dayOffset: 0 };
+}
+
+interface FridgeContextValue {
+  /** Every item (any status), enriched with daysLeft + mood for the current day offset. */
+  all: Character[];
+  /** In the fridge and not yet expired, sorted by fewest days left. */
+  characters: Character[];
+  /** In the fridge but expired: they haunt the Fridge screen until tossed. */
+  ghosts: Character[];
+  /** Eaten or tossed, newest first (memorial). */
+  gone: Character[];
+  scoreboard: Scoreboard;
+  dayOffset: number;
+  /** False until the saved fridge has been read from storage (cold start). */
+  hydrated: boolean;
+  todayISO: string;
+  recentlyAddedIds: string[];
+  recentRescue: { ids: string[]; count: number } | null;
+  getById: (id: string) => Character | undefined;
+  /** Assigns local ids, adds to the fridge, returns the new ids. */
+  addScanned: (scanned: (ScanItem & { photo?: string })[]) => string[];
+  clearRecentlyAdded: () => void;
+  eat: (id: string) => void;
+  /** Marks every id as rescued in one go (matchmaking "I cooked it"). */
+  rescueMany: (ids: string[]) => void;
+  clearRecentRescue: () => void;
+  toss: (id: string) => void;
+  /** Deletes an item outright and returns what was removed (for undo), or null. */
+  remove: (id: string) => { item: FoodItem; index: number } | null;
+  /** Puts a removed item back exactly where it was. */
+  restore: (item: FoodItem, index: number) => void;
+  openedToday: (id: string) => void;
+  adjustDays: (id: string, delta: number) => void;
+  adjustQuantity: (id: string, quantity: number) => void;
+  setEpitaph: (id: string, epitaph: string) => void;
+  skipDay: () => void;
+  /** Fills the fridge with the demo cast (works without camera or network). */
+  loadDemo: () => void;
+  /** Empties the fridge and resets the day offset. */
+  clearAll: () => void;
+  reset: () => void;
+}
+
+const FridgeContext = createContext<FridgeContextValue | null>(null);
+
+const STORAGE_KEY = 'fridgemates.fridge.v1';
+
+export function FridgeProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const hydrated = useRef(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Hydrate once, then persist items + dayOffset (debounced). Storage errors are ignored.
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (!alive) return;
+        if (raw) {
+          const parsed = JSON.parse(raw) as { items?: FoodItem[]; dayOffset?: number };
+          if (Array.isArray(parsed.items)) {
+            const items = parsed.items.map((item) => ({
+              ...item,
+              quantity:
+                typeof item.quantity === 'number' && Number.isFinite(item.quantity)
+                  ? Math.max(1, Math.min(99, Math.round(item.quantity)))
+                  : 1,
+              rescuedQuantity:
+                typeof item.rescuedQuantity === 'number' && Number.isFinite(item.rescuedQuantity)
+                  ? Math.max(0, Math.round(item.rescuedQuantity))
+                  : 0,
+            }));
+            dispatch({ type: 'hydrate', items, dayOffset: Number(parsed.dayOffset) || 0 });
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        hydrated.current = true;
+        if (alive) setIsHydrated(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    const t = setTimeout(() => {
+      AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ items: state.items, dayOffset: state.dayOffset }),
+      ).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [state.items, state.dayOffset]);
+
+  const value = useMemo<FridgeContextValue>(() => {
+    const all: Character[] = state.items.map((item) => {
+      const daysLeft = daysLeftFor(item, state.dayOffset);
+      return { ...item, daysLeft, mood: moodFor(daysLeft) };
+    });
+    const inFridge = all.filter((c) => c.status === 'inFridge');
+    const characters = inFridge.filter((c) => c.mood !== 'ghost').sort((a, b) => a.daysLeft - b.daysLeft);
+    const ghosts = inFridge.filter((c) => c.mood === 'ghost');
+    const gone = all
+      .filter((c) => c.status !== 'inFridge')
+      .sort((a, b) => (b.resolvedAt ?? '').localeCompare(a.resolvedAt ?? ''));
+
+    return {
+      all,
+      characters,
+      ghosts,
+      gone,
+      scoreboard: {
+        inFridge: characters.reduce((sum, c) => sum + c.quantity, 0),
+        rescued: all.reduce(
+          (sum, c) => sum + (c.rescuedQuantity ?? 0) + (c.status === 'rescued' ? c.quantity : 0),
+          0,
+        ),
+        lost: all.filter((c) => c.status === 'lost').reduce((sum, c) => sum + c.quantity, 0),
+        savedDollars: all.reduce(
+          (sum, c) =>
+            sum +
+            estimatePrice(c.name) * ((c.rescuedQuantity ?? 0) + (c.status === 'rescued' ? c.quantity : 0)),
+          0,
+        ),
+      },
+      dayOffset: state.dayOffset,
+      hydrated: isHydrated,
+      todayISO: todayISO(state.dayOffset),
+      recentlyAddedIds: state.recentlyAddedIds,
+      recentRescue: state.recentRescue,
+      getById: (id) => all.find((c) => c.id === id),
+      addScanned: (scanned) => {
+        const items = scanned
+          .filter((s) => s.quantity > 0)
+          .map((s) => scanItemToFoodItem(s, state.dayOffset));
+        dispatch({ type: 'addItems', items });
+        return items.map((i) => i.id);
+      },
+      clearRecentlyAdded: () => dispatch({ type: 'clearRecentlyAdded' }),
+      eat: (id) => {
+        // The crop is deleted only when the last unit of the item is rescued.
+        const it = state.items.find((i) => i.id === id);
+        if (it && (it.quantity ?? 1) <= 1) deleteCrop(it.photo);
+        dispatch({ type: 'eat', id });
+      },
+      rescueMany: (ids) => {
+        for (const i of state.items) if (ids.includes(i.id) && (i.quantity ?? 1) <= 1) deleteCrop(i.photo);
+        dispatch({ type: 'rescueMany', ids });
+      },
+      clearRecentRescue: () => dispatch({ type: 'clearRecentRescue' }),
+      toss: (id) => {
+        deleteCrop(state.items.find((i) => i.id === id)?.photo);
+        dispatch({ type: 'toss', id });
+      },
+      remove: (id) => {
+        const index = state.items.findIndex((i) => i.id === id);
+        if (index < 0) return null;
+        const item = state.items[index];
+        dispatch({ type: 'remove', id });
+        return { item, index };
+      },
+      restore: (item, index) => dispatch({ type: 'restore', item, index }),
+      openedToday: (id) => dispatch({ type: 'openedToday', id }),
+      adjustDays: (id, delta) => dispatch({ type: 'adjustDays', id, delta }),
+      adjustQuantity: (id, quantity) => dispatch({ type: 'adjustQuantity', id, quantity }),
+      setEpitaph: (id, epitaph) => dispatch({ type: 'setEpitaph', id, epitaph }),
+      skipDay: () => dispatch({ type: 'skipDay' }),
+      loadDemo: () => {
+        deleteAllCrops();
+        dispatch({ type: 'loadDemo' });
+      },
+      clearAll: () => {
+        deleteAllCrops();
+        dispatch({ type: 'reset' });
+      },
+      reset: () => {
+        deleteAllCrops();
+        dispatch({ type: 'reset' });
+      },
+    };
+  }, [state, isHydrated]);
+
+  return <FridgeContext.Provider value={value}>{children}</FridgeContext.Provider>;
+}
+
+export function useFridge(): FridgeContextValue {
+  const ctx = useContext(FridgeContext);
+  if (!ctx) throw new Error('useFridge must be used inside <FridgeProvider>');
+  return ctx;
+}

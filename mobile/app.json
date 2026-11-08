@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "FridgeMates",
+    "slug": "fridgemates",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "fridgemates",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFF7EC",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rainier.fridgemates",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FridgeMates uses the camera to scan your food and bring it to life.",
+        "NSPhotoLibraryUsageDescription": "FridgeMates reads a photo of your food to bring it to life."
+      }
+    },
+    "android": {
+      "package": "com.rainier.fridgemates",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF8A3D"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF7EC"
+        }
+      ],
+      "expo-font",
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
