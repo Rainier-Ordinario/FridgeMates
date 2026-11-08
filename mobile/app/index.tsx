@@ -4,6 +4,7 @@ import { toChatItem } from '@/api/types';
 import { AppText } from '@/components/AppText';
 import { UiIcon } from '@/components/FoodIcon';
 import { Chip, PrimaryButton } from '@/components/Buttons';
+import { CloseIcon } from '@/components/Icons';
 import { CharacterCard } from '@/components/CharacterCard';
 import { closeOpenRow } from '@/components/FoodRow';
 import { EmptyFridge } from '@/components/EmptyFridge';
@@ -39,9 +40,19 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FOOTER_HEIGHT = 110;
+const FOOTER_HEIGHT = 72;
+/** The title row collapses over the first 24pt of list scroll. */
+const TITLE_ROW = 44;
+const COLLAPSE_AT = 24;
 
 type SortMode = 'expiry' | 'alphabetical' | 'newest';
 
@@ -133,6 +144,19 @@ export default function FridgeScreen() {
   }
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Character>>(null);
+  // Title row collapses as the list scrolls (height 44 → 0, opacity 1 → 0); a plain cut under Reduce Motion.
+  const reduceMotion = useReducedMotion();
+  const scrollY = useSharedValue(0);
+  const titleStyle = useAnimatedStyle(() => {
+    if (reduceMotion) {
+      const hidden = scrollY.value > COLLAPSE_AT / 2;
+      return { height: hidden ? 0 : TITLE_ROW, opacity: hidden ? 0 : 1 };
+    }
+    return {
+      height: interpolate(scrollY.value, [0, COLLAPSE_AT], [TITLE_ROW, 0], Extrapolation.CLAMP),
+      opacity: interpolate(scrollY.value, [0, COLLAPSE_AT], [1, 0], Extrapolation.CLAMP),
+    };
+  });
   // Home is a 2-page horizontal pager: Fridge list, then the overview. Always opens on the Fridge.
   const { width } = useWindowDimensions();
   const pagerRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -325,7 +349,7 @@ export default function FridgeScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Animated.View style={[styles.titleRow, titleStyle]}>
           <Pressable
             accessibilityRole="header"
             accessibilityLabel={`${fridgeName}. FridgeMates`}
@@ -335,7 +359,7 @@ export default function FridgeScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setMenuOpen('demo');
             }}
-            style={{ flex: 1 }}
+            style={styles.titlePress}
           >
             <AppText style={styles.title} numberOfLines={1}>
               {fridgeName}
@@ -343,25 +367,42 @@ export default function FridgeScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={searchOpen ? 'Close search' : 'Search your fridge'}
+            accessibilityState={{ selected: searchOpen }}
+            onPress={toggleSearch}
+            style={({ pressed }) => [
+              styles.iconButton,
+              searchOpen && styles.iconButtonOn,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <UiIcon icon="magnifying-glass-tilted-left" size={20} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Settings and profile"
             onPress={() => setMenuOpen('settings')}
             hitSlop={6}
-            style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.85 }]}
           >
             <ProfilePicture size={32} />
           </Pressable>
+        </Animated.View>
+        <View style={styles.switchRow}>
+          <Segmented
+            options={['Fridge', 'Overview']}
+            index={page}
+            onChange={goToPage}
+            width={width < 380 ? 188 : 196}
+            accessibilityLabel="Fridge or Overview"
+          />
+          <View style={{ flex: 1 }} />
+          <StatsLine
+            data={scoreboard}
+            rescuedBump={recentRescue?.count ?? 0}
+            onPressLost={() => router.push('/memorial')}
+          />
         </View>
-        <StatsLine
-          data={scoreboard}
-          rescuedBump={recentRescue?.count ?? 0}
-          onPressLost={() => router.push('/memorial')}
-        />
-        <Segmented
-          options={['Fridge', 'Overview']}
-          index={page}
-          onChange={goToPage}
-          accessibilityLabel="Fridge or Overview"
-        />
         {demoMode && (
           <View style={styles.demoRow}>
             <Chip
@@ -372,16 +413,23 @@ export default function FridgeScreen() {
           </View>
         )}
         {page === 0 && rows.length > 0 && hint.ready && !hint.value && (
-          <View
-            style={styles.hint}
-            accessible
-            accessibilityLabel="Tip: the more worried they look, the sooner you should eat them."
-          >
-            <UiIcon icon="light-bulb" size={24} />
-            <AppText variant="body" style={{ flex: 1 }}>
-              The more worried they look, the sooner you should eat them.
+          <View style={styles.hint}>
+            <UiIcon icon="light-bulb" size={20} />
+            <AppText
+              style={styles.hintText}
+              numberOfLines={1}
+              accessibilityLabel="Tip: the more worried they look, the sooner you should eat them."
+            >
+              Worried face = eat it sooner.
             </AppText>
-            <Chip label="Got it" onPress={() => hint.set(true)} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss tip"
+              onPress={() => hint.set(true)}
+              style={({ pressed }) => [styles.hintClose, pressed && { opacity: 0.7 }]}
+            >
+              <CloseIcon size={16} color={colors.inkMuted} />
+            </Pressable>
           </View>
         )}
       </View>
@@ -405,6 +453,8 @@ export default function FridgeScreen() {
             data={visibleRows}
             onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
             onScrollBeginDrag={closeOpenRow}
+            onScroll={(e) => scrollY.set(searchOpen ? 0 : e.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
             keyExtractor={(c) => c.id}
             initialNumToRender={8}
             windowSize={7}
@@ -423,31 +473,33 @@ export default function FridgeScreen() {
             contentContainerStyle={[
               styles.list,
               {
-                paddingTop: space.lg,
+                paddingTop: space.xs,
                 paddingBottom: FOOTER_HEIGHT + insets.bottom,
               },
             ]}
             ListHeaderComponent={
               rows.length > 0 ? (
                 <View style={styles.listHeader}>
-                  <View style={styles.listControls}>
-                    <AppText variant="heading" style={styles.sectionLabel} accessibilityRole="header">
-                      {sectionTitle(sortMode)}
+                  <View style={styles.labelRow}>
+                    <AppText
+                      variant="sectionLabel"
+                      color={colors.inkMuted}
+                      accessibilityRole="header"
+                      numberOfLines={1}
+                    >
+                      {urgencyFilter ? urgencyLabel[urgencyFilter] : sectionTitle(sortMode)} ·{' '}
+                      {urgencyFilter || searchQuery.trim() ? visibleRows.length : scoreboard.inFridge}
                     </AppText>
-                    <View style={styles.headerChips}>
-                      {urgencyFilter && (
-                        <Chip
-                          label={`${urgencyLabel[urgencyFilter]} ✕`}
-                          tone="debug"
-                          onPress={() => setUrgencyFilter(null)}
-                        />
-                      )}
-                      <Chip
-                        icon={<UiIcon icon="magnifying-glass-tilted-left" size={16} />}
-                        label={searchOpen ? 'Close' : 'Search'}
-                        onPress={toggleSearch}
-                      />
-                    </View>
+                    {urgencyFilter && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Show everything"
+                        onPress={() => setUrgencyFilter(null)}
+                        style={({ pressed }) => [styles.labelClear, pressed && { opacity: 0.7 }]}
+                      >
+                        <CloseIcon size={14} color={colors.inkMuted} />
+                      </Pressable>
+                    )}
                   </View>
                   {searchOpen && (
                     <>
@@ -540,9 +592,9 @@ export default function FridgeScreen() {
         pointerEvents="none"
         colors={['rgba(255,247,236,0)', colors.bg, colors.bg]}
         locations={[0, 0.4, 1]}
-        style={[styles.fade, { height: FOOTER_HEIGHT + 20 + insets.bottom }]}
+        style={[styles.fade, { height: FOOTER_HEIGHT + 16 + insets.bottom }]}
       />
-      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View style={styles.scanRow}>
           <Pressable
             accessibilityRole="button"
@@ -554,7 +606,7 @@ export default function FridgeScreen() {
             style={({ pressed }) => [styles.mascotButton, pressed && { opacity: 0.85 }]}
           >
             <Mascot
-              size={40}
+              size={36}
               state={mascotState}
               expression={cheer ? 'excited' : mascotExpression}
               hideBubble
@@ -563,7 +615,7 @@ export default function FridgeScreen() {
             <AppText style={styles.askLabel}>Ask</AppText>
           </Pressable>
           <PrimaryButton
-            icon={<UiIcon icon="camera" size={24} />}
+            icon={<UiIcon icon="camera" size={22} />}
             label="Scan your fridge"
             onPress={() => router.push('/scan')}
             style={styles.scan}
@@ -575,19 +627,16 @@ export default function FridgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: space.xl, paddingTop: 0, gap: 6 },
-  title: { fontFamily: 'Nunito_600SemiBold', fontSize: 22, lineHeight: 28 },
-  profileButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48 },
-  sectionLabel: { fontFamily: 'Nunito_800ExtraBold' },
-  listHeader: { gap: space.sm, paddingBottom: space.sm },
-  headerChips: { flexDirection: 'row', gap: space.xs },
-  listControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.sm,
-  },
+  header: { paddingHorizontal: space.xl, paddingTop: space.xs, gap: 6, paddingBottom: space.sm },
+  title: { fontFamily: 'Nunito_800ExtraBold', fontSize: 24, lineHeight: 30 },
+  titlePress: { flex: 1, height: TITLE_ROW, justifyContent: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, overflow: 'hidden' },
+  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  iconButtonOn: { backgroundColor: colors.surfaceAlt },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  listHeader: { gap: space.sm },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 24, paddingBottom: 6 },
+  labelClear: { width: 44, height: 44, marginVertical: -10, alignItems: 'center', justifyContent: 'center' },
   searchInput: {
     minHeight: 48,
     borderWidth: 1.5,
@@ -616,12 +665,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+    height: 44,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    padding: space.md,
-    marginTop: space.xs,
+    borderRadius: radius.sm,
+    paddingLeft: space.md,
   },
-  hintEmoji: { fontSize: 22, lineHeight: 28 },
+  hintText: { flex: 1, fontFamily: 'Nunito_600SemiBold', fontSize: 13, lineHeight: 18 },
+  hintClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pager: { flex: 1 },
   listArea: { flex: 1 },
   list: { paddingHorizontal: space.xl },
@@ -633,7 +683,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: space.md,
     paddingHorizontal: space.xl,
-    paddingTop: space.md,
+    paddingTop: space.sm,
     zIndex: 20,
   },
   scanRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
@@ -643,10 +693,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 56,
+    height: 52,
     paddingLeft: 6,
     paddingRight: 12,
-    borderRadius: 28,
+    borderRadius: 26,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.line,

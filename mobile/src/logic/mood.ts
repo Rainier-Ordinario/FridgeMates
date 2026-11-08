@@ -1,5 +1,5 @@
 import type { FoodItem, ScanItem } from '@/api/types';
-import type { Mood } from '@/theme/moods';
+import { moods, type Mood } from '@/theme/moods';
 import { addDays, daysBetween, todayISO } from './dates';
 
 /**
@@ -42,6 +42,15 @@ export function plainTimeLabel(daysLeft: number): string {
   if (daysLeft <= 13) return 'Good for a week';
   if (daysLeft <= 27) return 'Good for 2 weeks';
   return 'Good for a month+';
+}
+
+/** Days pill: the mood word plus the time ("Nervous · 2 days", "Dramatic · Today!", "Ghost · Expired"); `short` gives "2d". */
+export function daysPillLabel(mood: Mood, daysLeft: number, short = false): string {
+  const word = moods[mood].label;
+  if (mood === 'ghost' || daysLeft < 0) return `${word} · Expired`;
+  if (daysLeft === 0) return `${word} · Today!`;
+  if (daysLeft === 1) return `${word} · ${short ? '1d' : 'Tomorrow'}`;
+  return `${word} · ${daysLeft}${short ? 'd' : ' days'}`;
 }
 
 export function dateSourceLabel(source: FoodItem['dateSource']): string {

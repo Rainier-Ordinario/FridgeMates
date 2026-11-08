@@ -1,8 +1,8 @@
-import { plainTimeLabel } from '@/logic/mood';
-import { colors, moods, space, type Mood } from '@/theme';
+import { daysPillLabel, plainTimeLabel } from '@/logic/mood';
+import { colors, moods, type Mood } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import React, { useRef } from 'react';
-import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   ZoomIn,
@@ -15,11 +15,10 @@ import { AppText } from './AppText';
 import { Face } from './Face';
 import { UiIcon } from './FoodIcon';
 import { CloseIcon } from './Icons';
-import { MoodPill } from './MoodPill';
 import { QuantityControl } from './QuantityControl';
 
 export interface FoodRowProps {
-  /** Food name for the icon. */
+  /** Food name for the icon and the second line. */
   food: string;
   /** Display name (character name). */
   name: string;
@@ -59,8 +58,9 @@ const ACTION_WIDTH = 96;
 const FULL_SWIPE_RATIO = 0.6;
 
 /**
- * Food icon (or photo crop), name, expiry and mood, with optional quantity controls, one action, and swipe-to-remove.
- * Row background is the mood tint; dramatic rows get a red border; ghost rows are dashed and faded.
+ * 60pt row: face (or photo crop) 40, name, then the food name and a days pill ("Nervous · 2 days"),
+ * with optional quantity controls, one action, and swipe-to-remove.
+ * Row background is the mood tint; dramatic rows get a red border; ghost rows are dashed with a faded face.
  */
 function FoodRowBase({
   food,
@@ -84,6 +84,7 @@ function FoodRowBase({
   const m = moods[mood];
   const isGhost = mood === 'ghost';
   const isDramatic = mood === 'dramatic';
+  const { width } = useWindowDimensions();
   const showCount = quantity !== undefined && quantity > 1 && !onQuantityChange;
   const swipeRef = useRef<SwipeableMethods>(null);
   const rowWidth = useSharedValue(300);
@@ -115,7 +116,9 @@ function FoodRowBase({
       )}
       <View style={styles.details}>
         <View style={styles.main}>
-          <Face food={food} mood={mood} size={44} animated={animated} showBadge={false} photo={photo} />
+          <View style={isGhost && styles.ghostFace}>
+            <Face food={food} mood={mood} size={40} animated={animated} showBadge={false} photo={photo} />
+          </View>
           <View style={styles.text}>
             <View style={styles.nameRow}>
               <AppText style={styles.name} numberOfLines={1}>
@@ -132,10 +135,14 @@ function FoodRowBase({
               )}
             </View>
             <View style={styles.meta}>
-              <AppText style={styles.time} color={m.text} numberOfLines={1}>
-                {plainTimeLabel(daysLeft)}
+              <AppText style={styles.food} color={m.text} numberOfLines={1}>
+                {food}
               </AppText>
-              <MoodPill mood={mood} compact />
+              <View style={[styles.pill, { borderColor: m.color }]}>
+                <AppText style={styles.pillText} color={m.text} numberOfLines={1}>
+                  {daysPillLabel(mood, daysLeft, width < 380)}
+                </AppText>
+              </View>
             </View>
           </View>
           {action && (
@@ -177,7 +184,7 @@ function FoodRowBase({
     </Animated.View>
   );
 
-  const a11yLabel = accessibilityLabel ?? `${name}, ${m.label}, ${plainTimeLabel(daysLeft)}`;
+  const a11yLabel = accessibilityLabel ?? `${name}, ${food}, ${m.label}, ${plainTimeLabel(daysLeft)}`;
 
   const pressable = onPress ? (
     <Pressable
@@ -295,21 +302,22 @@ function runOnJSOnce(fn: () => void) {
 export const FoodRow = React.memo(FoodRowBase);
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 8 },
+  wrap: { marginBottom: 6 },
   opaque: { backgroundColor: colors.bg, borderRadius: 16 },
   pressed: { transform: [{ scale: 0.99 }] },
   row: {
-    minHeight: 72,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
+    gap: 10,
     borderRadius: 16,
     borderWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
   },
   dramatic: { borderWidth: 2, borderColor: colors.danger },
-  ghost: { borderStyle: 'dashed', borderWidth: 1.5, borderColor: moods.ghost.color, opacity: 0.6 },
+  ghost: { borderStyle: 'dashed', borderWidth: 1.5, borderColor: moods.ghost.color },
+  ghostFace: { opacity: 0.6 },
   newTag: {
     position: 'absolute',
     top: -1,
@@ -319,20 +327,31 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
+    zIndex: 2,
   },
-  newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 10, lineHeight: 14 },
+  newTagText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 16 },
   details: { flex: 1 },
-  main: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  main: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   text: { flex: 1, gap: 2, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  name: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 22, flexShrink: 1 },
+  name: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 20, flexShrink: 1 },
   count: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
-  time: { fontFamily: 'Nunito_700Bold', fontSize: 14, lineHeight: 18, flexShrink: 1 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  food: { fontFamily: 'Nunito_600SemiBold', fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  pill: {
+    height: 22,
+    paddingHorizontal: 8,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  pillText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 19 },
   action: {
-    height: 36,
+    height: 32,
     paddingHorizontal: 12,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 2,
     backgroundColor: colors.surface,
     alignItems: 'center',

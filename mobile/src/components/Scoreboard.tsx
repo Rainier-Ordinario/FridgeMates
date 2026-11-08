@@ -35,7 +35,7 @@ export function Scoreboard({ data, onPressLost, rescuedBump = 0, countUp = false
   );
 }
 
-/** One quiet line under the Fridge title: "5 in fridge · 2 rescued · 1 lost". */
+/** One quiet line beside the Fridge switch: "2 rescued · 1 lost" (the in-fridge count lives in the section label). */
 export function StatsLine({
   data,
   rescuedBump = 0,
@@ -46,21 +46,11 @@ export function StatsLine({
   onPressLost?: () => void;
 }) {
   return (
-    <View
-      style={styles.line}
-      accessible
-      accessibilityLabel={`${data.inFridge} in fridge, ${data.rescued} rescued, ${data.lost} lost`}
-    >
-      <AppText variant="caption" color={colors.inkMuted}>
-        {data.inFridge} in fridge
-      </AppText>
-      <AppText variant="caption" color={colors.inkFaint}>
-        ·
-      </AppText>
-      <AppText variant="caption" color={rescuedBump > 0 ? colors.successText : colors.inkMuted}>
+    <View style={styles.line} accessible accessibilityLabel={`${data.rescued} rescued, ${data.lost} lost`}>
+      <AppText style={styles.lineText} color={rescuedBump > 0 ? colors.successText : colors.inkMuted}>
         {data.rescued} rescued{rescuedBump > 0 ? ` (+${rescuedBump})` : ''}
       </AppText>
-      <AppText variant="caption" color={colors.inkFaint}>
+      <AppText style={styles.lineText} color={colors.inkFaint}>
         ·
       </AppText>
       <Pressable
@@ -69,7 +59,7 @@ export function StatsLine({
         onPress={onPressLost}
         hitSlop={8}
       >
-        <AppText variant="caption" color={data.lost > 0 ? colors.dangerStrong : colors.inkMuted}>
+        <AppText style={styles.lineText} color={data.lost > 0 ? colors.dangerStrong : colors.inkMuted}>
           {data.lost} lost{data.lost > 0 ? ' ›' : ''}
         </AppText>
       </Pressable>
@@ -147,7 +137,8 @@ function getAccessibilityRole(onPress: (() => void) | undefined): 'button' | und
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: space.md },
-  line: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 },
+  lineText: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
   tile: {
     flex: 1,
     alignItems: 'center',

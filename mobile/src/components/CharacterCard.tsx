@@ -1,4 +1,5 @@
 import type { Character } from '@/logic/store';
+import { plainTimeLabel } from '@/logic/mood';
 import { moods } from '@/theme';
 import React from 'react';
 import { FoodRow } from './FoodRow';
@@ -53,7 +54,7 @@ function CharacterCardBase({
       onPress={onPress ? () => onPress(character) : undefined}
       onRemove={onRemove ? () => onRemove(character) : undefined}
       onSwipeState={onSwipeState}
-      accessibilityLabel={`${character.characterName}, ${character.name}${character.quantity > 1 ? `, ${character.quantity} of them` : ''}, ${moods[character.mood].label}`}
+      accessibilityLabel={`${character.characterName}, ${character.name}${character.quantity > 1 ? `, ${character.quantity} of them` : ''}, ${moods[character.mood].label}, ${plainTimeLabel(character.daysLeft)}`}
     />
   );
 }

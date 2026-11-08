@@ -15,10 +15,18 @@ interface Props {
   index: number;
   onChange: (index: number) => void;
   accessibilityLabel?: string;
+  /** Fixed width (defaults to stretching). */
+  width?: number;
 }
 
 /** Compact pill-style segmented switch with an animated indicator (instant under Reduce Motion). */
-export function Segmented({ options, index, onChange, accessibilityLabel = 'Page' }: Props) {
+export function Segmented({
+  options,
+  index,
+  onChange,
+  accessibilityLabel = 'Page',
+  width: fixedWidth,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const segment = width / options.length;
@@ -30,7 +38,7 @@ export function Segmented({ options, index, onChange, accessibilityLabel = 'Page
 
   return (
     <View
-      style={styles.track}
+      style={[styles.track, fixedWidth !== undefined && { width: fixedWidth, alignSelf: 'flex-start' }]}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width - 8)}
       accessibilityRole="tablist"
       accessibilityLabel={accessibilityLabel}
@@ -47,6 +55,7 @@ export function Segmented({ options, index, onChange, accessibilityLabel = 'Page
             Haptics.selectionAsync();
             onChange(i);
           }}
+          hitSlop={{ top: 2, bottom: 2 }}
           style={styles.segment}
         >
           <AppText style={styles.label} color={i === index ? colors.ink : colors.inkMuted}>

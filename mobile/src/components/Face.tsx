@@ -53,7 +53,7 @@ export function Face({
   const m = moods[mood];
   const { faceStyle } = useMoodMotion(mood);
   const badgeSize = Math.max(20, Math.round(size * 0.34));
-  const iconSize = Math.round(size * 0.58);
+  const iconSize = Math.round(size * 0.6);
 
   return (
     <Animated.View
