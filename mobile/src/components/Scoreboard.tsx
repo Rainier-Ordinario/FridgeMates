@@ -136,15 +136,15 @@ function getAccessibilityRole(onPress: (() => void) | undefined): 'button' | und
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space.md },
+  row: { flexDirection: 'row', gap: space.sm },
   line: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 },
   lineText: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
   tile: {
     flex: 1,
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    height: 84,
+    borderRadius: 16,
+    height: 56,
     justifyContent: 'center',
     gap: 2,
     ...shadow.card,
@@ -160,6 +160,6 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   pressed: { opacity: 0.8 },
-  value: { fontFamily: 'Nunito_800ExtraBold', fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'] },
+  value: { fontFamily: 'Nunito_800ExtraBold', fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
   label: { fontFamily: 'Nunito_700Bold', fontSize: 13, lineHeight: 18 },
 });

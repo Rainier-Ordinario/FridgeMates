@@ -14,7 +14,7 @@ import { colors, moods, space } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 const extraThanks = [
@@ -51,18 +51,18 @@ export default function RescueScreen() {
   return (
     <Screen>
       <Confetti />
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
           <Mascot
-            size={110}
+            size={80}
             state="celebrate"
             hideBubble
             accessibilityLabel="The fridge manager, celebrating"
           />
-          <AppText variant="display" align="center">
+          <AppText style={styles.title} align="center">
             Rescued!
           </AppText>
-          <AppText variant="body" color={colors.inkMuted} align="center">
+          <AppText style={styles.subtitle} color={colors.inkMuted} align="center">
             {title}
             {getMinutesLabel(minutes)}
           </AppText>
@@ -77,14 +77,13 @@ export default function RescueScreen() {
                 .damping(14)}
               style={styles.thankRow}
             >
-              <Face
-                food={c.name}
-                emoji={c.emoji}
-                mood="cocky"
-                size={64}
-                label={`${c.characterName}, rescued`}
+              <Face food={c.name} mood="cocky" size={48} label={`${c.characterName}, rescued`} />
+              <SpeechBubble
+                compact
+                text={getThanks(i, thankYou)}
+                tint={moods.cocky.tint}
+                style={styles.bubble}
               />
-              <SpeechBubble text={getThanks(i, thankYou)} tint={moods.cocky.tint} style={styles.bubble} />
             </Animated.View>
           ))}
           {cameo && (
@@ -96,32 +95,39 @@ export default function RescueScreen() {
             >
               <Face
                 food={cameo.name}
-                emoji={cameo.emoji}
                 mood={cameo.mood}
-                size={44}
+                size={40}
                 showBadge={false}
                 label={cameo.characterName}
               />
-              <SpeechBubble text={getCameoThanks(cameo.daysLeft)} style={styles.bubble} />
+              <SpeechBubble compact text={getCameoThanks(cameo.daysLeft)} style={styles.bubble} />
             </Animated.View>
           )}
         </View>
 
         <Animated.View entering={FadeInDown.delay(900)} style={styles.score}>
-          <AppText variant="caption" color={colors.inkMuted} style={styles.label}>
-            RESCUED
-          </AppText>
-          <AppText variant="countdown" color={colors.successText}>
-            +{rescued.length}
-          </AppText>
-          {saved > 0 && (
-            <AppText variant="bodyBold" color={colors.successText}>
-              You saved about {formatDollars(saved)}
+          <View
+            style={styles.scoreCard}
+            accessible
+            accessibilityLabel={`${rescued.length} rescued${saved > 0 ? `, you saved about ${formatDollars(saved)}` : ''}`}
+          >
+            <AppText style={styles.plus} color={colors.successText}>
+              +{rescued.length}
             </AppText>
-          )}
+            <View style={{ flex: 1 }}>
+              <AppText style={styles.scoreWord} color={colors.successText}>
+                rescued
+              </AppText>
+              {saved > 0 && (
+                <AppText variant="caption" color={colors.inkMuted}>
+                  You saved about {formatDollars(saved)}
+                </AppText>
+              )}
+            </View>
+          </View>
           <Scoreboard data={scoreboard} rescuedBump={rescued.length} countUp />
         </Animated.View>
-      </View>
+      </ScrollView>
 
       <DockedFooter>
         <PrimaryButton
@@ -156,11 +162,23 @@ function getCameoThanks(daysLeft: number): string {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: space.xl, gap: space.xl, paddingTop: 28 },
+  body: { paddingHorizontal: space.xl, gap: space.lg, paddingTop: space.md, paddingBottom: space.md },
   hero: { alignItems: 'center', gap: space.xs },
-  thanks: { gap: 14 },
-  thankRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  title: { fontFamily: 'Nunito_800ExtraBold', fontSize: 30, lineHeight: 36 },
+  subtitle: { fontFamily: 'Nunito_600SemiBold', fontSize: 15, lineHeight: 20 },
+  thanks: { gap: space.sm },
+  thankRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   bubble: { flex: 1 },
-  score: { alignItems: 'center', gap: space.xs },
-  label: { letterSpacing: 1 },
+  score: { gap: space.sm },
+  scoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.lg,
+  },
+  plus: { fontFamily: 'Nunito_800ExtraBold', fontSize: 40, lineHeight: 44, fontVariant: ['tabular-nums'] },
+  scoreWord: { fontFamily: 'Nunito_800ExtraBold', fontSize: 15, lineHeight: 20 },
 });
