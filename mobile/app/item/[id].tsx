@@ -105,20 +105,20 @@ export default function CharacterScreen() {
             food={c.name}
             photo={c.photo}
             mood={c.mood}
-            size={160}
+            size={120}
             label={`${c.characterName}, ${m.label}`}
           />
-          <AppText variant="display" align="center" style={{ opacity: m.opacity }}>
+          <AppText style={[styles.heroName, { opacity: m.opacity }]} align="center">
             {c.characterName}
           </AppText>
-          <AppText variant="body" color={m.text} align="center">
+          <AppText style={styles.heroSub} color={m.text} align="center">
             {c.name} · {c.personality}
           </AppText>
         </Animated.View>
 
         <View style={styles.countdownCard}>
           <View style={styles.countdownRow}>
-            <AppText variant="countdown" color={m.color}>
+            <AppText style={styles.countdown} color={m.text}>
               {isGhost ? '👻' : c.daysLeft}
             </AppText>
             <View style={{ flex: 1, gap: space.xs }}>
@@ -181,7 +181,7 @@ export default function CharacterScreen() {
                   }}
                   style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
                 >
-                  <AppText variant="bodyBold" color={colors.brandText}>
+                  <AppText style={styles.secondaryLabel} color={colors.brandText}>
                     Opened today
                   </AppText>
                 </Pressable>
@@ -191,7 +191,7 @@ export default function CharacterScreen() {
                   onPress={() => finish('toss')}
                   style={({ pressed }) => [styles.secondary, styles.tossSecondary, pressed && styles.pressed]}
                 >
-                  <AppText variant="bodyBold" color={moods.dramatic.text}>
+                  <AppText style={styles.secondaryLabel} color={moods.dramatic.text}>
                     Toss
                   </AppText>
                 </Pressable>
@@ -205,7 +205,7 @@ export default function CharacterScreen() {
             onPress={removeFromFridge}
             style={({ pressed }) => [styles.removeLink, pressed && { opacity: 0.7 }]}
           >
-            <AppText variant="caption" color={colors.inkMuted}>
+            <AppText style={styles.removeText} color={colors.inkMuted}>
               Remove from fridge
             </AppText>
           </Pressable>
@@ -248,19 +248,27 @@ function StepButton({
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingHorizontal: space.xl, paddingVertical: space.lg, gap: space.lg },
+  scroll: { paddingHorizontal: space.xl, paddingVertical: space.sm, gap: space.md },
   hero: {
     alignItems: 'center',
-    gap: space.sm,
+    gap: 6,
     borderRadius: radius.lg,
-    padding: space.xl,
-    paddingTop: space.xl,
+    padding: space.lg,
+  },
+  heroName: { fontFamily: 'Nunito_800ExtraBold', fontSize: 28, lineHeight: 34 },
+  heroSub: { fontFamily: 'Nunito_600SemiBold', fontSize: 15, lineHeight: 20 },
+  countdown: {
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 40,
+    lineHeight: 44,
+    fontVariant: ['tabular-nums'],
   },
   countdownCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: space.lg,
-    gap: space.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    gap: space.sm,
     ...shadow.card,
   },
   countdownRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
@@ -297,16 +305,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },
-  actions: {
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    paddingBottom: space.md,
-    gap: space.md,
-  },
-  actionRow: { flexDirection: 'row', gap: space.md },
+  // No paddingBottom here: DockedFooter keeps max(inset, 12) so the buttons clear the home indicator.
+  actions: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm },
+  actionRow: { flexDirection: 'row', gap: space.sm },
+  secondaryLabel: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20 },
+  removeText: { fontFamily: 'Nunito_700Bold', fontSize: 15, lineHeight: 20, textDecorationLine: 'underline' },
   secondary: {
     flex: 1,
-    minHeight: hit.min + 4,
+    minHeight: hit.min,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
