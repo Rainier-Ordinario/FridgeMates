@@ -18,10 +18,10 @@ export const radius = {
   pill: 999,
 } as const;
 
-/** Minimum tappable size (thumb-friendly, projector-friendly). */
+/** Minimum tappable size (44pt, Apple HIG) and the primary button height. */
 export const hit = {
-  min: 48,
-  primary: 56,
+  min: 44,
+  primary: 52,
 } as const;
 
 /** One soft shadow for all cards. */

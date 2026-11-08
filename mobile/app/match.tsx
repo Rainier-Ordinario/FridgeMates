@@ -176,7 +176,6 @@ export default function MatchScreen() {
               icon={<UiIcon icon="cooking" size={24} />}
               label="I cooked it"
               onPress={cookedIt}
-              style={styles.bigButton}
             />
           </DockedFooter>
         </>
@@ -249,5 +248,4 @@ const styles = StyleSheet.create({
   stepNumText: { fontFamily: 'Nunito_800ExtraBold', fontSize: 15, lineHeight: 20 },
   stepText: { flex: 1, fontFamily: 'Nunito_600SemiBold', fontSize: 16, lineHeight: 22 },
   skip: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
-  bigButton: { minHeight: 64 },
 });

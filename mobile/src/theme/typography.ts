@@ -19,6 +19,14 @@ export const type = {
   bodyBold: { fontFamily: fontFamily.bold, fontSize: 16, lineHeight: 22 },
   caption: { fontFamily: fontFamily.semibold, fontSize: 13, lineHeight: 18 },
   captionBold: { fontFamily: fontFamily.extrabold, fontSize: 13, lineHeight: 18 },
+  /** Section labels: 13/18 800, uppercase, 0.06em tracking, muted. */
+  sectionLabel: {
+    fontFamily: fontFamily.extrabold,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0.78,
+    textTransform: 'uppercase',
+  },
   /** Screen titles in the TopBar. */
   screenTitle: { fontFamily: fontFamily.extrabold, fontSize: 20, lineHeight: 26 },
   /** "It's a match!" */

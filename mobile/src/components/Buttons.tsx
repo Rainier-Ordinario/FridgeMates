@@ -11,22 +11,12 @@ interface PrimaryProps {
   onPress: () => void;
   style?: ViewStyle;
   tone?: 'brand' | 'danger' | 'success';
-  /** 64pt tall with a 20pt label: the one primary action on a screen. */
-  big?: boolean;
 }
 
 const tones = { brand: colors.brand, danger: colors.dangerStrong, success: colors.success } as const;
 
-/** Big thumb-reachable pill. Used for Scan, "Ate it", "I cooked it". */
-export function PrimaryButton({
-  label,
-  emoji,
-  icon,
-  onPress,
-  style,
-  tone = 'brand',
-  big = false,
-}: PrimaryProps) {
+/** Thumb-reachable 52pt pill with an 18pt label. Used for Scan, "Ate it", "I cooked it". */
+export function PrimaryButton({ label, emoji, icon, onPress, style, tone = 'brand' }: PrimaryProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -37,7 +27,6 @@ export function PrimaryButton({
       }}
       style={({ pressed }) => [
         styles.primary,
-        big && styles.primaryBig,
         { backgroundColor: tones[tone] },
         tone === 'brand' && shadow.button,
         pressed && styles.pressed,
@@ -45,11 +34,7 @@ export function PrimaryButton({
       ]}
     >
       {icon ?? (emoji ? <AppText style={styles.primaryEmoji}>{emoji}</AppText> : null)}
-      <AppText
-        variant="heading"
-        color={tone === 'danger' ? colors.surface : colors.brandInk}
-        style={big && styles.primaryBigLabel}
-      >
+      <AppText style={styles.primaryLabel} color={tone === 'danger' ? colors.surface : colors.brandInk}>
         {label}
       </AppText>
     </Pressable>
@@ -62,12 +47,14 @@ interface SecondaryProps {
   accessibilityLabel?: string;
   /** Outlined (2pt ink border) variant for scan results. */
   outlined?: boolean;
+  /** 52pt, for a secondary that sits next to a primary in a footer row. */
+  tall?: boolean;
   emoji?: string;
   onPress: () => void;
   style?: ViewStyle;
 }
 
-/** Labeled tonal button, 48pt: the quiet sibling of PrimaryButton. */
+/** Labeled tonal button, 44pt: the quiet sibling of PrimaryButton. */
 export function SecondaryButton({
   label,
   icon,
@@ -76,6 +63,7 @@ export function SecondaryButton({
   style,
   accessibilityLabel,
   outlined = false,
+  tall = false,
 }: SecondaryProps) {
   return (
     <Pressable
@@ -88,6 +76,7 @@ export function SecondaryButton({
       style={({ pressed }) => [
         styles.secondary,
         outlined && styles.secondaryOutlined,
+        tall && styles.secondaryTall,
         pressed && styles.pressed,
         style,
       ]}
@@ -112,7 +101,7 @@ interface RoundProps {
 }
 
 /** Small round tonal button (Chat, Match, back, etc.). */
-export function RoundButton({ emoji, icon, label, onPress, size = hit.primary, dark = false }: RoundProps) {
+export function RoundButton({ emoji, icon, label, onPress, size = hit.min, dark = false }: RoundProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -180,8 +169,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xl,
     borderRadius: radius.pill,
   },
-  primaryBig: { minHeight: 64, borderRadius: 32 },
-  primaryBigLabel: { fontFamily: 'Nunito_800ExtraBold', fontSize: 20, lineHeight: 26 },
+  primaryLabel: { fontFamily: 'Nunito_800ExtraBold', fontSize: 18, lineHeight: 24 },
   primaryEmoji: { fontSize: 22, lineHeight: 26 },
   secondary: {
     minHeight: hit.min,
@@ -195,7 +183,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.line,
   },
-  secondaryOutlined: { minHeight: 44, borderWidth: 2, borderColor: colors.ink },
+  secondaryOutlined: { borderWidth: 2, borderColor: colors.ink },
+  secondaryTall: { minHeight: 52 },
   secondaryEmoji: { fontSize: 18, lineHeight: 22 },
   round: {
     alignItems: 'center',

@@ -565,7 +565,6 @@ export default function FridgeScreen() {
           <PrimaryButton
             icon={<UiIcon icon="camera" size={24} />}
             label="Scan your fridge"
-            big
             onPress={() => router.push('/scan')}
             style={styles.scan}
           />

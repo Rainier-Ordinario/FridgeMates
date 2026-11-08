@@ -7,12 +7,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export function DockedFooter({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) + 10 }, style]}>
-      {children}
-    </View>
+    <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }, style]}>{children}</View>
   );
 }
 
+/** One footer row: a fixed-width secondary on the left and a flexing primary on the right, 10pt apart. */
+export function FooterRow({ children }: { children: React.ReactNode }) {
+  return <View style={styles.row}>{children}</View>;
+}
+
+/** Width of the secondary button in a FooterRow. */
+export const FOOTER_SECONDARY_WIDTH = 150;
+
 const styles = StyleSheet.create({
   footer: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 });
